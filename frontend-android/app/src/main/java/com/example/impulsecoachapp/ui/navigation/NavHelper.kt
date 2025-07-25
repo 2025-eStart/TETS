@@ -13,3 +13,4 @@ fun NavController.logoutAndNavigateToLogin(
         popUpTo(currentRoute) { inclusive = true }
     }
 }
+

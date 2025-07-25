@@ -1,12 +1,16 @@
-
 pluginManagement {
     repositories {
-        google()
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
 }
-/*
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -14,13 +18,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-*/
 
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-rootProject.name = "ImpulseCoachApp"
+rootProject.name = "ImpulseCoachAppV2"
 include(":app")
+ 

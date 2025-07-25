@@ -1,5 +1,6 @@
 package com.example.impulsecoachapp.viewmodel
 
+import android.util.Log // ✅ Log import 추가
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +15,11 @@ import androidx.lifecycle.ViewModel
 class UserViewModel : ViewModel() {
     var isLoggedIn by mutableStateOf(true)
         private set
+
+    // ✅ UserViewModel이 생성되는 시점을 기록하기 위해 init 블록 추가
+    init {
+        Log.d("AltBehaviorDebug", "UserViewModel이 생성되었습니다.")
+    }
 
     fun logout() {
         // FirebaseAuth.getInstance().signOut() 같은 로직; firebase 로그인 시 수정할 것

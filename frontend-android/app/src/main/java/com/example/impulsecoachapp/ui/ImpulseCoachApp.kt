@@ -15,7 +15,7 @@ fun ImpulseCoachApp() {
     val navController = rememberNavController()
 
     // 2. 현재 선택된 탭의 상태를 기억
-    var currentTab by remember { mutableStateOf(BottomTab.Chat) }
+    var currentTab by remember { mutableStateOf(BottomTab.Report) }
 
     // 3. AppNavHost를 호출하여 전체 네비게이션 시스템을 구성
     AppNavHost(

@@ -1,4 +1,4 @@
-package com.example.impulsecoachapp.model.chat
+package com.example.impulsecoachapp.data.model.chat
 
 sealed class ChatMessage {
     data class GuideMessage(val text: String) : ChatMessage()
