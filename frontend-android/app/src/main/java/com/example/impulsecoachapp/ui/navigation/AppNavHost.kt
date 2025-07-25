@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
+import com.example.impulsecoachapp.model.chat.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.screens.altbehavior.AltBehaviorScreen
 import com.example.impulsecoachapp.ui.screens.chat.ChatScreen
@@ -25,7 +25,7 @@ fun AppNavHost(
     )
     NavHost(
         navController = navController,
-        startDestination = BottomTab.Report.name
+        startDestination = BottomTab.Chat.name
     ) {
         composable(BottomTab.Game.name) {
             GameScreen(

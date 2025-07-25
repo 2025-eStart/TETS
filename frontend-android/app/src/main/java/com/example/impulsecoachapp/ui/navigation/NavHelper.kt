@@ -1,7 +1,7 @@
 package com.example.impulsecoachapp.ui.navigation
 
 import androidx.navigation.NavController
-import com.example.impulsecoachapp.viewmodels.UserViewModel
+import com.example.impulsecoachapp.viewmodel.UserViewModel
 
 fun NavController.logoutAndNavigateToLogin(
     userViewModel: UserViewModel,
@@ -13,4 +13,3 @@ fun NavController.logoutAndNavigateToLogin(
         popUpTo(currentRoute) { inclusive = true }
     }
 }
-

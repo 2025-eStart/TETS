@@ -3,33 +3,38 @@ package com.example.impulsecoachapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
-import com.example.impulsecoachapp.ui.screens.MainScreen
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.impulsecoachapp.ui.ImpulseCoachApp
+import com.example.impulsecoachapp.ui.screens.report.ReportScreen
 import com.example.impulsecoachapp.ui.theme.ImpulseCoachAppTheme
-import com.example.impulsecoachapp.utils.PermissionUtils
-import com.example.impulsecoachapp.viewmodels.MainViewModel
 
 class MainActivity : ComponentActivity() {
-
-    // ✅ by viewModels()를 통해 ViewModel 인스턴스 생성
-    private val viewModel: MainViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             ImpulseCoachAppTheme {
-                MainScreen(
-                    uiState = viewModel.uiState,
-                    onDialogDismissed = viewModel::onDialogDismissed
-                )
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    ImpulseCoachApp()
+                }
             }
         }
     }
+}
 
-    override fun onResume() {
-        super.onResume()
-        // ✅ 권한 확인 후, 결과를 ViewModel에 전달
-        val isGranted = PermissionUtils.isNotificationPermissionGranted(this)
-        viewModel.onPermissionResult(isGranted)
+@Preview(showBackground = true)
+@Composable
+fun DefaultPreview() {
+    ImpulseCoachAppTheme {
+        ImpulseCoachApp()
     }
 }

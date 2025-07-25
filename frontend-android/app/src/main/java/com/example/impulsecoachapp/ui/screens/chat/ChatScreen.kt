@@ -16,19 +16,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.impulsecoachapp.R
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
+import com.example.impulsecoachapp.model.chat.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
 
@@ -65,46 +57,7 @@ fun ChatScreen(
             MessageList(
                 messages = messages,
                 onOptionSelected = { viewModel.handleUserSelection(it) },
-                modifier = Modifier.weight(1f) // [수정] 메시지 리스트가 남은 공간을 모두 차지하도록
-            )
-            // [추가] 사용자 입력 컴포저블
-            UserInput(
-                onSendMessage = { text ->
-                    viewModel.sendMessage(text)
-                }
-            )
-        }
-    }
-}
-
-// [추가] 사용자 입력을 위한 컴포저블
-@Composable
-fun UserInput(onSendMessage: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = text,
-            onValueChange = { text = it },
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("메시지를 입력하세요...") }
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        IconButton(onClick = {
-            if (text.isNotBlank()) {
-                onSendMessage(text)
-                text = "" // 메시지 전송 후 입력창 비우기
-            }
-        }) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Send Message",
-                tint = Color.Gray
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -180,9 +133,6 @@ fun ChatBubble(message: ChatMessage, onOptionSelected: (String) -> Unit) {
             }
         }
         is ChatMessage.ChoiceMessage -> {
-            // [수정] 선택지 버튼 UI는 그대로 두거나, 텍스트 입력과 병행할 수 있도록 유지합니다.
-            // 여기서는 사용자가 텍스트로 자유롭게 입력하는 것이 주된 시나리오이므로,
-            // 이 UI가 나타나는 빈도는 줄어들 수 있습니다.
             Column {
                 message.options.forEach { option ->
                     Button(
