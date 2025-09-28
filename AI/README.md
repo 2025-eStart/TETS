@@ -20,7 +20,9 @@ AI/
     questionnaire.json       # BAS 문항(10), 가중치/컷오프
     scorer.py                # BAS 점수 산출/정규화/위험 등급 계산
   coach/
-    policy/alternatives.json # 도메인별 대체행동 풀(배달/간식/쇼핑/구독…)
+    policy/
+        alternatives_matrix.json    # 도메인별-BAS별 대체행동 풀
+        selector_matrix.py              
     generator.py             # 프롬프트 조합 및 LLM 호출 래퍼
     postprocess.py           # 개수(5~7개), 길이, 중복/금칙어 필터
   data/
