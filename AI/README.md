@@ -16,11 +16,9 @@ AI/
     system/coach.md          # “여우” 톤/가드레일/단락 ≤2 등
     user/coach_templates.md  # 사용자 입력 템플릿(일기+알림 합성 등)
     tools/schemas.json       # (선택) 함수호출/툴 스키마
-  scoring/
-    bas/questionnaire.json   # BAS 문항(8~10), 가중치/컷오프
-    bas/scorer.py            # BAS 점수 산출/정규화/위험 등급 계산
-    rst/mapping.json         # RST 카테고리 매핑
-    rst/scorer.py
+  bas_scoring/
+    questionnaire.json       # BAS 문항(8~10), 가중치/컷오프
+    scorer.py                # BAS 점수 산출/정규화/위험 등급 계산
   coach/
     policy/alternatives.json # 도메인별 대체행동 풀(배달/간식/쇼핑/구독…)
     generator.py             # 프롬프트 조합 및 LLM 호출 래퍼
