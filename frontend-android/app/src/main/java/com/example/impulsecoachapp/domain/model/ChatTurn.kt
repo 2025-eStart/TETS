@@ -1,6 +1,6 @@
 package com.example.impulsecoachapp.domain.model
 
-import com.example.impulsecoachapp.data.model.chat.ChatMessage // 기존 모델 재활용
+import com.example.impulsecoachapp.domain.model.ChatMessage // 기존 모델 재활용
 
 /**
  * ViewModel이 사용할 채팅 응답 도메인 모델

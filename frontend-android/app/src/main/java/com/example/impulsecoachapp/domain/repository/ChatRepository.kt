@@ -1,4 +1,4 @@
-package com.example.impulsecoachapp.ui.screens.chat
+package com.example.impulsecoachapp.domain.repository
 
 import com.example.impulsecoachapp.domain.model.ChatTurn
 

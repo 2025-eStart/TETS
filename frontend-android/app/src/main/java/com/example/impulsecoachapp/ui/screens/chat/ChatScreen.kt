@@ -2,89 +2,120 @@ package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.impulsecoachapp.R
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
+import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
+import com.example.impulsecoachapp.ui.theme.ImpulseCoachAppTheme // [추가] 2번 오류 해결
+import kotlinx.coroutines.launch
 
+/**
+ * 1. "Smart" Composable (Route)
+ * - ViewModel을 주입받고, 상태를 수집하여 "Dumb" Composable에 전달합니다.
+ */
 @Composable
 fun ChatScreen(
     selectedTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit,
     onBackPressed: () -> Unit,
-    viewModel: ChatViewModel = viewModel()
+    viewModel: ChatViewModel = hiltViewModel() // Hilt로 ViewModel 주입
 ) {
     val messages by viewModel.messages.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val isSessionEnded by viewModel.isSessionEnded.collectAsState()
 
     ScreenScaffold(
         selectedTab = selectedTab,
         onTabSelected = onTabSelected
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .background(Color(0xFFF7F6FB))
-        ) {
-            TopDateTimeBar()
-            MessageList(
-                messages = messages,
-                onOptionSelected = { viewModel.handleUserSelection(it) },
-                modifier = Modifier.weight(1f) // [수정] 메시지 리스트가 남은 공간을 모두 차지하도록
-            )
-            // [추가] 사용자 입력 컴포저블
-            UserInput(
-                onSendMessage = { text ->
-                    viewModel.sendMessage(text)
-                }
-            )
-        }
+        // 2. 상태와 람다를 "Dumb" Composable인 ChatScreenContent에 전달
+        ChatScreenContent(
+            modifier = Modifier.padding(innerPadding),
+            messages = messages,
+            isLoading = isLoading,
+            isSessionEnded = isSessionEnded,
+            onSendMessage = { text ->
+                viewModel.sendMessage(text)
+            }
+        )
     }
 }
 
-// [추가] 사용자 입력을 위한 컴포저블
+/**
+ * 3. "Dumb" Composable (Content)
+ * - ViewModel을 모르며, 오직 받은 데이터로 UI만 그립니다.
+ * - 이 함수는 Preview가 매우 쉽습니다.
+ */
 @Composable
-fun UserInput(onSendMessage: (String) -> Unit) {
+fun ChatScreenContent(
+    modifier: Modifier = Modifier,
+    messages: List<ChatMessage>,
+    isLoading: Boolean,
+    isSessionEnded: Boolean,
+    onSendMessage: (String) -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7F6FB))
+    ) {
+        TopDateTimeBar()
+        MessageList(
+            messages = messages,
+            modifier = Modifier.weight(1f)
+        )
+        UserInput(
+            isLoading = isLoading,
+            isSessionEnded = isSessionEnded,
+            onSendMessage = onSendMessage
+        )
+    }
+}
+
+
+// [수정 없음] UserInput (이전과 동일)
+@Composable
+fun UserInput(
+    isLoading: Boolean,
+    isSessionEnded: Boolean,
+    onSendMessage: (String) -> Unit
+) {
     var text by remember { mutableStateOf("") }
+
+    if (isSessionEnded) {
+        Text(
+            text = "상담이 종료되었습니다.",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        return
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color.White)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -92,25 +123,42 @@ fun UserInput(onSendMessage: (String) -> Unit) {
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.weight(1f),
-            placeholder = { Text("메시지를 입력하세요...") }
+            placeholder = { Text("메시지를 입력하세요...") },
+            enabled = !isLoading,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFF7F6FB),
+                unfocusedContainerColor = Color(0xFFF7F6FB),
+                disabledContainerColor = Color(0xFFF0F0F0),
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            shape = RoundedCornerShape(12.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        IconButton(onClick = {
-            if (text.isNotBlank()) {
-                onSendMessage(text)
-                text = "" // 메시지 전송 후 입력창 비우기
+
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(48.dp))
+        } else {
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onSendMessage(text)
+                        text = ""
+                    }
+                },
+                enabled = text.isNotBlank()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = "Send Message",
+                    tint = if (text.isNotBlank()) Color(0xFF6200EE) else Color.Gray
+                )
             }
-        }) {
-            Icon(
-                imageVector = Icons.Default.Send,
-                contentDescription = "Send Message",
-                tint = Color.Gray
-            )
         }
     }
 }
 
-
+// [수정 없음] TopDateTimeBar (이전과 동일)
 @Composable
 fun TopDateTimeBar() {
     Row(
@@ -130,29 +178,44 @@ fun TopDateTimeBar() {
     }
 }
 
+// [수정 없음] MessageList (이전과 동일, 1번 오류 해결을 위해 import만 추가)
 @Composable
 fun MessageList(
     messages: List<ChatMessage>,
-    onOptionSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope() // [추가] 1번 오류 해결
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            coroutineScope.launch {
+                listState.animateScrollToItem(messages.size - 1)
+            }
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier
             .fillMaxWidth()
-            .padding(12.dp),
-        reverseLayout = true
+            .padding(12.dp)
     ) {
-        items(messages.reversed()) { msg ->
-            ChatBubble(message = msg, onOptionSelected = onOptionSelected)
+        items(messages) { msg ->
+            ChatBubble(message = msg)
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
+// [수정 없음] ChatBubble (이전과 동일)
 @Composable
-fun ChatBubble(message: ChatMessage, onOptionSelected: (String) -> Unit) {
+fun ChatBubble(message: ChatMessage) {
     when (message) {
-        is ChatMessage.GuideMessage -> Row {
+        is ChatMessage.GuideMessage -> Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_chatbot),
                 contentDescription = "Guide",
@@ -163,6 +226,7 @@ fun ChatBubble(message: ChatMessage, onOptionSelected: (String) -> Unit) {
                 modifier = Modifier
                     .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(12.dp))
                     .padding(12.dp)
+                    .weight(1f, fill = false)
             ) {
                 Text(text = message.text, fontSize = 16.sp)
             }
@@ -175,36 +239,38 @@ fun ChatBubble(message: ChatMessage, onOptionSelected: (String) -> Unit) {
                 modifier = Modifier
                     .background(Color(0xFFE9E0FA), shape = RoundedCornerShape(12.dp))
                     .padding(12.dp)
+                    .weight(1f, fill = false)
             ) {
                 Text(text = message.text, fontSize = 16.sp)
-            }
-        }
-        is ChatMessage.ChoiceMessage -> {
-            // [수정] 선택지 버튼 UI는 그대로 두거나, 텍스트 입력과 병행할 수 있도록 유지합니다.
-            // 여기서는 사용자가 텍스트로 자유롭게 입력하는 것이 주된 시나리오이므로,
-            // 이 UI가 나타나는 빈도는 줄어들 수 있습니다.
-            Column {
-                message.options.forEach { option ->
-                    Button(
-                        onClick = { onOptionSelected(option) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Text(option)
-                    }
-                }
             }
         }
     }
 }
 
+/**
+ * 4. [수정] Preview가 "Dumb" Composable인 ChatScreenContent를 호출
+ * - HiltViewModel()과 관련이 없어지므로 3번 오류가 해결됩니다.
+ */
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
 fun PreviewChatScreen() {
-    ChatScreen(
-        selectedTab = BottomTab.Chat,
-        onTabSelected = {},
-        onBackPressed = {}
-    )
+    ImpulseCoachAppTheme { // 2번 오류 해결
+        // 가짜 데이터 생성
+        val fakeMessages = listOf(
+            ChatMessage.GuideMessage("안녕! 나는 너의 소비 습관을 함께 돌아볼 임펄스 코치야. 오늘 어떤 일이 있었니?"),
+            ChatMessage.UserResponse("네 있었어요"),
+            ChatMessage.GuideMessage("무슨 소비였는지 말해줄 수 있어?"),
+            ChatMessage.UserResponse("밤에 쇼핑앱을 너무 오래 봤어요."),
+            ChatMessage.GuideMessage("그렇구나, 쇼핑앱을 볼 때 기분이 어땠어?"),
+            ChatMessage.UserResponse("그냥... 스트레스가 풀리는 것 같았어요."),
+            ChatMessage.GuideMessage("스트레스가 풀리는 느낌이었구나.")
+        )
+
+        ChatScreenContent(
+            messages = fakeMessages,
+            isLoading = false,
+            isSessionEnded = false,
+            onSendMessage = {} // Preview에서는 아무것도 안 함
+        )
+    }
 }

@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt) // Kapt 플러그인 적용
+    alias(libs.plugins.hilt)        // Hilt 플러그인 적용
 }
 
 android {
@@ -42,15 +44,19 @@ android {
 }
 
 dependencies {
+    // Compose BOM을 추가
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom) // 테스트에서도 BOM 적용
+
     //App & UI
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material)
+    //implementation(libs.androidx.material)
     implementation(libs.androidx.material3)
 
     //architecture
@@ -61,6 +67,13 @@ dependencies {
     //Firebase
     implementation(libs.firebase.auth)
     implementation(platform(libs.firebase.bom))
+
+    // Hilt Core
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+
+    // Hilt + ViewModel (Compose UI 사용 시)
+    implementation(libs.hilt.navigation.compose)
 
     //Retrofit
     implementation(libs.square.retrofit)
