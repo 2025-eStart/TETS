@@ -1,29 +1,53 @@
 package com.example.impulsecoachapp.data.repository
-
+import com.example.impulsecoachapp.api.ApiService
+import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.data.model.chat.ChatRequest
-import com.example.impulsecoachapp.api.RetrofitClient
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
-import com.example.impulsecoachapp.ui.screens.chat.ChatRepository
+import com.example.impulsecoachapp.domain.model.ChatTurn
+import com.example.impulsecoachapp.domain.repository.ChatRepository
+import com.google.firebase.auth.FirebaseAuth
+import java.util.Date
 
-class ActualChatRepository : ChatRepository {
-    override suspend fun getNextMessage(userInput: String): ChatMessage {
+class ActualChatRepository(
+    private val apiService: ApiService,
+    private val auth: FirebaseAuth
+) : ChatRepository {
+
+    override suspend fun sendChatMessage(
+        text: String,
+        endSession: Boolean // 인터페이스를 따르도록 기본값 제거
+    ): Result<ChatTurn> {
         return try {
-            val response = RetrofitClient.apiService.sendChat(ChatRequest(userInput))
-            if (response.isSuccessful) {
-                val data = response.body()?.data
-                if (data != null) {
-                    // 받아온 응답을 앱 내부 메시지 형식으로 변환
-                    ChatMessage.GuideMessage(
-                        "감정: ${data.emotion}, 소비: ${data.spending}, 추천 행동: ${data.action}"
-                    )
-                } else {
-                    ChatMessage.GuideMessage("응답 데이터가 비어 있어요.")
-                }
-            } else {
-                ChatMessage.GuideMessage("서버 응답 실패 (${response.code()})")
+            val uid = auth.currentUser?.uid
+            if (uid == null) {
+                return Result.failure(Exception("사용자가 인증되지 않았습니다."))
             }
+
+            val request = ChatRequest(
+                uid = uid,
+                text = text,
+                end = endSession
+            )
+
+            val response = apiService.chatNext(request)
+
+            // 백엔드의 응답 텍스트 추출
+            val assistantMessageText = response.reply.action
+
+            // 3. [중요!] ChatMessage.Assistant 하위 클래스로 생성
+            val assistantMessage = ChatMessage.GuideMessage(
+                text = assistantMessageText
+            )
+
+            val chatTurn = ChatTurn(
+                assistantMessage = assistantMessage,
+                isSessionEnded = response.isEnded,
+                homework = response.homework
+            )
+
+            Result.success(chatTurn)
+
         } catch (e: Exception) {
-            ChatMessage.GuideMessage("네트워크 오류: ${e.message}")
+            Result.failure(e)
         }
     }
 }

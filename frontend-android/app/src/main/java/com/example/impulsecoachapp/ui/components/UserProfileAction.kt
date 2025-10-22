@@ -3,7 +3,7 @@ package com.example.impulsecoachapp.ui.components
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 import com.example.impulsecoachapp.ui.navigation.logoutAndNavigateToLogin
-import com.example.impulsecoachapp.viewmodels.UserViewModel
+import com.example.impulsecoachapp.viewmodel.UserViewModel
 
 @Composable
 fun UserProfileAction(
