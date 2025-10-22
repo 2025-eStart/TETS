@@ -20,12 +20,18 @@ android {
     }
 
     buildTypes {
+        debug{
+            // 디버그: 내부 IP(HTTP) — 개발 편의용
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.68.136:8080/\"")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 릴리즈: 반드시 HTTPS 운영 도메인
+            buildConfigField("String", "API_BASE_URL", "\"https://api.yourdomain.com/\"")
         }
     }
     compileOptions {
@@ -37,8 +43,10 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
 }
 
 dependencies {
@@ -68,6 +76,9 @@ dependencies {
     implementation(libs.square.retrofit)
     implementation(libs.square.converter.gson)
     implementation(libs.kotlinx.coroutines.android)
+
+    //OkHttp logging
+    implementation(libs.logging.interceptor)
 
     //Testing
     testImplementation(libs.junit)
