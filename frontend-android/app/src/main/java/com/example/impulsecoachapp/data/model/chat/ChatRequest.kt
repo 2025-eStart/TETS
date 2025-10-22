@@ -11,7 +11,7 @@ import com.google.gson.annotations.SerializedName
  * @param stepHint (선택 사항)
  * @param end 이 메시지로 세션을 종료할지 여부 (기본 false)
  */
-data class ChatNextRequest(
+data class ChatRequest(
     @SerializedName("uid") val uid: String,
     @SerializedName("text") val text: String,
     @SerializedName("week") val week: Int? = null,
