@@ -1,7 +1,0 @@
-package com.example.impulsecoachapp.ui.screens.chat
-
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
-
-interface ChatRepository {
-    suspend fun getNextMessage(userInput: String): ChatMessage
-}
