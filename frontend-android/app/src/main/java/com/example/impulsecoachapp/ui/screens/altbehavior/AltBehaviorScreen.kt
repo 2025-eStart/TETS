@@ -15,7 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
-import com.example.impulsecoachapp.viewmodels.UserViewModel
+import com.example.impulsecoachapp.viewmodel.UserViewModel
 
 @Composable
 fun AltBehaviorScreen(

@@ -46,17 +46,15 @@ class ReportViewModel : ViewModel() {
             _uiState.update { it.copy(isLoading = true, selectedDate = date) }
 
             // (임시) 더미 데이터 생성
-            // todo: FastAPI와 연동하여 실제 데이터를 가져오는 로직으로 교체해야 합니다.
             val dummyTransactions = if (date == LocalDate.of(2025, 7, 2)) {
                 (1..10).map {
                     Transaction(
-                        transactionId = UUID.randomUUID().toString(),
-                        date = "2025-07-01",
-                        time = "14:25",
-                        content = if (it == 6) "카카오톡 선물" else "배민",
+                        id = UUID.randomUUID().toString(),
+                        time = LocalTime.of(16, 5),
+                        description = if (it == 6) "카카오톡 선물" else "배민",
                         amount = 25000,
-                        method = "신한체크",
-                        isImpulsive = false
+                        paymentMethod = "신한체크",
+                        isImpulseBuy = false
                     )
                 }
             } else {
@@ -88,8 +86,8 @@ class ReportViewModel : ViewModel() {
     fun onImpulseCheckChanged(transaction: Transaction, isChecked: Boolean) {
         // TODO: FastAPI 서버에 변경된 상태를 전송하는 API 호출 로직 추가
         val updatedTransactions = _uiState.value.transactions.map {
-            if (it.transactionId == transaction.transactionId) {
-                it.copy(isImpulsive = isChecked)
+            if (it.id == transaction.id) {
+                it.copy(isImpulseBuy = isChecked)
             } else {
                 it
             }

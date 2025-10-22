@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
+import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.screens.altbehavior.AltBehaviorScreen
 import com.example.impulsecoachapp.ui.screens.chat.ChatScreen
@@ -20,8 +20,7 @@ fun AppNavHost(
     // 예시용 더미 메시지
     val sampleMessages = listOf(
         ChatMessage.GuideMessage("안녕! 오늘의 소비 습관을 함께 알아보자!"),
-        ChatMessage.UserResponse("네, 좋아요."),
-        ChatMessage.ChoiceMessage(listOf("좋았어요", "그저 그랬어요", "별로였어요"))
+        ChatMessage.UserResponse("네, 좋아요.")
     )
     NavHost(
         navController = navController,

@@ -1,23 +1,5 @@
 package com.example.impulsecoachapp.ui.screens.chat
 
-import com.example.impulsecoachapp.data.model.chat.ChatMessage
-import kotlinx.coroutines.delay
-
-////////////////// API 연동 없는 버전 //////////////////
-class DummyChatRepository : ChatRepository {
-    override suspend fun getNextMessage(userInput: String): ChatMessage {
-        // API 호출을 흉내 내기 위한 약간의 딜레이
-        delay(1000)
-
-        // [수정] 기존 when 문을 확장하여 모든 텍스트 입력을 처리
-        return when (userInput) {
-            "네 있었어요" -> ChatMessage.GuideMessage("무슨 소비였는지 말해줄 수 있어?")
-            "잘 모르겠어요" -> ChatMessage.GuideMessage("최근에 충동적이었다고 느낀 순간이 있을까?")
-            else -> ChatMessage.GuideMessage("그렇구나, '$userInput'에 대해 좀 더 자세히 이야기해줄래?")
-        }
-    }
-}
-
 ////////////////// API 연동 버전 //////////////////
 /*
 // [전체 흐름]
@@ -28,7 +10,7 @@ class DummyChatRepository : ChatRepository {
 package com.example.impulsecoachapp.data.ActualChat // 패키지 경로는 예시입니다.
 
 import com.example.impulsecoachapp.model.chat.ChatMessage
-import com.example.impulsecoachapp.ui.screens.chat.ChatRepository
+import com.example.impulsecoachapp.domain.repository.ChatRepository
 
 // Retrofit Service 인터페이스가 필요합니다.
 // interface ChatApiService {

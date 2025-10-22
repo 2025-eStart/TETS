@@ -134,7 +134,7 @@ fun TransactionList(
                 )
             }
         } else {
-            items(transactions, key = { it.transactionId }) { transaction ->
+            items(transactions, key = { it.id }) { transaction ->
                 TransactionListItem(
                     transaction = transaction,
                     onClick = { onTransactionClick(transaction) },
@@ -163,17 +163,17 @@ fun TransactionListItem(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(transaction.time.format(DateTimeFormatter.ofPattern("HH:mm")), color = Color.White, modifier = Modifier.weight(1.5f))
-        Text(transaction.content, color = Color.White, modifier = Modifier.weight(2f))
+        Text(transaction.description, color = Color.White, modifier = Modifier.weight(2f))
         Text(
             text = "%,d원".format(transaction.amount),
             color = Color.White,
             modifier = Modifier.weight(2f),
             textAlign = TextAlign.End
         )
-        Text(transaction.method, color = Color.White, modifier = Modifier.weight(2f), textAlign = TextAlign.Center)
+        Text(transaction.paymentMethod, color = Color.White, modifier = Modifier.weight(2f), textAlign = TextAlign.Center)
         Box(modifier = Modifier.weight(1.5f), contentAlignment = Alignment.Center) {
             Checkbox(
-                checked = transaction.isImpulsive,
+                checked = transaction.isImpulseBuy,
                 onCheckedChange = onCheckChanged
             )
         }
