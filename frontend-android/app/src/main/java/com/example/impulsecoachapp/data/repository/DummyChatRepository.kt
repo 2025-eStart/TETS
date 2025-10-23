@@ -8,21 +8,24 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 ////////////////// API 연동 없는 버전 //////////////////
-@Singleton // [추가] Hilt가 관리하도록 싱글톤 설정
+@Singleton
 class DummyChatRepository @Inject constructor() : ChatRepository {
 
-    // [수정] 인터페이스의 'sendChatMessage' 함수를 구현(override)합니다.
+    // 1. 대화 시나리오의 "단계"를 기억할 상태 변수
+    private var conversationStep = 0
+
     override suspend fun sendChatMessage(
         text: String,
         endSession: Boolean
     ): Result<ChatTurn> {
 
-        // API 호출 흉내
+        // API 호출을 흉내 내기 위한 1초 딜레이
         delay(1000)
 
-        // 세션 종료 요청(endSession=true)을 먼저 처리합니다.
+        // 2. 사용자가 "종료"를 누르면, 시나리오와 관계없이 즉시 종료
         if (endSession) {
-            val endMessage = ChatMessage.GuideMessage("상담이 종료되었습니다. 수고하셨습니다.")
+            conversationStep = 0 // (데모를 위해) 세션 리셋
+            val endMessage = ChatMessage.GuideMessage("알겠어, 오늘 상담은 여기까지 하자! 수고했어.")
             val chatTurn = ChatTurn(
                 assistantMessage = endMessage,
                 isSessionEnded = true,
@@ -31,20 +34,45 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
             return Result.success(chatTurn)
         }
 
-        // [수정] 기존 'getNextMessage'의 로직을 그대로 사용합니다. (userInput -> text)
-        val botMessage = when (text) {
-            "네 있었어요" -> ChatMessage.GuideMessage("무슨 소비였는지 말해줄 수 있어?")
-            "잘 모르겠어요" -> ChatMessage.GuideMessage("최근에 충동적이었다고 느낀 순간이 있을까?")
-            else -> ChatMessage.GuideMessage("그렇구나, '$text'에 대해 좀 더 자세히 이야기해줄래?")
+        // 3. (핵심) 사용자가 무엇을 입력하든(text), 정해진 시나리오대로 응답
+        val replyMessage: ChatMessage
+        var isEnded = false
+
+        when (conversationStep) {
+            // ViewModel의 init 메시지("...오늘 어떤 일이 있었니?")에 대한 첫 번째 응답
+            0 -> {
+                replyMessage = ChatMessage.GuideMessage("그렇구나, 쇼핑앱을 볼 때 기분이 어땠어?")
+            }
+            // "스트레스 풀렸어요" (예시)에 대한 두 번째 응답
+            1 -> {
+                replyMessage = ChatMessage.GuideMessage("스트레스가 풀리는 느낌이었구나. 혹시 쇼핑 말고 스트레스를 풀 수 있는 다른 방법이 있을까?")
+            }
+            // "산책?" (예시)에 대한 세 번째 응답 (세션 종료)
+            2 -> {
+                replyMessage = ChatMessage.GuideMessage("좋은 생각이야! 다음엔 쇼핑앱을 켜기 전에 10분 정도 가볍게 산책해보는 건 어때? (상담 종료)")
+                isEnded = true // 챗봇이 대화를 종료시킴
+            }
+            // 3단계 이후의 모든 메시지 (세션이 이미 종료됨)
+            else -> {
+                replyMessage = ChatMessage.GuideMessage("오늘 상담은 종료되었어. 내일 또 얘기하자!")
+                isEnded = true
+            }
         }
 
-        // [수정] 반환 타입을 Result<ChatTurn>에 맞춥니다.
+        // 4. 다음 메시지를 위해 단계를 1 증가시킴
+        if (isEnded) {
+            // 세션이 종료되면, 다음 데모를 위해 단계를 리셋
+            conversationStep = 0
+        } else {
+            conversationStep++
+        }
+
         val chatTurn = ChatTurn(
-            assistantMessage = botMessage,
-            isSessionEnded = false, // 기본값은 false
+            assistantMessage = replyMessage,
+            isSessionEnded = isEnded,
             homework = null
         )
+
         return Result.success(chatTurn)
     }
-
 }
