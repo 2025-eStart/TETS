@@ -1,5 +1,6 @@
 [versions]
 agp = "8.11.2"
+# [해결 1] Hilt 호환성을 위해 브랜치의 '2.0.0' 버전을 선택
 kotlin = "2.0.0"
 coreKtx = "1.16.0"
 firebaseBom = "33.16.0"
@@ -13,11 +14,12 @@ composeBom = "2025.06.01"
 material = "1.8.3"
 retrofit = "2.9.0"
 coroutines-android = "1.7.1"
-composeMaterialIcons = "1.7.8"
-okhttp = "4.12.0"
-hilt = "2.50"
-hiltNavigationCompose = "1.2.0"
-kotlinKapt = "2.0.0"
+# [해결 2] main과 브랜치의 버전을 모두 합침
+composeMaterialIcons = "1.7.8"   # (main에서 가져옴)
+okhttp = "4.12.0"              # (main에서 가져옴)
+hilt = "2.50"                  # (브랜치에서 가져옴)
+hiltNavigationCompose = "1.2.0"  # (브랜치에서 가져옴)
+kotlinKapt = "2.0.0"           # (브랜치에서 가져옴)
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -53,7 +55,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 # Navigation
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
-# Retrofit
+# Retrofit (이 부분은 충돌나지 않은 원래 Retrofit 정의)
 square-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 square-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines-android" }
@@ -65,9 +67,8 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 
-# OkHttp 로거
+# [해결 3] main의 중복 Retrofit 정의는 삭제하고, 유용한 OkHttp 로거만 남김
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
-
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -75,5 +76,3 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlinKapt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-    
-
