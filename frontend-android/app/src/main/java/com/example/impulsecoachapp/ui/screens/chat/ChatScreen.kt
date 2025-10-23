@@ -1,11 +1,5 @@
 package com.example.impulsecoachapp.ui.screens.chat
 
-// [추가] 1. 날짜/시간 포맷팅을 위한 import
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-// [추가] ------------------------------
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,8 +26,10 @@ import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
 import com.example.impulsecoachapp.ui.theme.ImpulseCoachAppTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 
 /**
  * 1. "Smart" Composable (Route)
@@ -55,7 +52,8 @@ fun ChatScreen(
     ) { innerPadding ->
 // 2. 상태와 람다를 "Dumb" Composable인 ChatScreenContent에 전달
         ChatScreenContent(
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier,
+            innerPadding = innerPadding,
             messages = messages,
             isLoading = isLoading,
             isSessionEnded = isSessionEnded,
@@ -74,17 +72,36 @@ fun ChatScreen(
 @Composable
 fun ChatScreenContent(
     modifier: Modifier = Modifier,
+    innerPadding: PaddingValues,
     messages: List<ChatMessage>,
     isLoading: Boolean,
     isSessionEnded: Boolean,
     onSendMessage: (String) -> Unit
 ) {
+    // [수정 5] 수평 패딩 계산을 위해 layoutDirection 가져오기
+    val layoutDirection = LocalLayoutDirection.current
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF7F6FB))
+            // [수정 6] 상단과 수평 패딩은 innerPadding에서 직접 가져와 적용합니다.
+            .padding(
+                top = innerPadding.calculateTopPadding(),
+                start = innerPadding.calculateStartPadding(layoutDirection),
+                end = innerPadding.calculateEndPadding(layoutDirection)
+            )
+            // [수정 7] 하단 패딩을 동적으로 계산합니다.
+            // 1. 키보드 인셋(ime)과
+            // 2. Scaffold의 하단 탭 바 인셋(innerPadding.bottom)을
+            // .union()을 사용해 둘 중 '더 큰(max)' 값으로 적용합니다.
+            .windowInsetsPadding(
+                WindowInsets.ime.union(
+                    // innerPadding의 하단 값만 WindowInsets으로 변환하여 union
+                    WindowInsets(bottom = innerPadding.calculateBottomPadding())
+                )
+            )
     ) {
-        TopDateTimeBar() // [수정] 이 함수가 이제 현재 시간을 표시합니다.
+        TopDateTimeBar() // 현재 시간을 표시
         MessageList(
             messages = messages,
             modifier = Modifier.weight(1f)
@@ -92,7 +109,8 @@ fun ChatScreenContent(
         UserInput(
             isLoading = isLoading,
             isSessionEnded = isSessionEnded,
-            onSendMessage = onSendMessage
+            onSendMessage = onSendMessage,
+            modifier = Modifier
         )
     }
 }
@@ -102,14 +120,15 @@ fun ChatScreenContent(
 fun UserInput(
     isLoading: Boolean,
     isSessionEnded: Boolean,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var text by remember { mutableStateOf("") }
 
     if (isSessionEnded) {
         Text(
             text = "상담이 종료되었습니다.",
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             color = Color.Gray,
@@ -119,7 +138,7 @@ fun UserInput(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
             .padding(8.dp),
@@ -129,7 +148,7 @@ fun UserInput(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.weight(1f),
-            // [수정 1] 플레이스홀더 색상 Gray로 고정
+            // 플레이스홀더 색상 Gray로 고정
             placeholder = { Text("메시지를 입력하세요...", color = Color.Gray) },
             enabled = !isLoading,
             colors = TextFieldDefaults.colors(
@@ -139,7 +158,7 @@ fun UserInput(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
 
-                // [수정 2] 입력 텍스트 색상 Black으로 고정
+                // 입력 텍스트 색상 Black으로 고정
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             ),
@@ -172,7 +191,7 @@ fun UserInput(
 
 @Composable
 fun TopDateTimeBar() {
-// [추가] 2. remember를 사용해 현재 날짜/시간을 계산 (성능 최적화)
+// remember를 사용해 현재 날짜/시간을 계산 (성능 최적화)
     val (currentDate, currentTime) = remember {
         val now = Date()
         val dateFormat = SimpleDateFormat("yyyy.MM.dd.E", Locale.KOREAN)
@@ -187,7 +206,7 @@ fun TopDateTimeBar() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-// [수정] 3. 고정된 텍스트 대신 계산된 변수 사용
+// 고정된 텍스트 대신 계산된 변수 사용
         Text(currentDate, fontSize = 14.sp, color = Color.Gray)
         Text(currentTime, fontSize = 14.sp, color = Color.Gray)
         Image(
@@ -247,7 +266,7 @@ fun ChatBubble(message: ChatMessage) {
                     .padding(12.dp)
                     .weight(1f, fill = false)
             ) {
-                // [수정 3] 텍스트 색상 Black으로 고정
+                // 텍스트 색상 Black으로 고정
                 Text(text = message.text, fontSize = 16.sp, color = Color.Black)
             }
         }
@@ -261,7 +280,7 @@ fun ChatBubble(message: ChatMessage) {
                     .padding(12.dp)
                     .weight(1f, fill = false)
             ) {
-                // [수정 4] 텍스트 색상 Black으로 고정
+                // 텍스트 색상 Black으로 고정
                 Text(text = message.text, fontSize = 16.sp, color = Color.Black)
             }
         }
@@ -283,6 +302,7 @@ fun PreviewChatScreen() {
             ChatMessage.GuideMessage("스트레스가 풀리는 느낌이었구나.")
         )
         ChatScreenContent(
+            innerPadding = PaddingValues(0.dp),
             messages = fakeMessages,
             isLoading = false,
             isSessionEnded = false,
