@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,7 +25,10 @@ import com.example.impulsecoachapp.R
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
-import com.example.impulsecoachapp.ui.theme.ImpulseCoachAppTheme // [추가] 2번 오류 해결
+import com.example.impulsecoachapp.ui.theme.ImpulseCoachAppTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
@@ -46,9 +50,10 @@ fun ChatScreen(
         selectedTab = selectedTab,
         onTabSelected = onTabSelected
     ) { innerPadding ->
-        // 2. 상태와 람다를 "Dumb" Composable인 ChatScreenContent에 전달
+// 2. 상태와 람다를 "Dumb" Composable인 ChatScreenContent에 전달
         ChatScreenContent(
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier,
+            innerPadding = innerPadding,
             messages = messages,
             isLoading = isLoading,
             isSessionEnded = isSessionEnded,
@@ -67,17 +72,36 @@ fun ChatScreen(
 @Composable
 fun ChatScreenContent(
     modifier: Modifier = Modifier,
+    innerPadding: PaddingValues,
     messages: List<ChatMessage>,
     isLoading: Boolean,
     isSessionEnded: Boolean,
     onSendMessage: (String) -> Unit
 ) {
+    // [수정 5] 수평 패딩 계산을 위해 layoutDirection 가져오기
+    val layoutDirection = LocalLayoutDirection.current
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF7F6FB))
+            // [수정 6] 상단과 수평 패딩은 innerPadding에서 직접 가져와 적용합니다.
+            .padding(
+                top = innerPadding.calculateTopPadding(),
+                start = innerPadding.calculateStartPadding(layoutDirection),
+                end = innerPadding.calculateEndPadding(layoutDirection)
+            )
+            // [수정 7] 하단 패딩을 동적으로 계산합니다.
+            // 1. 키보드 인셋(ime)과
+            // 2. Scaffold의 하단 탭 바 인셋(innerPadding.bottom)을
+            // .union()을 사용해 둘 중 '더 큰(max)' 값으로 적용합니다.
+            .windowInsetsPadding(
+                WindowInsets.ime.union(
+                    // innerPadding의 하단 값만 WindowInsets으로 변환하여 union
+                    WindowInsets(bottom = innerPadding.calculateBottomPadding())
+                )
+            )
     ) {
-        TopDateTimeBar()
+        TopDateTimeBar() // 현재 시간을 표시
         MessageList(
             messages = messages,
             modifier = Modifier.weight(1f)
@@ -85,25 +109,26 @@ fun ChatScreenContent(
         UserInput(
             isLoading = isLoading,
             isSessionEnded = isSessionEnded,
-            onSendMessage = onSendMessage
+            onSendMessage = onSendMessage,
+            modifier = Modifier
         )
     }
 }
 
 
-// [수정 없음] UserInput (이전과 동일)
 @Composable
 fun UserInput(
     isLoading: Boolean,
     isSessionEnded: Boolean,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var text by remember { mutableStateOf("") }
 
     if (isSessionEnded) {
         Text(
             text = "상담이 종료되었습니다.",
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             color = Color.Gray,
@@ -113,7 +138,7 @@ fun UserInput(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
             .padding(8.dp),
@@ -123,7 +148,8 @@ fun UserInput(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.weight(1f),
-            placeholder = { Text("메시지를 입력하세요...") },
+            // 플레이스홀더 색상 Gray로 고정
+            placeholder = { Text("메시지를 입력하세요...", color = Color.Gray) },
             enabled = !isLoading,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color(0xFFF7F6FB),
@@ -131,6 +157,10 @@ fun UserInput(
                 disabledContainerColor = Color(0xFFF0F0F0),
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
+
+                // 입력 텍스트 색상 Black으로 고정
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             ),
             shape = RoundedCornerShape(12.dp)
         )
@@ -158,9 +188,17 @@ fun UserInput(
     }
 }
 
-// [수정 없음] TopDateTimeBar (이전과 동일)
+
 @Composable
 fun TopDateTimeBar() {
+// remember를 사용해 현재 날짜/시간을 계산 (성능 최적화)
+    val (currentDate, currentTime) = remember {
+        val now = Date()
+        val dateFormat = SimpleDateFormat("yyyy.MM.dd.E", Locale.KOREAN)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREAN)
+        dateFormat.format(now) to timeFormat.format(now)
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -168,8 +206,9 @@ fun TopDateTimeBar() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("2025.07.01.화요일", fontSize = 14.sp, color = Color.Gray)
-        Text("14:03", fontSize = 14.sp, color = Color.Gray)
+// 고정된 텍스트 대신 계산된 변수 사용
+        Text(currentDate, fontSize = 14.sp, color = Color.Gray)
+        Text(currentTime, fontSize = 14.sp, color = Color.Gray)
         Image(
             painter = painterResource(id = R.drawable.ic_user_profile),
             contentDescription = "User",
@@ -178,14 +217,14 @@ fun TopDateTimeBar() {
     }
 }
 
-// [수정 없음] MessageList (이전과 동일, 1번 오류 해결을 위해 import만 추가)
+
 @Composable
 fun MessageList(
     messages: List<ChatMessage>,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope() // [추가] 1번 오류 해결
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -208,7 +247,6 @@ fun MessageList(
     }
 }
 
-// [수정 없음] ChatBubble (이전과 동일)
 @Composable
 fun ChatBubble(message: ChatMessage) {
     when (message) {
@@ -228,7 +266,8 @@ fun ChatBubble(message: ChatMessage) {
                     .padding(12.dp)
                     .weight(1f, fill = false)
             ) {
-                Text(text = message.text, fontSize = 16.sp)
+                // 텍스트 색상 Black으로 고정
+                Text(text = message.text, fontSize = 16.sp, color = Color.Black)
             }
         }
         is ChatMessage.UserResponse -> Row(
@@ -241,21 +280,18 @@ fun ChatBubble(message: ChatMessage) {
                     .padding(12.dp)
                     .weight(1f, fill = false)
             ) {
-                Text(text = message.text, fontSize = 16.sp)
+                // 텍스트 색상 Black으로 고정
+                Text(text = message.text, fontSize = 16.sp, color = Color.Black)
             }
         }
     }
 }
 
-/**
- * 4. [수정] Preview가 "Dumb" Composable인 ChatScreenContent를 호출
- * - HiltViewModel()과 관련이 없어지므로 3번 오류가 해결됩니다.
- */
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
 fun PreviewChatScreen() {
-    ImpulseCoachAppTheme { // 2번 오류 해결
-        // 가짜 데이터 생성
+    ImpulseCoachAppTheme {
+// 가짜 데이터 생성
         val fakeMessages = listOf(
             ChatMessage.GuideMessage("안녕! 나는 너의 소비 습관을 함께 돌아볼 임펄스 코치야. 오늘 어떤 일이 있었니?"),
             ChatMessage.UserResponse("네 있었어요"),
@@ -265,8 +301,8 @@ fun PreviewChatScreen() {
             ChatMessage.UserResponse("그냥... 스트레스가 풀리는 것 같았어요."),
             ChatMessage.GuideMessage("스트레스가 풀리는 느낌이었구나.")
         )
-
         ChatScreenContent(
+            innerPadding = PaddingValues(0.dp),
             messages = fakeMessages,
             isLoading = false,
             isSessionEnded = false,
@@ -274,3 +310,4 @@ fun PreviewChatScreen() {
         )
     }
 }
+
