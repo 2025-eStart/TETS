@@ -40,16 +40,21 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
 
         when (conversationStep) {
             // ViewModel의 init 메시지("...오늘 어떤 일이 있었니?")에 대한 첫 번째 응답
+            // user: "충동적으로 신발을 샀는데, '이거 지금 안 사면 놓쳐'라는 생각이 들었어"
             0 -> {
-                replyMessage = ChatMessage.GuideMessage("그렇구나, 쇼핑앱을 볼 때 기분이 어땠어?")
+                replyMessage = ChatMessage.GuideMessage("그 생각이 들었을 때, 몸이나 감정은 어땠나요? 예를 들어 조급하거나 불안하거나, 혹은 흥분된 느낌이 있었을 수도 있어요.")
             }
-            // "스트레스 풀렸어요" (예시)에 대한 두 번째 응답
+            // user: "맞아 그랬던 것 같아"
             1 -> {
-                replyMessage = ChatMessage.GuideMessage("스트레스가 풀리는 느낌이었구나. 혹시 쇼핑 말고 스트레스를 풀 수 있는 다른 방법이 있을까?")
+                replyMessage = ChatMessage.GuideMessage("좋아요. ‘금방 품절될 것 같다’는 생각 속에는 어떤 믿음이 숨어 있을까요?\n혹시 ‘기회를 놓치면 후회할 거야’ 같은 생각이 함께 있었나요?")
             }
-            // "산책?" (예시)에 대한 세 번째 응답 (세션 종료)
+            // user: "응 나중에 못 사면 후회할 것 같았어"
             2 -> {
-                replyMessage = ChatMessage.GuideMessage("좋은 생각이야! 다음엔 쇼핑앱을 켜기 전에 10분 정도 가볍게 산책해보는 건 어때? (상담 종료)")
+                replyMessage = ChatMessage.GuideMessage("이전에도 비슷한 생각을 한 적이 있었나요?\n‘지금 안 사면 후회할 거야’라고 느꼈던 적이 있었을 때, 정말 후회가 오래갔나요?")
+            }
+            // user: "상담을 종료합니다"
+            3 -> {
+                replyMessage = ChatMessage.GuideMessage("오늘 상담 감사합니다.\n[요약]: '놓칠 수 있다'는 자동적 사고를 인지하셨어요. 다음 주까지 수행해야 할 과제는 이 사고를 객관적인 증거로 반박하는 '사고 반박하기'입니다. ")
                 isEnded = true // 챗봇이 대화를 종료시킴
             }
             // 3단계 이후의 모든 메시지 (세션이 이미 종료됨)
@@ -76,3 +81,47 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
         return Result.success(chatTurn)
     }
 }
+
+
+////////////////// 과거 DummyChatRepository.kt////////
+////////////////// API 연동 버전 //////////////////
+/*
+// [전체 흐름]
+// Android App (Compose) ➡️ Retrofit ➡️ FastAPI 서버 ➡️ LLM API (ChatGPT/Gemini)
+// 나중에는 Hilt나 Koin 같은 의존성 주입 라이브러리를 사용해서
+// ChatViewModel에 DummyChatRepository 대신 ActualChatRepository를 주입하게 됩니다.
+
+package com.example.impulsecoachapp.data.ActualChat // 패키지 경로는 예시입니다.
+
+import com.example.impulsecoachapp.model.chat.ChatMessage
+import com.example.impulsecoachapp.domain.repository.ChatRepository
+
+// Retrofit Service 인터페이스가 필요합니다.
+// interface ChatApiService {
+//     @POST("chat")
+//     suspend fun postMessage(@Body messageRequest: MessageRequest): MessageResponse
+// }
+
+class ActualChatRepository(
+    // private val apiService: ChatApiService // Retrofit 인터페이스
+) : ChatRepository {
+
+    override suspend fun getNextMessage(userInput: String): ChatMessage {
+        return try {
+            // 1. FastAPI 서버로 사용자 입력을 전송
+            // val response = apiService.postMessage(MessageRequest(text = userInput))
+
+            // 2. 서버로부터 받은 응답을 ChatMessage.GuideMessage 로 변환
+            // ChatMessage.GuideMessage(response.text)
+
+            // 아래는 임시 코드입니다.
+            ChatMessage.GuideMessage("'$userInput'에 대한 API 응답입니다.")
+
+        } catch (e: Exception) {
+            // 3. 네트워크 에러 등 예외 처리
+            ChatMessage.GuideMessage("죄송해요, 지금은 답변을 드릴 수 없어요. (에러: ${e.message})")
+        }
+    }
+}
+*
+* */

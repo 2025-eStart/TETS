@@ -28,9 +28,12 @@ class ChatViewModel @Inject constructor( // 2. 생성자에서 ChatRepository를
     val isSessionEnded: StateFlow<Boolean> = _isSessionEnded.asStateFlow()
 
     init {
-        // 초기 메시지 (기존과 동일)
+        // 초기 메시지
         _messages.value = listOf(
-            ChatMessage.GuideMessage("안녕! 나는 너의 소비 습관을 함께 돌아볼 임펄스 코치야. 오늘 어떤 일이 있었니?")
+            ChatMessage.GuideMessage("안녕하세요 \uD83D\uDE0A 이번 주는 상담 5주차예요.\n" +
+                    "오늘은 소비 순간에 자동으로 떠오르는 ‘생각’을 함께 찾아보려 해요.\n" +
+                    "혹시 최근에 충동적으로 소비한 순간이 있었나요?\n" +
+                    "그때 머릿속에 어떤 생각이 가장 먼저 스쳤는지 기억나시나요?")
         )
     } // [수정] init { ... } 블록을 여기서 닫습니다.
 
