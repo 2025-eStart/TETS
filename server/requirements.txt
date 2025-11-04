@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+python-frontmatter
+jinja2
+
+langchain
+langgraph
+langchain-openai
+
+# (RAG 확장용: 선택)
+chromadb
+faiss-cpu
+pypdf
