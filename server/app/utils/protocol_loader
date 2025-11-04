@@ -1,0 +1,18 @@
+import frontmatter
+from pathlib import Path
+
+REQUIRED_KEYS = ["week", "title", "goals", "exit_criteria", "script_steps", "prompt_seed"]
+
+def load_week_spec(version: str, week: int) -> dict:
+    p = Path(f"./protocols/{version}/week{week:02}.md")
+    post = frontmatter.load(p)
+    spec = dict(post.metadata)
+    for k in REQUIRED_KEYS:
+        if k not in spec:
+            raise ValueError(f"protocol {p} missing key: {k}")
+    return spec
+
+def meets_exit_criteria(llm_output: str, criteria: dict) -> bool:
+    # 데모: 키 이름이 그대로 텍스트에 등장하면 충족으로 간주(나중에 태깅/함수호출로 강화)
+    keys = [k for k, v in criteria.items() if v]
+    return all(k in (llm_output or "") for k in keys)
