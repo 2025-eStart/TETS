@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from app.services.repo import Repo
+from server.app.services.base_repo import Repo
 
 DB: Dict[str, Any] = {
     "users": {},           # user_id -> dict
