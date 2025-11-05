@@ -1,5 +1,5 @@
 from app.state_types import State
-from app.services.memory_repo import REPO
+from app.services import REPO
 
 def summarize_update(state: dict) -> dict:
     s = State(**state)

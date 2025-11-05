@@ -1,3 +1,4 @@
+# --- Core ---
 fastapi
 uvicorn[standard]
 pydantic
@@ -5,11 +6,25 @@ python-dotenv
 python-frontmatter
 jinja2
 
+# --- LangChain / LangGraph ---
 langchain
 langgraph
 langchain-openai
 
-# (RAG 확장용: 선택)
-chromadb
-faiss-cpu
-pypdf
+# --- firebase ---
+firebase-admin
+google-api-core
+
+## ======== RAG ======== ##
+# --- Vector DB: Pinecone ---
+pinecone-client                # Pinecone 최신 SDK(v5)
+langchain-pinecone             # LangChain ↔ Pinecone 연결 어댑터
+
+# --- Embedding / 문서처리 ---
+sentence-transformers          # (Hugging Face 임베딩용)
+pypdf                          # PDF 로더
+faiss-cpu                      # 로컬 실험용 대체 벡터스토어
+chromadb                       # 필요 시 로컬 백엔드 테스트용
+
+# --- 기타 유틸 ---
+tqdm
