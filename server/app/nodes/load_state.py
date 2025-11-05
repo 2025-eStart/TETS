@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from app.state_types import State
-from app.services.memory_repo import REPO
+from app.services import REPO
 
 def load_state(state: dict) -> dict:
     s = State(**state)
