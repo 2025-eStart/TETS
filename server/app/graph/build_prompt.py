@@ -1,4 +1,5 @@
 from app.state_types import State
+from ._helpers import ensure_state
 
 SYSTEM = (
 "You are a CBT counselor.\n"
@@ -10,7 +11,7 @@ SYSTEM = (
 )
 
 def build_prompt(state: dict) -> dict:
-    s = State(**state)
+    s = ensure_state(state)
     spec = s.protocol
     level = s.intervention_level or "L1"
     s.prompt = {
@@ -23,4 +24,4 @@ def build_prompt(state: dict) -> dict:
         "user": (state.get("last_user_message") or spec["prompt_seed"][0]),
         "history": []
     }
-    return s.model_dump()
+    return s

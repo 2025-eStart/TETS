@@ -13,8 +13,8 @@ def health(): return {"ok": True}
 @app.post("/chat/start")
 def chat_start(user_id: str):
     s = State(user_id=user_id, now_utc=datetime.now(timezone.utc))
-    out = GRAPH.invoke(s.model_dump())
-    return out
+    out = GRAPH.invoke(s | {"run_config": cfg}, config=cfg)
+    return out.model_dump()
 
 @app.post("/chat/send")
 def chat_send(user_id: str, user_message: str):
