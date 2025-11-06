@@ -28,3 +28,4 @@ chromadb                       # 필요 시 로컬 백엔드 테스트용
 
 # --- 기타 유틸 ---
 tqdm
+PyYAML                         # protocol 파일 형식 YAML 임포트(app.utils.protocol_loader.py)
