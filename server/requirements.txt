@@ -10,6 +10,7 @@ jinja2
 langchain
 langgraph
 langchain-openai
+langsmith                    # test용
 
 # --- firebase ---
 firebase-admin
