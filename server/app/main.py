@@ -2,7 +2,7 @@ from fastapi import FastAPI, Header, HTTPException
 from datetime import datetime, timezone
 from dotenv import load_dotenv; load_dotenv()
 from app.state_types import State
-from app.graph import build_graph
+from app.build import build_graph
 
 app = FastAPI(title="ImpulseCoach-Server")
 GRAPH = build_graph()

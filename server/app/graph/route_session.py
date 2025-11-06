@@ -9,7 +9,7 @@ def _days_since(ts, now):
     return (now - ts).days if ts else 9999
 
 def cond_route_session(state: dict) -> str:
-    s = State(**state)
+    s = ensure_state(state)
     u = s.user
     # 21일 규칙(미완)
     if u.get("program_status") != "completed" and _days_since(u.get("last_seen_at"), s.now_utc) >= 21:
