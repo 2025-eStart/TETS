@@ -1,4 +1,5 @@
 from app.state_types import State
+from ._helpers import ensure_state
 from app.utils.protocol_loader import load_week_spec
 
 def pick_week(state: dict) -> dict:

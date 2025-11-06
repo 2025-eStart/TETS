@@ -1,5 +1,6 @@
 from app.state_types import State
 from app.utils.metrics import score_input_quality
+from ._helpers import ensure_state
 
 def decide_intervention(state: dict) -> dict:
     s = ensure_state(state)
