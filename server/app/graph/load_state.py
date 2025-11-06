@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from app.state_types import State
+from ._helpers import ensure_state
 from app.services import REPO
 
 def load_state(state: dict) -> dict:
