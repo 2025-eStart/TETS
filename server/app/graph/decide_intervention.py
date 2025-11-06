@@ -2,7 +2,7 @@ from app.state_types import State
 from app.utils.metrics import score_input_quality
 
 def decide_intervention(state: dict) -> dict:
-    s = State(**state)
+    s = ensure_state(state)
     s.metrics = score_input_quality(state.get("last_user_message", ""))
     m = s.metrics
     if m["risk"]: level = "L5"
@@ -12,4 +12,4 @@ def decide_intervention(state: dict) -> dict:
     elif m["affect"]["anxiety"] >= 0.7: level = "L4"
     else: level = "L1"
     s.intervention_level = level
-    return s.model_dump()
+    return s
