@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from app.config import settings
 
 _llm = ChatOpenAI(model=settings.OPENAI_MODEL, temperature=0.2)
