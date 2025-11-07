@@ -1,5 +1,7 @@
 from app.state_types import State
 from app.services import REPO
+from ._helpers import ensure_state
+
 
 def summarize_update(state: dict) -> dict:
     s = ensure_state(state)
