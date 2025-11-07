@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.services.base_repo import Repo
 
 DB: Dict[str, Any] = {
@@ -48,4 +48,14 @@ class MemoryRepo(Repo):
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
 
-REPO: Repo = MemoryRepo()
+# [추가] get_messages 구현
+    def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]:
+        messages = [
+            msg for msg in DB["messages"]
+            if msg["user_id"] == user_id 
+               and msg["week"] == week 
+               and msg["session_type"] == "weekly"
+        ]
+        return sorted(messages, key=lambda m: m["ts"])
+    
+# REPO: Repo = MemoryRepo() => 삭제: __init__.py에서 관리

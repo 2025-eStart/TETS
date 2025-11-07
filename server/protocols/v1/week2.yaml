@@ -11,6 +11,8 @@ prompt_seed:
   - "당신에게서 자주 반복된 유발 요인 2가지를 꼽아볼까요?"
   - "이번 변화를 원하는 이유 3가지를 짧게 적어봅시다"
 exit_criteria:
-  contains_all:
+  required:
+    patterns:
     - "유발요인:"     # 2개 이상 라인에 포함되게 안내
     - "변화이유:"     # 3개 요약 라인
+    min_hits: 2

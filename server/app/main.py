@@ -1,7 +1,8 @@
+# app/main.py
 from fastapi import FastAPI, Header, HTTPException
 from datetime import datetime, timezone
 from dotenv import load_dotenv; load_dotenv()
-from app.state_types import State
+from app.state_types import State # [수정]
 from app.build import build_graph
 
 app = FastAPI(title="ImpulseCoach-Server")
@@ -13,14 +14,21 @@ def health(): return {"ok": True}
 @app.post("/chat/start")
 def chat_start(user_id: str):
     s = State(user_id=user_id, now_utc=datetime.now(timezone.utc))
-    out = GRAPH.invoke(s)
+    # [수정] 그래프는 이제 State 객체를 직접 받음
+    out = GRAPH.invoke(s) 
     return out.model_dump()
 
 @app.post("/chat/send")
 def chat_send(user_id: str, user_message: str):
-    s = State(user_id=user_id, now_utc=datetime.now(timezone.utc))
-    out = GRAPH.invoke(s.model_dump() | {"last_user_message": user_message})
-    return out
+    # [수정] State 객체 생성 시 last_user_message를 포함
+    s = State(
+        user_id=user_id, 
+        now_utc=datetime.now(timezone.utc),
+        last_user_message=user_message 
+    )
+    # [수정] State 객체를 직접 invoke
+    out = GRAPH.invoke(s)
+    return out.model_dump()
 
 # (나중) Cloud Tasks가 7일 뒤 호출하는 엔드포인트
 @app.post("/notify/weekly-nudge")

@@ -1,10 +1,15 @@
-from app.state_types import State
-from app.services import REPO
-from ._helpers import ensure_state
+# app/graph/summarize_update.py
+from app.state_types import State # [수정]
+from app.services.summaries import persist_turn
 
-
-def summarize_update(state: dict) -> dict:
-    s = ensure_state(state)
-    REPO.save_message(s.user_id, s.session_type.lower(), s.current_week, "assistant", s.llm_output or "")
-    REPO.update_progress(s.user_id, s.current_week, exit_hit=s.exit)
-    return s
+def summarize_update(state: State) -> State:
+    persist_turn(
+        state.user_id, 
+        state.session_type.lower(), 
+        state.current_week, 
+        state.last_user_message, # [추가] 사용자의 마지막 메시지 전달
+        state.llm_output or "", 
+        state.exit
+    )
+    
+    return state

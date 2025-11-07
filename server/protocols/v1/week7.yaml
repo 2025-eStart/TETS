@@ -11,7 +11,9 @@ prompt_seed:
   - "이번 주 ERP-lite로 ‘담기까지’는 실행하되 결제는 하지 않습니다. 시나리오를 1개 적어주세요"
   - "결제 중단 신호와 대체 행동을 정해봅시다"
 exit_criteria:
-  contains_all:
-    - "ERP시나리오:"
-    - "중단신호:"
-    - "대체행동:"
+  required:
+    patterns:
+      - "ERP시나리오:"
+      - "중단신호:"
+      - "대체행동:"
+    min_hits: 3

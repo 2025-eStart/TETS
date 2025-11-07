@@ -11,7 +11,9 @@ prompt_seed:
   - "나에게 선행되는 소인 요인 1개, 유지 요인 1개를 적어봅시다"
   - "각 요인에 바로 넣을 수 있는 개입 레버 1개씩 정해볼까요?"
 exit_criteria:
-  contains_all:
+  required:
+    patterns:
     - "소인요인:"
     - "유지요인:"
     - "개입레버:"
+    min_hits: 3
