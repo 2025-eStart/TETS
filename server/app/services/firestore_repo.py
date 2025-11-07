@@ -1,7 +1,7 @@
 # app/services/firestore_repo.py
 from __future__ import annotations
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.services.base_repo import Repo
 from app.services.firebase_admin_client import get_db
 from firebase_admin import firestore
@@ -17,7 +17,7 @@ def _sessions_col(uid: str):
 
 def _weekly_key(user_id: str, week: int):
     # 메모리에서는 (user_id, week) 키를 썼지만, Firestore에선 세션 도큐먼트로 일치시킴
-    return f"w{week:02d}"
+    return f"w{week}"
 
 class FirestoreRepo(Repo):
     def get_user(self, user_id: str) -> Dict[str, Any]:
@@ -86,3 +86,18 @@ class FirestoreRepo(Repo):
 
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
+        
+        
+        # [추가] get_messages 구현
+    def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]:
+        s = self.get_active_weekly_session(user_id, week)
+        if not s:
+            return []
+        
+        docs = (_sessions_col(user_id)
+                .document(s["id"])
+                .collection("messages")
+                .order_by("created_at")
+                .stream())
+        
+        return [d.to_dict() for d in docs]
