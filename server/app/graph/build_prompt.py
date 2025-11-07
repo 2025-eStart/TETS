@@ -5,7 +5,7 @@ from app.services import REPO # [추가]
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
-# [수정] 시스템 프롬프트 템플릿
+# 시스템 프롬프트 템플릿
 SYSTEM_TEMPLATE = (
 "You are a CBT counselor.\n"
 "Current phase: Week {week} - {title}\n"
@@ -23,7 +23,7 @@ SYSTEM_TEMPLATE = (
 "Set 'session_goals_met' to True only if all criteria are satisfied."
 )
 
-# [추가] ChatPromptTemplate 정의
+# ChatPromptTemplate 정의
 PROMPT_TEMPLATE = ChatPromptTemplate.from_messages([
     SystemMessage(content=SYSTEM_TEMPLATE),
     MessagesPlaceholder(variable_name="history", optional=True),
