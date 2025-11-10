@@ -1,3 +1,4 @@
+# app/services/base_repo.py
 from typing import Optional, Dict, Any, List, Protocol
 
 class Repo(Protocol):
@@ -8,4 +9,13 @@ class Repo(Protocol):
     def save_message(self, user_id: str, session_type: str, week: int, role: str, text: str) -> None: ...
     def update_progress(self, user_id: str, week: int, exit_hit: bool) -> None: ...
     def last_seen_touch(self, user_id: str) -> None: ...
-    def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]: ... # [추가] 대화 기록 로드를 위한 인터페이스
+    def get_messages(self, user_id: str) -> List[Dict[str, Any]]: ... # 주차 상관없이 user_id에 해당하는 '모든' 메시지를 반환
+    # --- 요약 관련 함수 2개 ---
+    def save_session_summary(self, user_id: str, week: int, summary_text: str) -> None:
+        """지정된 주차의 세션에 요약 텍스트를 저장합니다."""
+        ...
+    def get_past_summaries(self, user_id: str, current_week: int) -> List[Dict[str, Any]]:
+        """
+        현재 주차(current_week) '이전'의 모든 주간 세션 요약본을 
+        {'week': 1, 'summary': '...'} 형태의 리스트로 반환합니다.
+        """
