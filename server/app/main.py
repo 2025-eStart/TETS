@@ -14,21 +14,21 @@ def health(): return {"ok": True}
 @app.post("/chat/start")
 def chat_start(user_id: str):
     s = State(user_id=user_id, now_utc=datetime.now(timezone.utc))
-    # [수정] 그래프는 이제 State 객체를 직접 받음
+    # 그래프는 State 객체를 직접 받음
     out = GRAPH.invoke(s) 
-    return out.model_dump()
+    return out
 
 @app.post("/chat/send")
 def chat_send(user_id: str, user_message: str):
-    # [수정] State 객체 생성 시 last_user_message를 포함
+    # State 객체 생성 시 last_user_message를 포함
     s = State(
         user_id=user_id, 
         now_utc=datetime.now(timezone.utc),
         last_user_message=user_message 
     )
-    # [수정] State 객체를 직접 invoke
+    # State 객체를 직접 invoke
     out = GRAPH.invoke(s)
-    return out.model_dump()
+    return out
 
 # (나중) Cloud Tasks가 7일 뒤 호출하는 엔드포인트
 @app.post("/notify/weekly-nudge")
