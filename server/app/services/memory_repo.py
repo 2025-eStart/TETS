@@ -57,4 +57,28 @@ class MemoryRepo(Repo):
         ]
         return sorted(messages, key=lambda m: m["ts"])
     
-# REPO: Repo = MemoryRepo() => 삭제: __init__.py에서 관리
+    # --- 요약 함수 2개 ---
+    def save_session_summary(self, user_id: str, week: int, summary_text: str) -> None:
+        s = self.get_active_weekly_session(user_id, week)
+        if s:
+            # weekly_sessions 딕셔너리에 'summary' 필드 추가
+            s["summary"] = summary_text
+            DB["weekly_sessions"][(user_id, week)] = s
+        else:
+            # (예외 처리) 요약할 세션이 없는 경우. 실제로는 create_weekly_session에서 생성됨.
+            print(f"Warning: No active session to save summary for user {user_id}, week {week}")
+
+    def get_past_summaries(self, user_id: str, current_week: int) -> List[Dict[str, Any]]:
+        summaries = []
+        # DB["weekly_sessions"]의 모든 키 (user_id, week) 를 순회
+        for (uid, week) in DB["weekly_sessions"]:
+            if uid == user_id and week < current_week:
+                session = DB["weekly_sessions"][(uid, week)]
+                if "summary" in session:
+                    summaries.append({
+                        "week": week,
+                        "session_type": "weekly", # 요약본은 항상 'weekly'
+                        "summary": session["summary"]
+                    })
+        # 주차 순서대로 정렬
+        return sorted(summaries, key=lambda s: s["week"])

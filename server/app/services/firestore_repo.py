@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 from app.services.base_repo import Repo
 from app.services.firebase_admin_client import get_db
 from firebase_admin import firestore
-from google.api_core.exceptions import FailedPrecondition
+from google.api_core.exceptions import FailedPrecondition, NotFound
 
 db = get_db()
 
@@ -88,8 +88,6 @@ class FirestoreRepo(Repo):
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
         
-        
-        # [추가] get_messages 구현
     def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]:
         """
         user_id에 해당하는 모든 메시지를 Collection Group 쿼리로 가져옵니다.
@@ -122,3 +120,40 @@ class FirestoreRepo(Repo):
         
         return [d.to_dict() for d in docs]
         '''
+        
+    # --- 요약 함수 2개 ---
+    def save_session_summary(self, user_id: str, week: int, summary_text: str) -> None:
+        """현재 주차의 'active' 세션에 요약본을 병합(merge)"""
+        s = self.get_active_weekly_session(user_id, week)
+        if s and s.get("id"):
+            try:
+                _sessions_col(user_id).document(s["id"]).set({
+                    "summary": summary_text,
+                    "summary_created_at": firestore.SERVER_TIMESTAMP
+                }, merge=True)
+            except Exception as e:
+                print(f"FIRESTORE ERROR: Failed to save summary for session {s['id']}: {e}")
+        else:
+            print(f"Warning: No active session found to save summary for user {user_id}, week {week}")
+
+    def get_past_summaries(self, user_id: str, current_week: int) -> List[Dict[str, Any]]:
+        """current_week '미만'의 모든 세션에서 'summary' 필드가 있는 문서를 가져옴"""
+        q = (_sessions_col(user_id)
+             .where("week", "<", int(current_week))
+             .where("summary", "!=", None) # 'summary' 필드가 존재하는 문서만
+             .order_by("week"))
+        
+        summaries = []
+        try:
+            docs = q.stream()
+            for d in docs:
+                data = d.to_dict()
+                summaries.append({
+                    "week": data.get("week"),
+                    "session_type": "weekly", # 요약본은 항상 'weekly'
+                    "summary": data.get("summary")
+                })
+            return summaries
+        except Exception as e:
+            print(f"FIRESTORE ERROR: Failed to get past summaries: {e}")
+            return []
