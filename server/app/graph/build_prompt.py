@@ -116,6 +116,6 @@ def build_prompt(state: State) -> State:
     }
     
     # 4. 프롬프트 템플릿을 사용하여 state.messages 생성
-    state.messages = PROMPT_TEMPLATE.invoke(variables)
+    state.messages = PROMPT_TEMPLATE.invoke(variables).to_messages()
     
     return state
