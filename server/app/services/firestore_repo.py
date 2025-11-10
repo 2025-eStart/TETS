@@ -88,7 +88,7 @@ class FirestoreRepo(Repo):
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
         
-    def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]:
+    def get_messages(self, user_id: str) -> List[Dict[str, Any]]:
         """
         user_id에 해당하는 모든 메시지를 Collection Group 쿼리로 가져옵니다.
         (참고: Firestore 콘솔에서 'messages' 컬렉션 그룹에 대한 
