@@ -60,10 +60,9 @@ def build_graph(checkpointer=None):
     # 본문 공통 흐름
     g.add_edge("BuildPrompt", "DecideIntervention")
     g.add_edge("DecideIntervention", "RunLLM")
-    g.add_edge("RunLLM", "CheckExitOrPause")
-
+    
     # 그래프는 매 턴(invoke)마다 END에 도달, summarize_update에서 state.exit == True일 때만 요약 생성, 대화 종료.
-    g.add_edge("CheckExitOrPause", "SummarizeUpdate")
+    g.add_edge("RunLLM", "SummarizeUpdate")
 
     # ★ 엔트리 포인트 지정 (필수)
     g.set_entry_point("LoadState")
