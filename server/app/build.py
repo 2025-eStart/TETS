@@ -7,7 +7,6 @@ from app.graph.pick_week import pick_week
 from app.graph.build_prompt import build_prompt
 from app.graph.decide_intervention import decide_intervention
 from app.graph.run_llm import run_llm
-from app.graph.check_exit_or_pause import check_exit_or_pause, cond_exit_or_loop
 from app.graph.summarize_update import summarize_update
 from app.graph.maybe_schedule_nudge import maybe_schedule_nudge
 
