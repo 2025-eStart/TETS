@@ -1,7 +1,7 @@
 from app.state_types import State
 from app.utils.protocol_loader import load_week_spec
 
-def pick_week(state: dict) -> dict:
+def pick_week(state: State) -> State:
     s = state
     spec = load_week_spec("v1", s.current_week)
     s.protocol = spec
