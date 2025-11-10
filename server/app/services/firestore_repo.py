@@ -63,6 +63,7 @@ class FirestoreRepo(Repo):
     def save_message(self, user_id: str, session_type: str, week: int, role: str, text: str) -> None:
         s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
         _sessions_col(user_id).document(s["id"]).collection("messages").add({
+            "user_id": user_id, # Collection Group Query를 위해 user_id 추가
             "session_type": session_type,
             "week": week,
             "role": role,
@@ -90,6 +91,25 @@ class FirestoreRepo(Repo):
         
         # [추가] get_messages 구현
     def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]:
+        """
+        user_id에 해당하는 모든 메시지를 Collection Group 쿼리로 가져옵니다.
+        (참고: Firestore 콘솔에서 'messages' 컬렉션 그룹에 대한 
+         (user_id, created_at) 색인 생성이 필요할 수 있습니다)
+        """
+        q = (db.collection_group("messages")
+             .where("user_id", "==", user_id)
+             .order_by("created_at"))
+        
+        try:
+            docs = q.stream()
+            return [d.to_dict() for d in docs]
+        except FailedPrecondition as e:
+            print(f"FIRESTORE ERROR: 'messages' 컬렉션 그룹에 대한 색인이 필요할 수 있습니다. {e}")
+            return []
+        except Exception as e:
+            print(f"FIRESTORE ERROR: {e}")
+            return []
+        ''' 과거
         s = self.get_active_weekly_session(user_id, week)
         if not s:
             return []
@@ -101,3 +121,4 @@ class FirestoreRepo(Repo):
                 .stream())
         
         return [d.to_dict() for d in docs]
+        '''

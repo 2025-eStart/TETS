@@ -1,3 +1,4 @@
+# app/services/memory_repo.py
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from app.services.base_repo import Repo
@@ -48,13 +49,11 @@ class MemoryRepo(Repo):
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
 
-# [추가] get_messages 구현
-    def get_messages(self, user_id: str, week: int) -> List[Dict[str, Any]]:
+    def get_messages(self, user_id: str) -> List[Dict[str, Any]]:
         messages = [
             msg for msg in DB["messages"]
-            if msg["user_id"] == user_id 
-               and msg["week"] == week 
-               and msg["session_type"] == "weekly"
+            if msg["user_id"] == user_id
+            # 과거 세션 내용을 현재 상담 내용에 반영하기 위해 사용자의 모든 과거 메시지를 불러옴
         ]
         return sorted(messages, key=lambda m: m["ts"])
     
