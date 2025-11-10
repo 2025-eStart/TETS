@@ -30,38 +30,54 @@ PROMPT_TEMPLATE = ChatPromptTemplate.from_messages([
     HumanMessage(content="{user_message}"),
 ])
 
-def _load_history(user_id: str, session_type: SessionType) -> list:
+def _load_history(user_id: str, session_type: SessionType, current_week: int) -> list:
     """
-    DB에서 사용자의 '모든' 메시지를 가져온 후,
-    현재 세션 타입에 맞게 필터링하여 BaseMessage 리스트로 변환
+    (과거 요약본 + 현재 세션 상세 대화)를 로드하고 세션 타입에 맞게 필터링
     """
-    # [수정] REPO.get_messages는 이제 user_id만 받음 (모든 메시지 반환)
-    all_messages = REPO.get_messages(user_id)
     history = []
-    
-    for msg in all_messages:
-        role = msg.get("role")
-        msg_session_type = msg.get("session_type")
 
-        # 1. 현재 세션이 'WEEKLY'일 경우: 모든(WEEKLY + DAILY) 메시지 로드
-        if session_type == "WEEKLY":
-            if role == "user":
+    # 1. 과거 요약본 로드 (항상 'weekly' 타입임)
+    past_summaries = REPO.get_past_summaries(user_id, current_week)
+    
+    # 2. '현재 주차'의 상세 대화 내용 로드 (2단계에서 구현한 함수)
+    all_messages = REPO.get_messages(user_id)
+    current_week_messages = [
+        msg for msg in all_messages 
+        if msg.get("week") == current_week
+    ]
+
+    # --- 세션 타입별 필터링 ---
+
+    # 1) 현재 세션이 'WEEKLY'일 경우:
+    if session_type == "WEEKLY":
+        # (A) 과거 요약본 (모두 'weekly'이므로 전부 포함)
+        for summary in past_summaries:
+            summary_text = f"--- 지난 {summary['week']}주차 요약 ---\n{summary['summary']}"
+            # 요약본은 AI의 기억(AIMessage)으로 주입
+            history.append(AIMessage(content=summary_text))
+        
+        # (B) 현재 주차의 상세 대화 (WEEKLY + DAILY 모두 포함)
+        for msg in current_week_messages:
+            if msg["role"] == "user":
                 history.append(HumanMessage(content=msg["text"]))
-            elif role == "assistant":
+            elif msg["role"] == "assistant":
                 history.append(AIMessage(content=msg["text"]))
-        
-        # 2. 현재 세션이 'DAILY'일 경우: 'WEEKLY' 메시지만 로드
-        elif session_type == "DAILY":
-            if msg_session_type == "weekly": # 'weekly' 타입 메시지만 필터링
-                if role == "user":
-                    history.append(HumanMessage(content=msg["text"]))
-                elif role == "assistant":
-                    history.append(AIMessage(content=msg["text"]))
-        
-        # 3. (옵션) GENERAL 세션 등은 일단 무시
-        else:
-            pass 
+
+    # 2) 현재 세션이 'DAILY'일 경우:
+    elif session_type == "DAILY":
+        # (A) 과거 요약본 (모두 'weekly'이므로 전부 포함)
+        for summary in past_summaries:
+            summary_text = f"--- 지난 {summary['week']}주차 요약 ---\n{summary['summary']}"
+            history.append(AIMessage(content=summary_text))
             
+        # (B) 현재 주차의 상세 대화 (오직 'weekly'만 포함)
+        for msg in current_week_messages:
+            if msg.get("session_type") == "weekly":
+                if msg["role"] == "user":
+                    history.append(HumanMessage(content=msg["text"]))
+                elif msg["role"] == "assistant":
+                    history.append(AIMessage(content=msg["text"]))
+
     return history
     ''' 과거 코드
     for msg in all_messages:
@@ -79,7 +95,7 @@ def build_prompt(state: State) -> State:
     level = state.intervention_level or "L1"
     
     # 1. 이전 대화 기록 로드
-    chat_history = _load_history(state.user_id, state.session_type)
+    chat_history = _load_history(state.user_id, state.session_type, state.current_week)
 
     # 2. LLM이 참고할 수 있도록 exit_criteria를 텍스트로 변환
     exit_criteria_text = yaml.dump(
