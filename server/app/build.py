@@ -32,7 +32,6 @@ def build_graph(checkpointer=None):
     g.add_node("BuildPrompt", build_prompt)
     g.add_node("DecideIntervention", decide_intervention)
     g.add_node("RunLLM", run_llm)
-    g.add_node("CheckExitOrPause", check_exit_or_pause)
 
     # Tail
     g.add_node("SummarizeUpdate", summarize_update)
@@ -42,24 +41,23 @@ def build_graph(checkpointer=None):
 
     # 세션 라우팅
     # cond_route_session은 "WEEKLY"|"DAILY"|"GENERAL" 중 하나를 반환
-    # 혹시 모를 값에 대비하여 __else__를 BuildPrompt로 안전 처리
     g.add_conditional_edges(
         "RouteSession",
         cond_route_session,
         {
             "WEEKLY": "PickWeek",
-            "DAILY": "BuildPrompt",
-            "GENERAL": "BuildPrompt",
-            "__else__": "BuildPrompt",
+            "DAILY": "DecideIntervention",
+            "GENERAL": "DecideIntervention",
+            "__else__": "DecideIntervention",
         },
     )
 
     # WEEKLY 흐름
-    g.add_edge("PickWeek", "BuildPrompt")
+    g.add_edge("PickWeek", "DecideIntervention")
 
     # 본문 공통 흐름
-    g.add_edge("BuildPrompt", "DecideIntervention")
-    g.add_edge("DecideIntervention", "RunLLM")
+    g.add_edge("DecideIntervention", "BuildPrompt")
+    g.add_edge("BuildPrompt", "RunLLM")
     
     # 그래프는 매 턴(invoke)마다 END에 도달, summarize_update에서 state.exit == True일 때만 요약 생성, 대화 종료.
     g.add_edge("RunLLM", "SummarizeUpdate")
