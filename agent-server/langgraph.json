@@ -1,0 +1,10 @@
+{
+  "$schema": "https://langgra.ph/schema.json",
+  "dependencies": ["./src/coach_agent"],
+  "graphs": {
+    "agent": "./src/coach_agent/agent.py:app"
+  },
+  "env": ".env",
+  "python_version": "3.11",
+  "image_distro": "wolfi"
+}
