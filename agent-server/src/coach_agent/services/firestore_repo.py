@@ -2,8 +2,8 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from app.services.base_repo import Repo
-from app.services.firebase_admin_client import get_db
+from services.base_repo import Repo
+from services.firebase_admin_client import get_db
 from firebase_admin import firestore
 from google.api_core.exceptions import FailedPrecondition, NotFound
 
