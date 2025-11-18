@@ -20,7 +20,7 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
     ): Result<ChatTurn> {
 
         // API 호출을 흉내 내기 위한 1초 딜레이
-        delay(1000)
+        delay(1500)
 
         // 2. 사용자가 "종료"를 누르면, 시나리오와 관계없이 즉시 종료
         if (endSession) {
