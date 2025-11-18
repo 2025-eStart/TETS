@@ -1,62 +1,59 @@
+# coach_agent/graph/route_session.py
 from state_types import State
 from services import REPO
-from datetime import timedelta, datetime
+from utils._days_since import _days_since
 
-def route_session(state: State) -> State:
-    return state
+# --- 1. "작업자" 함수 ---
+# (build_graph의 g.add_node("RouteSession", route_session)가 호출)
+# 이 함수는 State를 수정하고, 다음 목적지를 'state.next_route'에 저장
+def route_session(state: State) -> dict: 
+    now = state.now_utc
+    user = state.user
+    active_session = state.weekly_session 
+    last_seen_at = user.get("last_seen_at")
+    last_completed_at = user.get("last_weekly_session_completed_at")
 
-def _days_since(ts, now):
-    """
-    타임스탬프(ts)가 'now'로부터 며칠 전인지 계산합니다.
-    ts가 None이거나 datetime이 아니면 0을 반환합니다.
-    """
-    if not isinstance(ts, datetime):
-        return 0 # 혹은 9999 (로직에 따라 다름. 여기선 0이 안전)
+    days_since_last_seen = _days_since(last_seen_at, now)
+    days_since_last_completion = _days_since(last_completed_at, now)
+
+    # --- 1. 롤백 규칙 ---
+    if days_since_last_seen >= 21:
+        REPO.rollback_user_to_week_1(state.user_id)
+        # [수정] 'dict'를 반환하여 State를 갱신
+        return {
+            "current_week": 1,
+            "next_route": "WEEKLY" # 다음 목적지를 state에 저장
+        }
+
+    # --- 2. '진행 중인' 세션이 있는 경우 ---
+    if active_session:
+        if days_since_last_seen < 1:
+            return {"next_route": "WEEKLY"} # 다음 목적지를 state에 저장
+        else:
+            REPO.restart_current_week_session(state.user_id, state.current_week)
+            return {"next_route": "WEEKLY"}
+
+    # --- 3. '진행 중인' 세션이 없는 경우 ---
+    if last_completed_at and days_since_last_completion < 7:
+        return {"next_route": "GENERAL"}
+    else:
+        new_week = state.current_week
+        if last_completed_at: # 7일이 지나서 다음 주차로 진급
+            new_week = REPO.advance_to_next_week(state.user_id)
         
-    return (now - ts).days
+        return {
+            "current_week": new_week,
+            "next_route": "WEEKLY"
+        }
 
+# --- 2. "라우터" 함수 ---
+# (build_graph의 add_conditional_edges가 호출)
+# 이 함수는 'route_session' 작업자가 State에 저장한 값을 읽기만 합니다.
 def cond_route_session(state: State) -> str:
-    s = state
-    u = s.user
-    now = s.now_utc
+    """state.next_route에 저장된 목적지를 반환합니다."""
     
-# 0. 유저의 마지막 앱 접속 시간 (마지막 API 호출)
-    user_last_seen = u.get("last_seen_at")
-    
-    # 1. [21일 규칙] 프로그램 리셋
-    # 마지막 접속이 21일 이상 지났다면, 1주차로 리셋합니다.
-    if user_last_seen and _days_since(user_last_seen, now) >= 21:
-        if u.get("program_status") != "completed":
-            REPO.upsert_user(s.user_id, {"current_week": 1})
-            s.weekly_session = None # 로드된 세션 무효화
-            s.current_week = 1      # state 객체도 갱신
-        return "WEEKLY" # 1주차 상담 시작
-
-    # 2. [24시간 ~ 14일 규칙] 주간 상담 리셋
-    # 현재 진행 중인 주간 세션이 있는지 확인합니다.
-    if s.weekly_session:
-        # 세션의 마지막 활동 시간
-        session_last_activity = s.weekly_session.get("last_activity_at")
+    if not state.next_route:
+        # 비상 상황 (route_session이 next_route를 설정하지 않은 경우)
+        return "GENERAL"
         
-        days_since_activity = _days_since(session_last_activity, now)
-        
-        # 24시간(1일) 이상, 14일 미만으로 지났다면
-        if 1 <= days_since_activity < 14:
-            # 주차(current_week)는 유지하되,
-            # 현재 로드된 세션을 무효화(None)하여
-            # PickWeek 노드가 이 주차의 '새로운' 세션을 만들도록 합니다.
-            s.weekly_session = None 
-            return "WEEKLY"
-            
-        # 3. [24시간 미만 규칙] 주간 상담 이어하기
-        # 24시간이 지나지 않았다면(days_since_activity < 1), 
-        # 로드된 세션(s.weekly_session)을 그대로 사용합니다.
-        return "WEEKLY"
-
-    # 4. [기본] 진행 중인 세션이 없는 경우
-    # (예: 1주차 완료 후 2주차 첫 방문)
-    if u.get("program_status") != "completed":
-        return "WEEKLY"
-
-    # 5. [기타]
-    return "GENERAL"
+    return state.next_route

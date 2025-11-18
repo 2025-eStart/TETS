@@ -1,4 +1,4 @@
-# app/services/firebase_admin_client.py
+# coach_agent/services/firebase_admin_client.py
 from __future__ import annotations
 import os, firebase_admin
 from firebase_admin import credentials, firestore

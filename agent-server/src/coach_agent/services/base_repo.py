@@ -1,4 +1,4 @@
-# app/services/base_repo.py
+# coach_agent/services/base_repo.py
 from typing import Optional, Dict, Any, List, Protocol
 
 class Repo(Protocol):

@@ -1,4 +1,4 @@
-# cbt_app/configuration.py
+# coach_agent/configuration.py
 from dataclasses import dataclass
 from langchain_core.runnables import RunnableConfig
 

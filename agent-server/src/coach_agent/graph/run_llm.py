@@ -1,4 +1,4 @@
-# app/graph/run_llm.py
+# coach_agent/graph/run_llm.py
 from state_types import State
 from services.llm import LLM_CHAIN # 미리 빌드된 체인 임포트
 from langchain_core.messages import AIMessage

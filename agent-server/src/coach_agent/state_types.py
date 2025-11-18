@@ -1,11 +1,11 @@
-# app/state_types.py
+# coach_agent/state_types.py
 from typing import Optional, List, Annotated, Dict, Any, Literal
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 
-SessionType = Literal["WEEKLY", "DAILY", "GENERAL"]
+SessionType = Literal["WEEKLY", "GENERAL"]
 
 class State(BaseModel):
     # --- 1. 핵심 세션 상태 (Config + Checkpointer) ---
@@ -32,6 +32,9 @@ class State(BaseModel):
     nickname: Optional[str] = None 
     # LoadState가 user.last_seen_at과 now_utc로 계산
     days_since_last_seen: int = 0
+    
+    # RouteSession이 결정한 '다음 목적지'를 저장할 임시 필드
+    next_route: Optional[str] = None
 
     # --- 4. 개입/분석 상태 (노드에서 계산) ---
     metrics: Dict[str, Any] = Field(default_factory=dict)

@@ -1,4 +1,4 @@
-# app/services/summaries.py
+# coach_agent/services/summaries.py
 import re
 from services import REPO # [수정] __init__에서 REPO 임포트
 from typing import Optional

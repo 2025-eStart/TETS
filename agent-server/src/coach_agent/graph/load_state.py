@@ -73,7 +73,6 @@ def load_state(state: State, config: RunnableConfig) -> State:
     # --- 4. 미접속 기간 계산 (DB 갱신 *전에* 수행) ---
     last_seen_timestamp = user.get("last_seen_at") # 'last_seen_at' 필드 (갱신하기 '전'의 옛날 값)
     s.days_since_last_seen = _days_since(last_seen_timestamp, s.now_utc)  # 옛날 값과 현재 값으로 '미접속 기간'을 먼저 계산
-    REPO.last_seen_touch(s.user_id) # 마지막 접속 시간 갱신
     
     # --- 6. 현재 주차 및 주간 세션 로드 ---
     s.current_week = user.get("current_week", 1)
