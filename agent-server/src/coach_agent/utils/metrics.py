@@ -1,3 +1,4 @@
+# coach_agent/utils/metrics.py
 import re
 
 def score_input_quality(user_text: str):

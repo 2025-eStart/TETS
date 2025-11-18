@@ -1,4 +1,4 @@
-# app/services/llm.py
+# coach_agent/services/llm.py
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from langchain_core.messages import SystemMessage, HumanMessage

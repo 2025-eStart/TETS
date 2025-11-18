@@ -1,4 +1,4 @@
-# coach_agent/graph/build_graph.py
+# coach_agent/build_graph.py
 from langgraph.graph import StateGraph, END
 from state_types import State
 from configuration import Configuration
@@ -10,7 +10,6 @@ from graph.decide_intervention import decide_intervention
 from graph.run_llm import run_llm
 from graph.summarize_update import summarize_update
 from graph.maybe_schedule_nudge import maybe_schedule_nudge
-
 
 def build_graph(checkpointer=None):
     """
@@ -45,7 +44,7 @@ def build_graph(checkpointer=None):
     g.add_edge("MaybeScheduleNudge", END)
 
     # 세션 라우팅
-    # cond_route_session은 "WEEKLY"|"GENERAL" 중 하나를 반환
+    # route_session은 "WEEKLY"|"GENERAL" 중 하나를 반환
     g.add_conditional_edges(
         "RouteSession",
         cond_route_session,
