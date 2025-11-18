@@ -46,7 +46,7 @@ Your 'response_text' MUST be a friendly, proactive greeting message.
 """
 
 # --- 템플릿 2: 일반 대화용 (대화 중간) ---
-SYSTEM_TEMPLATE = """
+SYSTEM_TEMPLATE_CONVERSATION = """
 # Your Role & Context
 You are a CBT counselor.
 Current phase: Week {week} - {title}
@@ -79,13 +79,6 @@ You MUST respond using the 'CounselorTurn' structured format.
 2. **당신은 반드시 한국어로만 응답해야 합니다.** 절대로 영어를 사용해서는 안 됩니다.
 3. 사용자의 기분을 살피고 공감하는 표현을 'response_text'의 시작 부분에 사용하세요.
 """
-
-# ChatPromptTemplate 정의
-PROMPT_TEMPLATE = ChatPromptTemplate.from_messages([
-    SystemMessage(content=SYSTEM_TEMPLATE),
-    MessagesPlaceholder(variable_name="history", optional=True),
-    HumanMessage(content="{user_message}"),
-])
 
 # 메시지 내용을 '정리'하는 헬퍼 함수
 def _clean_message_content(msg: BaseMessage) -> BaseMessage:
@@ -133,44 +126,93 @@ def _load_past_summaries(user_id: str, current_week: int) -> list:
         history.append(AIMessage(content=summary_text))
     return history
 
+# --- [핵심] build_prompt 함수 (대폭 수정) ---
 def build_prompt(state: State) -> State:
-    spec = state.protocol # (참고: GENERAL 세션은 이 값이 {}일 수 있음)
-    level = state.intervention_level or "L1"
+    spec = state.protocol
+    session_type = state.session_type
 
-    # 1. [수정] 체크포인트의 메시지를 '재조립'합니다.
-    cleaned_chat_history = [_clean_message_content(msg) for msg in state.messages]
+    # --- 1. 첫 턴(인사)인지, 대화 중인지 확인 ---
+    is_first_turn = state.last_user_message is None
+
+    if is_first_turn:
+        # --- 1-A. 첫 턴일 경우 (인사말 생성) ---
+        
+        # LoadState가 미리 계산한 값을 State에서 바로 가져옴
+        nickname = state.nickname
+        days_since = state.days_since_last_seen
+
+        # --- 닉네임이 없는 최초 사용자 분기 ---
+        if nickname is None:
+            # 닉네임이 없으면(최초 접속), 닉네임부터 물어봄
+            SYSTEM_TEMPLATE_GREETING_NEW_USER = """
+            안녕하세요! CBT(인지행동치료) 여정에 오신 것을 환영합니다.
+            저는 앞으로 여행자님의 상담을 도와드릴 소비 습관 상담가, 루시예요.
+            
+            앞으로 여행자님을 어떻게 불러드리면 좋을까요?
+            (🚨다음 응답 전체가 닉네임으로 저장되니 20자 미만의 ‼️닉네임만‼️ 입력해주세요! 빈칸 또는 20자 이상의 닉네임으로 입력하시면 "여행자"로 저장됩니다 :) )
+            (한번 정한 닉네임은 변경이 어려우니 편하게 부를 수 있는 이름으로 알려주세요!)
+            
+            [중요] **반드시 한국어로만 응답해야 합니다.**
+            """
+            prompt_template = ChatPromptTemplate.from_template(SYSTEM_TEMPLATE_GREETING_NEW_USER)
+            variables = {"nickname": "여행자"} # 기본값
+            
+        elif session_type == "WEEKLY":
+            # [Weekly 인사말]
+            variables = {
+                "nickname": nickname,
+                "days_since_last_seen": days_since,
+                "session_type": "주간 상담",
+                "week": spec.get("week", state.current_week),
+                "title": spec.get("title", "주간 상담"),
+                "goals": "; ".join(spec.get("goals", [])),
+                "prompt_seed": spec.get("prompt_seed", ["오늘 어떠셨나요?"])[0],
+            }
+            prompt_template = ChatPromptTemplate.from_template(SYSTEM_TEMPLATE_GREETING)
+            
+        elif session_type == "GENERAL":
+            # [General 인사말 (상담 완료)]
+            SYSTEM_TEMPLATE_GREETING_GENERAL = """
+            안녕하세요, {nickname}님! 이번 주의 상담은 이미 완료하셨습니다.
+            혹시 이번 주 과제에 대해 궁금한 점이 있으신가요?
+            
+            [중요] **반드시 한국어로만 응답해야 합니다.**
+            """
+            prompt_template = ChatPromptTemplate.from_template(SYSTEM_TEMPLATE_GREETING_GENERAL)
+            variables = {"nickname": nickname}
+        
+        else: # 예외 처리
+            prompt_template = ChatPromptTemplate.from_template("안녕하세요! 무엇을 도와드릴까요?\n\n[중요] **반드시 한국어로만 응답해야 합니다.**")
+            variables = {}
+
+        # 생성된 프롬프트를 임시 필드에 저장
+        state.llm_prompt_messages = prompt_template.invoke(variables).to_messages()
+
+    else:
+        # --- 1-B. 대화 중일 경우 (기존 로직) ---
+        level = state.intervention_level or "L1"
+        
+        cleaned_chat_history = [_clean_message_content(msg) for msg in state.messages]
+        past_summaries = _load_past_summaries(state.user_id, state.current_week)
+        exit_criteria_text = yaml.dump(spec.get("exit_criteria", {}), allow_unicode=True)
+
+        variables = {
+            "week": spec.get("week", state.current_week),
+            "title": spec.get("title", "Daily Check-in"),
+            "goals": "; ".join(spec.get("goals", [])),
+            "steps": " → ".join(spec.get("script_steps", [])),
+            "level": level,
+            "exit_goals": exit_criteria_text,
+            "history": past_summaries + cleaned_chat_history,
+            "user_message": state.last_user_message, # load_state가 문자열로 보장
+        }
+        
+        # 일반 대화 템플릿(SYSTEM_TEMPLATE_CONVERSATION) 사용
+        prompt_template = ChatPromptTemplate.from_messages([
+            SystemMessage(content=SYSTEM_TEMPLATE_CONVERSATION), # [수정] 명확하게 변경
+            MessagesPlaceholder(variable_name="history"),
+            HumanMessage(content="{user_message}"),
+        ])
+        state.llm_prompt_messages = prompt_template.invoke(variables).to_messages()
     
-    # 2. 과거 요약 로드 (경로 수정)
-    past_summaries = _load_past_summaries(state.user_id, state.current_week)
-    
-    # 3. exit_criteria_text 생성
-    exit_criteria_text = yaml.dump(
-        spec.get("exit_criteria", {}),
-        allow_unicode=True
-    )
-    
-    # 챗봇이 상담을 시작하도록 구현
-    # last_user_message가 None이면(대화 시작) prompt_seed를 사용하고,
-    # None이 아니면(대화 중) 실제 사용자 메시지를 사용
-    user_message_input = (
-        state.last_user_message 
-        or spec.get("prompt_seed", ["..."])[0]
-    )
-    
-    # 4. 프롬프트 변수 설정
-    variables = {
-        "week": spec.get("week", state.current_week),
-        "title": spec.get("title", "Daily Check-in"),
-        "goals": "; ".join(spec.get("goals", [])),
-        "steps": " → ".join(spec.get("script_steps", [])),
-        "level": level,
-        "exit_goals": exit_criteria_text,
-        "history": past_summaries + cleaned_chat_history, # [수정] 과거 요약 + 정리된 전체 대화 기록(정리된 히스토리 사용)
-        "user_message": (state.last_user_message or spec.get("prompt_seed", ["..."])[0]),
-    }
-    
-    # 5. 프롬프트 템플릿을 사용하여 state.messages 생성
-    # [수정] state.messages (기록)를 덮어쓰지 않고,
-    #        state.llm_prompt_messages (임시 프롬프트)에 저장합니다.
-    state.llm_prompt_messages = PROMPT_TEMPLATE.invoke(variables).to_messages()
     return state
