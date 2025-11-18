@@ -45,13 +45,12 @@ def build_graph(checkpointer=None):
     g.add_edge("MaybeScheduleNudge", END)
 
     # 세션 라우팅
-    # cond_route_session은 "WEEKLY"|"DAILY"|"GENERAL" 중 하나를 반환
+    # cond_route_session은 "WEEKLY"|"GENERAL" 중 하나를 반환
     g.add_conditional_edges(
         "RouteSession",
         cond_route_session,
         {
             "WEEKLY": "PickWeek",
-            "DAILY": "DecideIntervention",
             "GENERAL": "DecideIntervention",
             "__else__": "DecideIntervention",
         },
