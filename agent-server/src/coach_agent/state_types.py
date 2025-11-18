@@ -66,5 +66,5 @@ class CounselorTurn(BaseModel):
         """
     )
     reasoning: Optional[str] = Field(
-        description="session_goals_met을 True/False로 판단한 근거 요약."
+        description="session_goals_met을 True/False로 판단한 근거. 어떤 조건이 충족되었고 어떤 것이 부족한지 설명."
     )

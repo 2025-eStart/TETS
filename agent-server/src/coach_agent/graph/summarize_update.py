@@ -48,16 +48,24 @@ def _create_summary(user_id: str, week: int) -> str:
         return f"{week}주차 요약 생성에 실패했습니다. (오류: {e})"
 
 def summarize_update(state: State) -> State:
-    # 1. '메시지 저장'을 제외한 '비즈니스 로직' 처리
-    #    (예: 주차 업데이트)
+    print(f"\n=== [DEBUG] SummarizeUpdate Node ===")
+    print(f"   - Current Week: {state.current_week}")
+    print(f"   - State.exit Flag: {state.exit}") # RunLLM에서 넘어온 값 확인
+
+    # 1. 진행률 업데이트
+    # state.exit가 True이면 DB 상태가 'ended'로 변경됨
     REPO.update_progress(
         state.user_id, 
         state.current_week, 
         state.exit
     )
+    
+    if state.exit:
+        print("   ✅ Session marked as COMPLETED in DB.")
+    else:
+        print("   Running... (Session continues)")
 
-    # 2. [유지] 세션 종료 시 '요약 저장' 로직은 그대로 둡니다.
-    #    (이것은 Checkpointer가 모르는 커스텀 로직임)
+    # 2. 세션 종료 시 요약 생성 (기존 로직)
     if state.exit and state.session_type == "WEEKLY":
         print(f"--- Session {state.current_week} ended. Creating summary... ---")
         try:
