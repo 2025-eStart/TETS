@@ -2,10 +2,11 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from services.base_repo import Repo
-from services.firebase_admin_client import get_db
+from .base_repo import Repo
+from .firebase_admin_client import get_db
 from firebase_admin import firestore
 from google.api_core.exceptions import FailedPrecondition, NotFound
+from google.cloud.firestore_v1 import FieldFilter
 
 db = get_db()
 
@@ -34,8 +35,8 @@ class FirestoreRepo(Repo):
 
     def get_active_weekly_session(self, user_id: str, week: int) -> Optional[Dict[str, Any]]:
         q = (_sessions_col(user_id)
-             .where("week", "==", int(week))
-             .where("status", "in", ["draft", "active", "paused"]))
+             .where(filter=FieldFilter("week", "==", int(week)))
+             .where(filter=FieldFilter("status", "in", ["draft", "active", "paused"])))
         try:
             docs = q.order_by("started_at", direction=firestore.Query.DESCENDING).stream()
         except FailedPrecondition:
@@ -95,7 +96,7 @@ class FirestoreRepo(Repo):
          (user_id, created_at) 색인 생성이 필요할 수 있습니다)
         """
         q = (db.collection_group("messages")
-             .where("user_id", "==", user_id)
+             .where(filter=FieldFilter("user_id", "==", user_id))
              .order_by("created_at"))
         
         try:
@@ -139,8 +140,8 @@ class FirestoreRepo(Repo):
     def get_past_summaries(self, user_id: str, current_week: int) -> List[Dict[str, Any]]:
         """current_week '미만'의 모든 세션에서 'summary' 필드가 있는 문서를 가져옴"""
         q = (_sessions_col(user_id)
-             .where("week", "<", int(current_week))
-             .where("summary", "!=", None) # 'summary' 필드가 존재하는 문서만
+             .where(filter=FieldFilter("week", "<", int(current_week)))
+             .where(filter=FieldFilter("summary", "!=", None)) # 'summary' 필드가 존재하는 문서만
              .order_by("week"))
         
         summaries = []
