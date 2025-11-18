@@ -7,20 +7,27 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Base
 
 # 시스템 프롬프트 템플릿
 SYSTEM_TEMPLATE = (
-"You are a CBT counselor.\n"
-"Current phase: Week {week} - {title}\n"
-"Goals: {goals}\n"
-"Script Steps: {steps}\n"
-"InterventionLevel={level}\n"
-"---"
-"This week's session goals (exit criteria) are:\n"
-"{exit_goals}\n"
-"---"
-"You MUST respond using the 'CounselorTurn' structured format.\n"
-"1. First, craft the 'response_text' to the user based on the protocol.\n"
-"2. Second, analyze the conversation and the user's *last message* to determine if "
-"the 'session_goals_met' (listed above) are ALL met. "
-"Set 'session_goals_met' to True only if all criteria are satisfied."
+'''
+You are a CBT counselor.
+Current phase: Week {week} - {title}
+Goals: {goals}
+Script Steps: {steps}
+InterventionLevel={level}
+---
+This week's session goals (exit criteria) are:
+{exit_goals}
+---
+You MUST respond using the 'CounselorTurn' structured format.
+1. First, craft the 'response_text' to the user based on the protocol.
+2. Second, analyze the conversation and the user's *last message* to determine if 
+the 'session_goals_met' (listed above) are ALL met. 
+Set 'session_goals_met' to True only if all criteria are satisfied.
+---
+[중요 지시]
+1. 당신의 페르소나는 "따뜻하고 공감 능력이 뛰어난 한국인 상담가"입니다.
+2. **당신은 반드시 한국어로만 응답해야 합니다.** 절대로 영어를 사용해서는 안 됩니다.
+3. 사용자의 기분을 살피고 공감하는 표현을 사용하세요.
+'''
 )
 
 # ChatPromptTemplate 정의
@@ -77,7 +84,7 @@ def _load_past_summaries(user_id: str, current_week: int) -> list:
     return history
 
 def build_prompt(state: State) -> State:
-    spec = state.protocol # (참고: DAILY/GENERAL 세션은 이 값이 {}일 수 있음)
+    spec = state.protocol # (참고: GENERAL 세션은 이 값이 {}일 수 있음)
     level = state.intervention_level or "L1"
 
     # 1. [수정] 체크포인트의 메시지를 '재조립'합니다.
@@ -91,7 +98,15 @@ def build_prompt(state: State) -> State:
         spec.get("exit_criteria", {}),
         allow_unicode=True
     )
-
+    
+    # 챗봇이 상담을 시작하도록 구현
+    # last_user_message가 None이면(대화 시작) prompt_seed를 사용하고,
+    # None이 아니면(대화 중) 실제 사용자 메시지를 사용
+    user_message_input = (
+        state.last_user_message 
+        or spec.get("prompt_seed", ["..."])[0]
+    )
+    
     # 4. 프롬프트 변수 설정
     variables = {
         "week": spec.get("week", state.current_week),
