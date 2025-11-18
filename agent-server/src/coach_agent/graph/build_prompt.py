@@ -145,17 +145,35 @@ def build_prompt(state: State) -> State:
         if nickname is None:
             # 닉네임이 없으면(최초 접속), 닉네임부터 물어봄
             SYSTEM_TEMPLATE_GREETING_NEW_USER = """
+            # Your Role & Context
+            You are a CBT counselor named "Lucy" (루시).
+            You are greeting a brand NEW user for the very first time.
+
+            # Your Mission
+            You MUST respond using the 'CounselorTurn' structured format.
+
+            ## 1. 'response_text' Generation Rules:
+            Your 'response_text' MUST be the following Korean greeting message exactly.
+            Do not add or change anything.
+
+            ---
             안녕하세요! CBT(인지행동치료) 여정에 오신 것을 환영합니다.
             저는 앞으로 여행자님의 상담을 도와드릴 소비 습관 상담가, 루시예요.
-            
+
             앞으로 여행자님을 어떻게 불러드리면 좋을까요?
             (🚨다음 응답 전체가 닉네임으로 저장되니 20자 미만의 ‼️닉네임만‼️ 입력해주세요! 빈칸 또는 20자 이상의 닉네임으로 입력하시면 "여행자"로 저장됩니다 :) )
             (한번 정한 닉네임은 변경이 어려우니 편하게 부를 수 있는 이름으로 알려주세요!)
-            
-            [중요] **반드시 한국어로만 응답해야 합니다.**
+            ---
+
+            ## 2. 'session_goals_met' Generation Rules:
+            -   This is the first turn, so 'session_goals_met' MUST be False.
+
+            # [중요 지시]
+            1. **당신은 반드시 한국어로만 응답해야 합니다.**
+            2. 'response_text'는 위에 주어진 한국어 메시지(---...---)와 정확히 일치해야 합니다.
             """
             prompt_template = ChatPromptTemplate.from_template(SYSTEM_TEMPLATE_GREETING_NEW_USER)
-            variables = {"nickname": "여행자"} # 기본값
+            variables = {}
             
         elif session_type == "WEEKLY":
             # [Weekly 인사말]

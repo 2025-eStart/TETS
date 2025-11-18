@@ -62,7 +62,7 @@ def load_state(state: State, config: RunnableConfig) -> State:
         if not new_nickname or len(new_nickname) > 20: # (예: 너무 길거나 빈칸일 때)
             new_nickname = "여행자"
         # [사용자 요청] 닉네임 변수에 저장 (DB 및 State)
-        REPO.update_user(s.user_id, {"nickname": new_nickname})
+        REPO.upsert_user(s.user_id, {"nickname": new_nickname})
         s.nickname = new_nickname # state의 닉네임도 즉시 갱신
         
         # [중요] 닉네임 메시지는 "소비"되었으므로,
