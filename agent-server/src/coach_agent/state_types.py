@@ -17,7 +17,7 @@ class State(BaseModel):
     user_id: Optional[str] = None
     
     # load_state에서 런타임에 주입
-    # [수정] utcnow() 대신 권장되는 방식 사용
+    # utcnow() 대신 권장되는 방식 사용
     now_utc: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # --- 2. 비즈니스 로직 상태 (REPO에서 로드) ---
@@ -26,23 +26,26 @@ class State(BaseModel):
     session_type: SessionType = "WEEKLY"
     weekly_session: Optional[Dict[str, Any]] = None
     protocol: Dict[str, Any] = Field(default_factory=dict)
+    
+    # --- 3. 인사말 생성용 데이터 ---
+    # LoadState가 user 객체에서 로드
+    nickname: Optional[str] = None 
+    # LoadState가 user.last_seen_at과 now_utc로 계산
+    days_since_last_seen: int = 0
 
-    # --- 3. 개입/분석 상태 (노드에서 계산) ---
+    # --- 4. 개입/분석 상태 (노드에서 계산) ---
     metrics: Dict[str, Any] = Field(default_factory=dict)
     intervention_level: Optional[str] = None  # "L1".."L5"
 
-    # --- 4. 턴(Turn) 단위 임시 상태 (메모리만 사용) ---
-    
+    # --- 5. 턴(Turn) 단위 임시 상태 (메모리만 사용) ---
     # load_state가 messages에서 추출하여 저장
     last_user_message: Optional[str] = None
-    
     # build_prompt -> run_llm 전달용 임시 프롬프트
     llm_prompt_messages: List[BaseMessage] = Field(default_factory=list)
-    
     # run_llm -> summarize_update 전달용 임시 출력
     llm_output: Optional[str] = None
 
-    # --- 5. 제어 플래그 ---
+    # --- 6. 제어 플래그 ---
     exit: bool = False
     expired: bool = False
 
