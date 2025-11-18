@@ -25,7 +25,6 @@ class State(BaseModel):
     current_week: int = 1
     session_type: SessionType = "WEEKLY"
     weekly_session: Optional[Dict[str, Any]] = None
-    daily_session: Optional[Dict[str, Any]] = None
     protocol: Dict[str, Any] = Field(default_factory=dict)
 
     # --- 3. 개입/분석 상태 (노드에서 계산) ---
