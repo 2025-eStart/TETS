@@ -47,7 +47,7 @@ def _create_summary(user_id: str, week: int) -> str:
         print(f"ERROR: Summary creation failed for user {user_id}, week {week}: {e}")
         return f"{week}주차 요약 생성에 실패했습니다. (오류: {e})"
 
-def summarize_update(state: State) -> State:
+def summarize_update(state: State) -> dict:
     print(f"\n=== [DEBUG] SummarizeUpdate Node ===")
     print(f"   - Current Week: {state.current_week}")
     print(f"   - State.exit Flag: {state.exit}") # RunLLM에서 넘어온 값 확인
@@ -75,4 +75,4 @@ def summarize_update(state: State) -> State:
         except Exception as e:
             print(f"CRITICAL: Failed to generate or save summary: {e}")
 
-    return state
+    return {}

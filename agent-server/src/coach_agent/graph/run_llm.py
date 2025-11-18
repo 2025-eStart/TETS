@@ -6,8 +6,15 @@ from langchain_core.messages import AIMessage
 def run_llm(state: State) -> dict:
     print(f"\n=== [DEBUG] RunLLM Node Started ===")
     
-    # 1. LLM 호출 (CounselorTurn 객체 반환)
+    # 0. LLM 호출 (CounselorTurn 객체 반환)
     structured_output = LLM_CHAIN.invoke(state.llm_prompt_messages)
+    
+    # 1. Metrics 업데이트 준비 (딕셔너리 병합을 위해 기존 metrics 가져오기)
+    # 주의: LangGraph의 Dict 리턴 방식은 최상위 키를 덮어쓰기(Overwrite) 하는 것이 기본입니다.
+    # metrics 딕셔너리 전체를 교체하지 않으려면, 기존 값을 복사해서 합쳐야 안전합니다.
+    new_metrics = state.metrics.copy()
+    if structured_output.reasoning:
+        new_metrics["exit_reasoning"] = structured_output.reasoning
     
     # --- [디버깅 코드 추가] ---
     print(f"🤖 LLM Response Generated:")
@@ -32,5 +39,6 @@ def run_llm(state: State) -> dict:
         "messages": [AIMessage(content=structured_output.response_text)],
         # 업데이트한 state.exit의 값 반환 -> 다음 노드로 전달
         "exit": structured_output.session_goals_met,
-        "llm_output": structured_output.response_text
+        "llm_output": structured_output.response_text,
+        "metrics": new_metrics
     }

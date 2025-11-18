@@ -2,10 +2,10 @@
 from state_types import State
 from utils.metrics import score_input_quality
 
-def decide_intervention(state: State) -> State:
+def decide_intervention(state: State) -> dict:
     s = state
-    s.metrics = score_input_quality(s.last_user_message or "")
-    m = s.metrics
+    computed_metrics = score_input_quality(s.last_user_message or "")
+    m = computed_metrics
     if m["risk"]: level = "L5"
     elif m["completeness"] < 0.5: level = "L1"
     elif m["avoidance"] >= 0.6: level = "L2"
@@ -15,4 +15,7 @@ def decide_intervention(state: State) -> State:
     
     s.intervention_level = level
     
-    return s
+    return {
+        "metrics": computed_metrics,
+        "intervention_level": level
+    }

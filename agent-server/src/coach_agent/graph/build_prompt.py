@@ -127,7 +127,7 @@ def _load_past_summaries(user_id: str, current_week: int) -> list:
     return history
 
 # --- [핵심] build_prompt 함수 (대폭 수정) ---
-def build_prompt(state: State) -> State:
+def build_prompt(state: State) -> dict:
     spec = state.protocol
     session_type = state.session_type
 
@@ -231,6 +231,8 @@ def build_prompt(state: State) -> State:
             MessagesPlaceholder(variable_name="history"),
             HumanMessage(content="{user_message}"),
         ])
-        state.llm_prompt_messages = prompt_template.invoke(variables).to_messages()
+        prompt_messages = prompt_template.invoke(variables).to_messages()
     
-    return state
+    return {
+        "llm_prompt_messages": prompt_messages
+    }
