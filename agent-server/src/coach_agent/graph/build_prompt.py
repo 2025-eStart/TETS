@@ -126,7 +126,7 @@ def _load_past_summaries(user_id: str, current_week: int) -> list:
         history.append(AIMessage(content=summary_text))
     return history
 
-# --- [핵심] build_prompt 함수 (대폭 수정) ---
+# --- build_prompt 함수 ---
 def build_prompt(state: State) -> dict:
     spec = state.protocol
     session_type = state.session_type
