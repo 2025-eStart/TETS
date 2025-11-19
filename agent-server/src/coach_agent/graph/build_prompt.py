@@ -62,17 +62,19 @@ InterventionLevel={level}
 Human: {user_message}
 AI: 
 
+# [CRITICAL INSTRUCTION]
+{intervention_instruction}
+
 # Your Required Output
 You MUST respond using the 'CounselorTurn' structured format.
 
 ## 1. 'response_text' Generation Rules:
--   **EMPATHIZE (공감):** First, always show empathy and acknowledge the Human's last message ({user_message}). (예: "그렇게 느끼셨군요.", "말씀해 주셔서 감사해요.")
--   **LEAD (리드):** Second, look at your 'Script Steps' (Your Map) and the 'Conversation History' to see what the *next* step is. Ask a question that leads the user to that next step.
--   **DIGRESSIONS (딴소리):** If the user gets off-topic, give a *very short* answer, then gently guide them back to the 'Script Steps'. (예: "그렇군요. 다시 아까 이야기로 돌아가서...")
+-   **EMPATHIZE:** {empathy_instruction}
+-   **LEAD:** After the empathy/warning, you MUST ask the question corresponding to the current 'Script Steps' to proceed with the session. Do NOT stop at empathy.
 
 ## 2. 'session_goals_met' Generation Rules:
 -   Analyze the *entire* 'Conversation History' and the 'Exit Criteria'.
--   Set 'session_goals_met' to True *only if* ALL criteria are satisfied. Otherwise, set it to False.
+-   Set 'session_goals_met' to True *only if* ALL criteria are satisfied.
 
 # [중요 지시]
 1. 당신의 페르소나는 "따뜻하고 공감 능력이 뛰어난 한국인 상담가"입니다.
@@ -210,8 +212,39 @@ def build_prompt(state: State) -> dict:
         prompt_messages = prompt_template.invoke(variables).to_messages()
 
     else:
-        # --- 1-B. 대화 중일 경우 (기존 로직) ---
+        # --- 1-B. 대화 중일 경우 ---
         level = state.intervention_level or "L1"
+        
+        # [핵심 수정] 레벨에 따른 개입 지침(Instruction) 분기 처리
+    intervention_instruction = ""
+    empathy_instruction = "Briefly acknowledge the user's feeling."
+
+    # L4/L5: 고위험 또는 강한 거부 -> 병원 권유 및 강력한 리드
+    if level in ["L4", "L5"]:
+        intervention_instruction = """
+        🚨 **EMERGENCY / HIGH RISK DETECTED** 🚨
+        The user is showing signs of severe depression, refusal, or distress.
+        1. You MUST explicitly suggest professional help in a gentle way. (e.g., "마음이 많이 힘드실 때는 전문가나 병원의 도움을 받는 것도 좋은 방법이에요.")
+        2. HOWEVER, your goal is still to complete the session protocol if possible.
+        3. After the suggestion, gently steer them back to the topic.
+        """
+        empathy_instruction = "Show deep empathy and validate their pain heavily."
+    
+    # L2/L3: 회피/딴소리 -> 부드럽게 끊고 복귀
+    elif level in ["L2", "L3"]:
+        intervention_instruction = """
+        ⚠️ **AVOIDANCE DETECTED** ⚠️
+        The user is trying to avoid the topic or is distracted.
+        1. Do NOT get dragged into their distraction.
+        2. Acknowledge their statement very briefly (1 sentence).
+        3. IMMEDIATELY redirect to the 'Script Steps'.
+        """
+        empathy_instruction = "Briefly acknowledge, but prioritize the session goal."
+    
+    # L1: 정상 -> 기존 흐름
+    else:
+        intervention_instruction = "Proceed with the standard CBT coaching flow."
+        empathy_instruction = "Show empathy and acknowledge the Human's last message."
         
         cleaned_chat_history = [_clean_message_content(msg) for msg in state.messages]
         past_summaries = _load_past_summaries(state.user_id, state.current_week)
@@ -225,12 +258,14 @@ def build_prompt(state: State) -> dict:
             "level": level,
             "exit_goals": exit_criteria_text,
             "history": past_summaries + cleaned_chat_history,
-            "user_message": state.last_user_message, # load_state가 문자열로 보장
+            "user_message": state.last_user_message,
+            "intervention_instruction": intervention_instruction,
+            "empathy_instruction": empathy_instruction
         }
         
         # 일반 대화 템플릿(SYSTEM_TEMPLATE_CONVERSATION) 사용
         prompt_template = ChatPromptTemplate.from_messages([
-            SystemMessage(content=SYSTEM_TEMPLATE_CONVERSATION), # [수정] 명확하게 변경
+            SystemMessage(content=SYSTEM_TEMPLATE_CONVERSATION),
             MessagesPlaceholder(variable_name="history"),
             HumanMessage(content="{user_message}"),
         ])
