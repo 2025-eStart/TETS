@@ -2,6 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,firebase,macos,windows,visualstudiocode
 
 ### Firebase ###
+.firebase_key.json
 .idea
 **/node_modules/*
 **/.firebaserc
@@ -259,5 +260,12 @@ $RECYCLE.BIN/
 # Ignore all local history of files
 .history
 .ionide
+
+# Langgraph
+.langgraph_api/
+
+# android
+.gradle/
+local.properties
 
 # End of https://www.toptal.com/developers/gitignore/api/python,firebase,macos,windows, visualstudiocode
