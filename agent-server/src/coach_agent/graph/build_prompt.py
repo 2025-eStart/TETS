@@ -204,7 +204,7 @@ def build_prompt(state: State) -> dict:
             variables = {}
 
         # 생성된 프롬프트를 임시 필드에 저장
-        state.llm_prompt_messages = prompt_template.invoke(variables).to_messages()
+        prompt_messages = prompt_template.invoke(variables).to_messages()
 
     else:
         # --- 1-B. 대화 중일 경우 (기존 로직) ---
