@@ -14,13 +14,11 @@ def update_progress(state: State) -> dict:
         
         # 2. REPO를 통해 진행도 업데이트
         # (REPO 구현체에 따라 messages 길이, 완료 조건 등을 체크하여 진행도를 계산)
-        REPO.update_progress(user_id, current_week, state.messages)
+        REPO.update_progress(user_id, current_week, state.exit)
         
-        print(f"[{current_week}주차] 진행 상태가 업데이트되었습니다.")
+        print(f"[{current_week}주차] 진행 상태 업데이트 (완료여부: {state.exit})")
         
     except Exception as e:
-        # 로깅 처리 (LangGraph에서는 실패해도 그래프가 멈추지 않게 처리하는 것이 좋음)
         print(f"진행 상태 업데이트 중 오류 발생: {e}")
 
-    # 이 노드는 상태를 변경하지 않고 부수 효과만 수행하므로 빈 딕셔너리를 반환
     return {}
