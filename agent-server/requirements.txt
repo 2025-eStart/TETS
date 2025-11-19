@@ -1,0 +1,32 @@
+# --- Core ---
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+python-frontmatter
+jinja2
+
+# --- LangChain / LangGraph ---
+langchain
+langgraph
+langchain-openai
+langsmith                    # test용
+
+# --- firebase ---
+firebase-admin
+google-api-core
+langchain-google-firestore
+
+## ======== RAG ======== ##
+# --- Vector DB: Pinecone ---
+pinecone-client                # Pinecone 최신 SDK(v5)
+langchain-pinecone             # LangChain ↔ Pinecone 연결 어댑터
+
+# --- Embedding / 문서처리 ---
+sentence-transformers          # (Hugging Face 임베딩용)
+pypdf                          # PDF 로더
+chromadb                       # 로컬 백엔드 테스트용
+
+# --- 기타 유틸 ---
+tqdm
+PyYAML                         # protocol 파일 형식 YAML 임포트(app.utils.protocol_loader.py)
