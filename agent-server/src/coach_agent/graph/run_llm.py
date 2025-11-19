@@ -36,7 +36,8 @@ def run_llm(state: State) -> dict:
 
     # 3. 메시지 추가 및 반환
     return {
-        "messages": [AIMessage(content=structured_output.response_text)],
+        # 후처리모델 RewriteTone에서 messages에 추가하므로 여기서는 messages를 반환하지 않음
+        # "messages": [AIMessage(content=structured_output.response_text)],
         # 업데이트한 state.exit의 값 반환 -> 다음 노드로 전달
         "exit": structured_output.session_goals_met,
         "llm_output": structured_output.response_text,

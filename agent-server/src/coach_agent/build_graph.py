@@ -8,6 +8,7 @@ from graph.pick_week import pick_week
 from graph.build_prompt import build_prompt
 from graph.decide_intervention import decide_intervention
 from graph.run_llm import run_llm
+from graph.rewrite_tone import rewrite_tone
 from graph.update_progress import update_progress
 from graph.persist_turn import persist_turn_node
 from graph.generate_and_save_summary import generate_and_save_summary
@@ -41,7 +42,8 @@ def build_graph(checkpointer=None):
     g.add_node("DecideIntervention", decide_intervention) # 개입 수준 결정
     g.add_node("BuildPrompt", build_prompt) # LLM 프롬프트 빌드
     g.add_node("RunLLM", run_llm) # LLM 호출 및 응답 처리, exit 플래그 설정
-    
+    g.add_node("RewriteTone", rewrite_tone) # LLM 응답 톤 일관성 유지 후처리
+        
     # [1-C] 테일/데이터 관리 노드 (Tail)
     g.add_node("PersistTurn", persist_turn_node) # 메시지 영구 저장(db에 저장)
     g.add_node("UpdateProgress", update_progress) # 진행률 업데이트
@@ -78,9 +80,10 @@ def build_graph(checkpointer=None):
     g.add_edge("BuildPrompt", "RunLLM")
     
     # [2-F] 후처리 및 종료 흐름 (Tail)
-    
-    # 1. RunLLM 이후, 메시지 저장 (필수)
-    g.add_edge("RunLLM", "PersistTurn")
+    g.add_edge("RunLLM", "RewriteTone")      # 초안 생성 후 교정
+
+    # 1. 후처리한 메시지 반환 이후, 메시지 저장 (필수)
+    g.add_edge("RewriteTone", "PersistTurn") # 교정 후 저장
     
     # 2. 저장 후, 진행률 업데이트
     g.add_edge("PersistTurn", "UpdateProgress")
