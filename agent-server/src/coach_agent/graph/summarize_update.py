@@ -9,7 +9,7 @@ def _create_summary(user_id: str, week: int) -> str:
     지정된 주차의 전체 대화 내용을 기반으로 요약본을 생성
     """
     try:
-        # 1. DB에서 '모든' 메시지를 가져옴 (2단계에서 구현한 함수)
+        # 1. DB에서 '모든' 메시지를 가져옴
         all_messages = REPO.get_messages(user_id)
         
         # 2. '현재 주차'의 메시지만 필터링
@@ -28,7 +28,7 @@ def _create_summary(user_id: str, week: int) -> str:
 
         # 4. 요약 프롬프트
         prompt = f"""
-        다음은 사용자의 {week}주차 CBT 상담 대화 내용입니다. 
+        다음은 사용자의 {week}주차 인지행동치료(CBT) 상담 대화 내용입니다. 
         이 세션의 핵심 성과(사용자가 완료한 과제, 주요 발견, 합의 사항, 감정 변화)를 
         다음 세션의 상담사가 빠르게 파악할 수 있도록 5줄 이내의 핵심 요약본으로 만드세요.
         
@@ -60,12 +60,12 @@ def summarize_update(state: State) -> dict:
         state.exit
     )
     
-    if state.exit:
+    if state.exit: # 디버깅용
         print("   ✅ Session marked as COMPLETED in DB.")
     else:
         print("   Running... (Session continues)")
 
-    # 2. 세션 종료 시 요약 생성 (기존 로직)
+    # 2. 주간 상담 세션 종료 시 요약 생성 및 저장
     if state.exit and state.session_type == "WEEKLY":
         print(f"--- Session {state.current_week} ended. Creating summary... ---")
         try:
