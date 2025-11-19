@@ -9,10 +9,18 @@ def generate_and_save_summary(state: State) -> dict:
     (이 노드는 세션 목표 달성 후에만 호출되어야 함)
     """
     try:
-        print(f"--- [GenerateSummary] Week {state.current_week} 요약 생성 시작 ---")
+        # state.protocol에서 필요한 메타데이터 추출
+        spec = state.protocol
+        title = spec.get("title", "주간 상담")
+        exit_criteria = spec.get("exit_criteria", {})
         
-        # 1. 서비스 함수 호출 (코드가 훨씬 간결해짐)
-        summary_text = create_session_summary(state.messages, state.current_week)
+        # 1. 서비스 함수 호출
+        summary_text = create_session_summary(
+            messages=state.messages, 
+            current_week=state.current_week,
+            title=title,
+            exit_criteria=exit_criteria 
+        )
         
         if summary_text:
             # 2. 저장
