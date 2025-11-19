@@ -177,6 +177,9 @@ def build_prompt(state: State) -> dict:
             
         elif session_type == "WEEKLY":
             # [Weekly 인사말]
+            seed_data = spec.get("prompt_seed", ["오늘 어떠셨나요?"]) # 기본값 설정
+            if isinstance(seed_data, str):
+                seed_data = [seed_data]
             variables = {
                 "nickname": nickname,
                 "days_since_last_seen": days_since,
@@ -184,7 +187,7 @@ def build_prompt(state: State) -> dict:
                 "week": spec.get("week", state.current_week),
                 "title": spec.get("title", "주간 상담"),
                 "goals": "; ".join(spec.get("goals", [])),
-                "prompt_seed": spec.get("prompt_seed", ["오늘 어떠셨나요?"])[0],
+                "prompt_seed": seed_data[0],
             }
             prompt_template = ChatPromptTemplate.from_template(SYSTEM_TEMPLATE_GREETING)
             
