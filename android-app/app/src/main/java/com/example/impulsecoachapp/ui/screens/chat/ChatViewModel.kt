@@ -4,6 +4,7 @@ package com.example.impulsecoachapp.ui.screens.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.impulsecoachapp.domain.model.ChatMessage
+import com.example.impulsecoachapp.domain.model.ChatTurn
 import com.example.impulsecoachapp.domain.repository.ChatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,104 +13,74 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@HiltViewModel // 1. Hilt ViewModel로 선언
-class ChatViewModel @Inject constructor( // 2. 생성자에서 ChatRepository를 주입받음
+@HiltViewModel
+class ChatViewModel @Inject constructor(
     private val repository: ChatRepository
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
-    // 로딩 상태를 UI에 표시하기 위한 StateFlow
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // 세션 종료 여부를 UI에 알리기 위한 StateFlow
     private val _isSessionEnded = MutableStateFlow(false)
     val isSessionEnded: StateFlow<Boolean> = _isSessionEnded.asStateFlow()
 
+    // ★ 추가: 상담 제목 및 목표 (UI 표시용)
+    private val _sessionTitle = MutableStateFlow("상담 로딩 중...")
+    val sessionTitle: StateFlow<String> = _sessionTitle.asStateFlow()
+
+    private val _sessionGoals = MutableStateFlow<List<String>>(emptyList())
+    val sessionGoals: StateFlow<List<String>> = _sessionGoals.asStateFlow()
+
     init {
-        // 초기 메시지
-        _messages.value = listOf(
-            ChatMessage.GuideMessage("안녕하세요 \uD83D\uDE0A 이번 주는 상담 5주차예요.\n" +
-                    "오늘은 소비 순간에 자동으로 떠오르는 ‘생각’을 함께 찾아보려 해요.\n" +
-                    "혹시 최근에 충동적으로 소비한 순간이 있었나요?\n" +
-                    "그때 머릿속에 어떤 생각이 가장 먼저 스쳤는지 기억나시나요?")
-        )
-    } // [수정] init { ... } 블록을 여기서 닫습니다.
+        // 화면 진입 시, 빈 메시지를 보내서 서버의 "첫 인사(GREETING)"를 유도하거나
+        // 또는 저장된 대화 내역을 불러오는 로직이 필요합니다.
+        // 여기서는 "서버에 접속했다"는 신호를 보내는 것으로 가정합니다.
+        // (LangGraph 서버 로직상, nickname이 없으면 첫 메시지가 닉네임이 되므로 주의 필요)
 
-    // 사용자의 자유 텍스트 입력을 처리하는 함수
+        // 임시: 사용자가 먼저 말을 걸도록 하거나,
+        // 서버에 "init" 같은 특수 커맨드를 보내는 방법도 있습니다.
+        // 일단은 빈 리스트로 시작합니다.
+    }
+
     fun sendMessage(text: String) {
-        if (text.isBlank() || _isLoading.value || _isSessionEnded.value) return
+        if (text.isBlank() || _isLoading.value) return
 
-        // 1. 사용자의 메시지를 화면에 바로 표시
+        // 1. 사용자 메시지 추가
         val userMessage = ChatMessage.UserResponse(text)
         _messages.value = _messages.value + userMessage
-
-        // 2. 로딩 시작
         _isLoading.value = true
 
-        // 3. Repository(API)를 호출
         viewModelScope.launch {
             try {
-                // 4. 새 함수 호출 및 반환값(Result) 처리
+                // 2. API 호출
                 val result = repository.sendChatMessage(text = text, endSession = false)
 
                 result.fold(
                     onSuccess = { chatTurn ->
-                        // 5. 성공: 봇의 응답(ChatTurn.assistantMessage)을 화면에 추가
+                        // 3. 응답 처리
                         _messages.value = _messages.value + chatTurn.assistantMessage
 
-                        // 6. 세션 종료 여부 확인
+                        // 4. 메타 데이터 업데이트 (제목, 목표)
+                        if (!chatTurn.weekTitle.isNullOrBlank()) {
+                            _sessionTitle.value = "${chatTurn.currentWeek}주차: ${chatTurn.weekTitle}"
+                        }
+
+                        // weekGoals는 이제 List<String> (non-null)이므로 그냥 비어있는지만 체크
+                        if (chatTurn.weekGoals.isNotEmpty()) {
+                            _sessionGoals.value = chatTurn.weekGoals
+                        }
+
                         if (chatTurn.isSessionEnded) {
                             _isSessionEnded.value = true
-                            // (필요시) 숙제(chatTurn.homework) 처리 로직 추가
                         }
                     },
                     onFailure = { error ->
-                        // 7. 실패: 에러 메시지를 GuideMessage로 표시
-                        val errorMessage = ChatMessage.GuideMessage(
-                            "오류가 발생했습니다: ${error.message}"
+                        _messages.value = _messages.value + ChatMessage.GuideMessage(
+                            "서버 연결 오류: ${error.message}"
                         )
-                        _messages.value = _messages.value + errorMessage
-                    }
-                )
-            } finally {
-                // 8. 로딩 종료
-                _isLoading.value = false
-            }
-        }
-    }
-
-    // (옵션) 사용자가 명시적으로 세션을 종료할 때 호출하는 함수
-    fun endCurrentSession(finalMessage: String = "상담을 종료합니다.") {
-        if (_isLoading.value || _isSessionEnded.value) return
-
-        val userMessage = ChatMessage.UserResponse(finalMessage)
-        _messages.value = _messages.value + userMessage
-        _isLoading.value = true
-
-        viewModelScope.launch {
-            try {
-                // endSession = true로 호출
-                val result = repository.sendChatMessage(text = finalMessage, endSession = true)
-
-                result.fold(
-                    onSuccess = { chatTurn ->
-                        // 봇이 마지막 응답을 줄 경우
-                        // [수정] chatTurn.assistantMessage는 ChatMessage 타입이므로,
-                        // GuideMessage로 형변환(casting)해야 .text 속성에 접근할 수 있습니다.
-                        val assistantMessage = chatTurn.assistantMessage
-                        if (assistantMessage is ChatMessage.GuideMessage && assistantMessage.text.isNotBlank()) {
-                            _messages.value = _messages.value + assistantMessage
-                        }
-                        _isSessionEnded.value = true // 세션 종료 확정
-                    },
-                    onFailure = { error ->
-                        val errorMessage = ChatMessage.GuideMessage(
-                            "세션 종료 중 오류: ${error.message}"
-                        )
-                        _messages.value = _messages.value + errorMessage
                     }
                 )
             } finally {

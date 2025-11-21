@@ -41,26 +41,72 @@ fun ChatScreen(
     selectedTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit,
     onBackPressed: () -> Unit,
-    viewModel: ChatViewModel = hiltViewModel() // Hilt로 ViewModel 주입
+    viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSessionEnded by viewModel.isSessionEnded.collectAsState()
 
+    // ★ 추가된 상태 구독
+    val sessionTitle by viewModel.sessionTitle.collectAsState()
+    val sessionGoals by viewModel.sessionGoals.collectAsState()
+
     ScreenScaffold(
         selectedTab = selectedTab,
         onTabSelected = onTabSelected
     ) { innerPadding ->
-// 2. 상태와 람다를 "Dumb" Composable인 ChatScreenContent에 전달
         ChatScreenContent(
             modifier = Modifier,
             innerPadding = innerPadding,
             messages = messages,
             isLoading = isLoading,
             isSessionEnded = isSessionEnded,
-            onSendMessage = { text ->
-                viewModel.sendMessage(text)
-            }
+            sessionTitle = sessionTitle, // 전달
+            sessionGoals = sessionGoals, // 전달
+            onSendMessage = { viewModel.sendMessage(it) }
+        )
+    }
+}
+
+@Composable
+fun ChatScreenContent(
+    modifier: Modifier = Modifier,
+    innerPadding: PaddingValues,
+    messages: List<ChatMessage>,
+    isLoading: Boolean,
+    isSessionEnded: Boolean,
+    sessionTitle: String,          // 매개변수 추가
+    sessionGoals: List<String>,    // 매개변수 추가
+    onSendMessage: (String) -> Unit
+) {
+    val layoutDirection = LocalLayoutDirection.current
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7F6FB))
+            .padding(
+                top = innerPadding.calculateTopPadding(),
+                start = innerPadding.calculateStartPadding(layoutDirection),
+                end = innerPadding.calculateEndPadding(layoutDirection)
+            )
+            .windowInsetsPadding(
+                WindowInsets.ime.union(WindowInsets(bottom = innerPadding.calculateBottomPadding()))
+            )
+    ) {
+        // ★ 상단 바 개선: 제목 표시
+        TopSessionBar(title = sessionTitle)
+
+        // (선택 사항) 목표 체크리스트를 접었다 폈다 하는 UI가 있으면 좋음
+        // if (sessionGoals.isNotEmpty()) { GoalsList(sessionGoals) }
+
+        MessageList(
+            messages = messages,
+            modifier = Modifier.weight(1f)
+        )
+        UserInput(
+            isLoading = isLoading,
+            isSessionEnded = isSessionEnded,
+            onSendMessage = onSendMessage
         )
     }
 }
@@ -70,6 +116,8 @@ fun ChatScreen(
  * - ViewModel을 모르며, 오직 받은 데이터로 UI만 그립니다.
  * - 이 함수는 Preview가 매우 쉽습니다.
  */
+
+/*
 @Composable
 fun ChatScreenContent(
     modifier: Modifier = Modifier,
@@ -115,7 +163,28 @@ fun ChatScreenContent(
         )
     }
 }
+*/
 
+// 새로 만든 상단 바 컴포넌트
+@Composable
+fun TopSessionBar(title: String) {
+    Surface(
+        color = Color.White,
+        shadowElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF6200EE),
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+        }
+    }
+}
 
 @Composable
 fun UserInput(
@@ -287,28 +356,3 @@ fun ChatBubble(message: ChatMessage) {
         }
     }
 }
-
-@Preview(showSystemUi = true, showBackground = true)
-@Composable
-fun PreviewChatScreen() {
-    ImpulseCoachAppTheme {
-// 가짜 데이터 생성
-        val fakeMessages = listOf(
-            ChatMessage.GuideMessage("안녕! 나는 너의 소비 습관을 함께 돌아볼 임펄스 코치야. 오늘 어떤 일이 있었니?"),
-            ChatMessage.UserResponse("네 있었어요"),
-            ChatMessage.GuideMessage("무슨 소비였는지 말해줄 수 있어?"),
-            ChatMessage.UserResponse("밤에 쇼핑앱을 너무 오래 봤어요."),
-            ChatMessage.GuideMessage("그렇구나, 쇼핑앱을 볼 때 기분이 어땠어?"),
-            ChatMessage.UserResponse("그냥... 스트레스가 풀리는 것 같았어요."),
-            ChatMessage.GuideMessage("스트레스가 풀리는 느낌이었구나.")
-        )
-        ChatScreenContent(
-            innerPadding = PaddingValues(0.dp),
-            messages = fakeMessages,
-            isLoading = false,
-            isSessionEnded = false,
-            onSendMessage = {} // Preview에서는 아무것도 안 함
-        )
-    }
-}
-
