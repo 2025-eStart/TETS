@@ -1,8 +1,19 @@
 # coach_agent/services/summarizer.py
 import yaml
+from typing import Any
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from ..services.llm import get_llm 
+from .llm import get_llm 
+
+def _to_text(content: Any) -> str:
+    if isinstance(content, list):
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                return item.get("text", "")
+        return ""
+    if isinstance(content, str):
+        return content
+    return str(content)
 
 def create_session_summary(
     messages: list[BaseMessage], 
@@ -14,10 +25,11 @@ def create_session_summary(
     # 1. 메시지 전처리 (Transcript 생성)
     chat_transcript = ""
     for msg in messages:
+        text = _to_text(msg.content)
         if isinstance(msg, HumanMessage):
-            chat_transcript += f"User: {msg.content}\n"
+            chat_transcript += f"User: {text}\n"
         elif isinstance(msg, AIMessage):
-            chat_transcript += f"Counselor: {msg.content}\n"
+            chat_transcript += f"Counselor: {text}\n"
     
     if not chat_transcript:
         return ""
