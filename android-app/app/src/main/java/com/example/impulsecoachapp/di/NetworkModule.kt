@@ -1,6 +1,7 @@
 // di.NetworkModule
 package com.example.impulsecoachapp.di
 
+import com.example.impulsecoachapp.BuildConfig // 빌드 후 생성됨 (import 안 되면 Build -> Clean Project -> Rebuild Project)
 import com.example.impulsecoachapp.api.ApiService
 import dagger.Module
 import dagger.Provides
@@ -16,10 +17,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    // LangGraph 표준 포트: 8123
-    // 에뮬레이터: 10.0.2.2
-    private const val BASE_URL = "http://10.0.2.2:8123/"
 
     @Provides
     @Singleton
@@ -38,7 +35,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

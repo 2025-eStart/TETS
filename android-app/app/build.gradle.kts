@@ -24,7 +24,12 @@ android {
     buildTypes {
         debug{
             // 디버그: 내부 IP(HTTP) — 개발 편의용
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.68.136:8080/\"")
+            // buildConfigField("String", "API_BASE_URL", "\"http://192.168.68.136:8080/\"")
+
+            // LangGraph 기본 포트는 8123, 또는 2024
+            // 에뮬레이터 사용 시: "http://10.0.2.2:8123/"
+            // 실기기 사용 시: "http://내_PC_IP주소:8123/"
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:2024/\"")
         }
         release {
             isMinifyEnabled = false
@@ -32,7 +37,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // 릴리즈: 반드시 HTTPS 운영 도메인
+            // 릴리즈: 반드시 HTTPS 운영 도메인 (실제 도메인)
             buildConfigField("String", "API_BASE_URL", "\"https://api.yourdomain.com/\"")
         }
     }
