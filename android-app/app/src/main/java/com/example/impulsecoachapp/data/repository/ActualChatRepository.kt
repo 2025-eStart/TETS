@@ -45,7 +45,7 @@ class ActualChatRepository @Inject constructor(
             val values = response.values
 
             // 4-1. 가장 마지막 AI 메시지 찾기
-            val lastMessageContent = values.messages.lastOrNull { it.role == "assistant" }?.content
+            val lastMessageContent = values.messages.lastOrNull { it.type == "ai" }?.content
                 ?: "응답을 불러올 수 없습니다."
 
             // 4-2. ChatMessage 객체 생성
