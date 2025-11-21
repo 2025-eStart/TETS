@@ -9,9 +9,9 @@ data class LangGraphResponse(
 
 // 서버의 state_types.py에 정의된 State와 매핑됩니다.
 data class StateValues(
-    @SerializedName("messages") val messages: List<MessageData>, // 대화 내역 전체
+    @SerializedName("messages") val messages: List<MessageData>, // 위에서 수정한 MessageData(type, content) 재사용
     @SerializedName("current_week") val currentWeek: Int = 1,
-    @SerializedName("exit") val exit: Boolean = false,           // 목표 달성 여부
+    @SerializedName("exit") val exit: Boolean = false,
     @SerializedName("protocol") val protocol: ProtocolData? = null
 )
 

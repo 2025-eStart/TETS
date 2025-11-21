@@ -7,7 +7,7 @@ import com.google.gson.annotations.SerializedName
 data class LangGraphRequest(
     @SerializedName("input") val input: InputData,
     @SerializedName("config") val config: ConfigData? = null,
-    @SerializedName("stream_mode") val streamMode: String = "values" // 결과를 한 번에 받기 위함
+    @SerializedName("stream_mode") val streamMode: List<String> = listOf("values") // 결과를 한 번에 받기 위함
 )
 
 data class InputData(
@@ -15,7 +15,7 @@ data class InputData(
 )
 
 data class MessageData(
-    @SerializedName("role") val role: String,   // "user"
+    @SerializedName("type") val type: String,   // "user"
     @SerializedName("content") val content: String
 )
 
