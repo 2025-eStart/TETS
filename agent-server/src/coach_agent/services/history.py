@@ -1,6 +1,19 @@
 # coach_agent/services/history.py
+from typing import Any
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from . import REPO
-from langchain_core.messages import BaseMessage
+
+def _to_text(content: Any) -> str:
+    """BaseMessage.content를 안전하게 str로 변환."""
+    # OpenAI-style: [{"type": "text", "text": "..."}]
+    if isinstance(content, list):
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                return item.get("text", "")
+        return ""
+    if isinstance(content, str):
+        return content
+    return str(content)
 
 def persist_turn(user_id: str, week: int, messages: list[BaseMessage], session_type: str):
     """
@@ -12,14 +25,14 @@ def persist_turn(user_id: str, week: int, messages: list[BaseMessage], session_t
     last_human = messages[-2]
     last_ai = messages[-1]
     
-    if last_human.type == "human" and last_ai.type == "ai":
+    if isinstance(last_human, HumanMessage) and isinstance(last_ai, AIMessage):
         # User 메시지 저장
         REPO.save_message(
             user_id, 
             session_type, 
             week, 
             "user", 
-            last_human.content
+            _to_text(last_human.content),
         )
         
         # Assistant 메시지 저장
@@ -28,5 +41,10 @@ def persist_turn(user_id: str, week: int, messages: list[BaseMessage], session_t
             session_type, 
             week, 
             "assistant", 
-            last_ai.content
+            _to_text(last_ai.content),
         )
+        
+        # else:
+            # 디버깅
+            # print(f"[persist_turn] 마지막 두 메시지가 Human/AI가 아님: {type(last_human)}, {type(last_ai)}")
+    
