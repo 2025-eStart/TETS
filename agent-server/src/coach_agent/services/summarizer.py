@@ -2,7 +2,7 @@
 import yaml
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from services.llm import get_llm 
+from ..services.llm import get_llm 
 
 def create_session_summary(
     messages: list[BaseMessage], 

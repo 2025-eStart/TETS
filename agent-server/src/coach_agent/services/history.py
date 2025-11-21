@@ -1,5 +1,5 @@
 # coach_agent/services/history.py
-from services import REPO
+from . import REPO
 from langchain_core.messages import BaseMessage
 
 def persist_turn(user_id: str, week: int, messages: list[BaseMessage], session_type: str):

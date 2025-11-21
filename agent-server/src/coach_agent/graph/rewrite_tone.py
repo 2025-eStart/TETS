@@ -2,7 +2,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage
-from state_types import State
+from ..state_types import State
 from config import settings
 
 # 말투 변환 전용 가벼운 모델 (gpt-4o-mini 추천)
