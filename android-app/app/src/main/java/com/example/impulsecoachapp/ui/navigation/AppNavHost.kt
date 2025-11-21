@@ -22,7 +22,7 @@ fun AppNavHost(
     )
     NavHost(
         navController = navController,
-        startDestination = BottomTab.Report.name
+        startDestination = BottomTab.Chat.name
     ) {
 
         composable(BottomTab.Chat.name) {
