@@ -1,3 +1,4 @@
+// domain.repository.ChatRepository
 package com.example.impulsecoachapp.domain.repository
 
 import com.example.impulsecoachapp.domain.model.ChatTurn

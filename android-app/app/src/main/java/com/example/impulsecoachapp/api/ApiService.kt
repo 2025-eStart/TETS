@@ -1,3 +1,4 @@
+//api.ApiService
 package com.example.impulsecoachapp.api
 
 import com.example.impulsecoachapp.data.model.chat.ChatRequest // <-- 'Next' 제거

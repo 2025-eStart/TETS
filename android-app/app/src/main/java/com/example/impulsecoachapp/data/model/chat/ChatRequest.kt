@@ -1,3 +1,4 @@
+//data.model.chat.ChatRequest
 package com.example.impulsecoachapp.data.model.chat
 
 import com.google.gson.annotations.SerializedName

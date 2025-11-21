@@ -1,3 +1,4 @@
+// domain.model/ChatMessage
 package com.example.impulsecoachapp.domain.model
 
 sealed class ChatMessage {

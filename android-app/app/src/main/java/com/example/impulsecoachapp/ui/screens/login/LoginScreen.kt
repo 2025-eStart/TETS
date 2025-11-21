@@ -1,3 +1,4 @@
+// ui.screens.login.LoginScreen
 package com.example.impulsecoachapp.ui.screens.login
 
 import androidx.compose.foundation.layout.Arrangement
