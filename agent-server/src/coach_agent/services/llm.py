@@ -2,7 +2,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from langchain_core.messages import SystemMessage, HumanMessage
-from config import settings
+from ..config import settings
 from ..state_types import CounselorTurn
 
 def get_llm():
