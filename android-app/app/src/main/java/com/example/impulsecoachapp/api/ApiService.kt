@@ -1,30 +1,22 @@
 //api.ApiService
 package com.example.impulsecoachapp.api
 
-import com.example.impulsecoachapp.data.model.chat.ChatRequest // <-- 'Next' 제거
-import com.example.impulsecoachapp.data.model.chat.ChatResponse // <-- 'Next' 제거
+import com.example.impulsecoachapp.data.model.chat.LangGraphRequest
+import com.example.impulsecoachapp.data.model.chat.LangGraphResponse
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface ApiService {
 
-    // ... 기타 다른 API 함수들 ...
-
     /**
-     * 새로운 단일 채팅 API (Facade)
+     * LangGraph 실행 및 대기 (Synchronous)
+     * POST /threads/{thread_id}/runs/wait
+     * * @param threadId: 사용자 ID (또는 세션 ID)를 스레드 ID로 사용
      */
-    @POST("/chat/next")
-    suspend fun chatNext(@Body request: ChatRequest): ChatResponse // <-- 타입 변경
-
-    /*
-    // --- 기존 채팅 API 함수들은 주석 처리하거나 삭제 ---
-    @POST("/chat/start")
-    suspend fun startChat(...)
-
-    @POST("/chat/send")
-    suspend fun sendMessage(...)
-
-    @POST("/chat/end")
-    suspend fun endChat(...)
-    */
+    @POST("threads/{threadId}/runs/wait")
+    suspend fun sendMessage(
+        @Path("threadId") threadId: String,
+        @Body request: LangGraphRequest
+    ): LangGraphResponse
 }
