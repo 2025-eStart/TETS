@@ -1,3 +1,4 @@
+// ui.screens.chat.ChatScreen
 package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.compose.foundation.Image

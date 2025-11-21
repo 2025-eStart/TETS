@@ -1,3 +1,4 @@
+// viewmodel.UserViewModel
 package com.example.impulsecoachapp.viewmodel
 
 import android.util.Log // ✅ Log import 추가

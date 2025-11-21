@@ -1,3 +1,5 @@
+// ui.theme.Theme
+
 package com.example.impulsecoachapp.ui.theme
 
 import android.os.Build

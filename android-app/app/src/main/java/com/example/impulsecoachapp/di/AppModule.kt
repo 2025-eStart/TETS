@@ -1,3 +1,4 @@
+// di.AppModule
 package com.example.impulsecoachapp.di
 
 import com.example.impulsecoachapp.domain.repository.ChatRepository

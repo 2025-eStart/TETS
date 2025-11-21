@@ -1,3 +1,4 @@
+// app.MainActivity
 package com.example.impulsecoachapp
 
 import android.os.Bundle

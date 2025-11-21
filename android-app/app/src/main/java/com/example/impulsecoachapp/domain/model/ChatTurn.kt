@@ -1,3 +1,4 @@
+// domain.model.ChatTurn
 package com.example.impulsecoachapp.domain.model
 
 import com.example.impulsecoachapp.domain.model.ChatMessage // 기존 모델 재활용

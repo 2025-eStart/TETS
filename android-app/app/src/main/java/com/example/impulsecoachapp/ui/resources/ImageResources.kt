@@ -1,3 +1,4 @@
+// ui.resources.ImageResources
 package com.example.impulsecoachapp.ui.resources
 
 import androidx.annotation.DrawableRes

@@ -1,4 +1,4 @@
-//retrofit
+//api.RetrofitClient
 
 package com.example.impulsecoachapp.api
 

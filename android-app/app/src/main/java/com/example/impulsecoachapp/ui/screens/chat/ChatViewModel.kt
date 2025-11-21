@@ -1,3 +1,4 @@
+// ui.screens.chat.ChatViewModel
 package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.lifecycle.ViewModel

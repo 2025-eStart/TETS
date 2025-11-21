@@ -1,3 +1,4 @@
+// data.Transaction
 package com.example.impulsecoachapp.data
 
 import java.time.LocalTime

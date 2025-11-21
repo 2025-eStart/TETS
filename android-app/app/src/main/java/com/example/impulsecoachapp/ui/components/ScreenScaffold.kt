@@ -1,3 +1,4 @@
+//ui.components.ScreenScaffold
 package com.example.impulsecoachapp.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues

@@ -1,3 +1,4 @@
+// ui.components.NavBarLight
 package com.example.impulsecoachapp.ui.components
 
 import androidx.compose.foundation.layout.height

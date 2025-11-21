@@ -1,3 +1,4 @@
+// ui.components.UserProfileButton
 package com.example.impulsecoachapp.ui.components
 
 import androidx.compose.foundation.Image

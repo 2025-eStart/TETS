@@ -1,3 +1,4 @@
+// di.NetworkModule
 package com.example.impulsecoachapp.di
 
 import com.example.impulsecoachapp.api.ApiService
