@@ -2,7 +2,7 @@
 import yaml
 from ..state_types import State, SessionType
 from ..services import REPO
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
 
 # 시스템 프롬프트 템플릿
@@ -237,7 +237,7 @@ def build_prompt(state: State) -> dict:
         prompt_template = ChatPromptTemplate.from_messages([
             SystemMessage(content=SYSTEM_TEMPLATE_CONVERSATION),
             MessagesPlaceholder(variable_name="history"),
-            HumanMessage(content="{user_message}"),
+            HumanMessagePromptTemplate.from_template("{user_message}"),
         ])
         prompt_messages = prompt_template.invoke(variables).to_messages()
     
