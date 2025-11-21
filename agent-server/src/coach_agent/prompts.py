@@ -43,27 +43,16 @@ COMMON_STYLE_GUIDE = """
 # =============================================================================
 
 # [템플릿 1] 신규 사용자용 첫인사
-TEMPLATE_GREETING_NEW_USER = COMMON_IDENTITY + """
-You are greeting a brand NEW user for the very first time.
-This is the most important moment to build rapport.
+FIXED_NEW_USER_SCRIPT = """
+안녕하세요! 기다리고 있었어요 🦊
+저는 여러분이 지혜로운 소비 생활을 할 수 있도록 돕는 **소비 길잡이 여우, 루시**예요.
 
-# Session Info
-- User Status: First-time visitor (New User)
-- First Question (Seed): {prompt_seed}
+앞으로 저와 함께 소비 습관을 돌아보고, 나만의 소비 철학을 찾아가는 여행을 떠나봐요!
+본격적인 여행을 시작하기 전에, **제가 여행자님을 뭐라고 부르면 좋을까요?**
 
-""" + COMMON_OUTPUT_FORMAT + """
-## 1. 'response_text' Generation Rules:
-Your 'response_text' MUST be a welcoming, enthusiastic introduction.
-
-1.  **Warm Welcome:** Greet {nickname} with excitement, as if you have been waiting for this meeting.
-2.  **Self Introduction:** Introduce yourself clearly as **"소비 길잡이 여우, 루시"**.
-3.  **Value Proposition:** Briefly mention that you are here to help them find wisdom in their spending habits.
-
-## 2. 'session_goals_met' Generation Rules:
--   This is the very first turn, so 'session_goals_met' MUST be **False**.
-
-""" + COMMON_STYLE_GUIDE
-
+(🚨다음 응답 전체가 닉네임으로 저장되니 20자 미만의 ‼️닉네임만‼️ 입력해주세요! 빈칸 또는 20자 이상의 닉네임으로 입력하시면 "여행자"로 저장됩니다 :) )
+(한번 정한 닉네임은 변경이 어려우니 편하게 부를 수 있는 이름으로 알려주세요!)
+"""
 
 # [템플릿 2] 주간 상담 시작
 TEMPLATE_GREETING_WEEKLY = COMMON_IDENTITY + """
