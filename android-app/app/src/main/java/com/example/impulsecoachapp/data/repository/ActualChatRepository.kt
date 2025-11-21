@@ -20,43 +20,33 @@ class ActualChatRepository @Inject constructor(
 
     override suspend fun sendChatMessage(
         text: String,
-        endSession: Boolean // LangGraph는 서버가 종료를 결정하므로 이 플래그는 사실상 무시되거나 힌트로 사용됨
+        endSession: Boolean
     ): Result<ChatTurn> {
         return try {
-            // 1. 사용자 인증 확인
-            val uid = auth.currentUser?.uid ?: "test_user_id" // 로그인 안 되어 있으면 테스트 ID 사용 (개발 편의)
+            val uid = auth.currentUser?.uid ?: "test_user_id"
 
-            // 2. 요청 데이터 생성 (LangGraph 표준)
+            // 1. 요청 (LangGraph 표준)
             val requestPayload = LangGraphRequest(
-                input = InputData(
-                    messages = listOf(MessageData(role = "user", content = text))
-                ),
-                config = ConfigData(
-                    configurable = mapOf("user_id" to uid)
-                )
+                input = InputData(messages = listOf(MessageData("user", text))),
+                config = ConfigData(configurable = mapOf("user_id" to uid))
             )
 
-            // 3. API 호출 (/threads/{id}/runs/wait)
-            // uid를 스레드 ID로 사용하여 대화 맥락 유지
-            val response = apiService.sendMessage(threadId = uid, request = requestPayload)
-
-            // 4. 응답 데이터 파싱
+            val response = apiService.sendMessage(uid, requestPayload)
             val values = response.values
 
-            // 4-1. 가장 마지막 AI 메시지 찾기
+            // 2. 마지막 AI 응답 추출
             val lastMessageContent = values.messages.lastOrNull { it.role == "assistant" }?.content
-                ?: "응답을 불러올 수 없습니다."
+                ?: "..." // 응답이 없을 경우 처리
 
-            // 4-2. ChatMessage 객체 생성
-            val assistantMessage = ChatMessage.GuideMessage(
-                text = lastMessageContent
-            )
-
-            // 4-3. 도메인 모델(ChatTurn)로 변환
+            // 3. Domain 모델 매핑 (업데이트됨)
             val chatTurn = ChatTurn(
-                assistantMessage = assistantMessage,
-                isSessionEnded = values.exit, // 서버가 알려준 종료 여부
-                homework = null // 현재 프로토콜에는 homework 필드가 명시적으로 없으므로 null (필요시 protocol.goals 활용)
+                assistantMessage = ChatMessage.GuideMessage(lastMessageContent),
+                isSessionEnded = values.exit,
+
+                // ★ 추가된 메타 데이터 매핑
+                currentWeek = values.currentWeek,
+                weekTitle = values.protocol?.title ?: "상담", // 제목이 없으면 기본값
+                weekGoals = values.protocol?.goals ?: emptyList() // 목표 리스트
             )
 
             Result.success(chatTurn)
