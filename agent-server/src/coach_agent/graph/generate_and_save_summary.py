@@ -1,7 +1,7 @@
 # coach_agent/graph/generate_and_save_summary.py
-from state_types import State
-from services import REPO
-from services.summarizer import create_session_summary # 요약 생성 로직
+from ..state_types import State
+from ..services import REPO
+from ..services.summarizer import create_session_summary # 요약 생성 로직
 
 def generate_and_save_summary(state: State) -> dict:
     """

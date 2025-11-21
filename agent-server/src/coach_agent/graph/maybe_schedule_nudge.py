@@ -1,6 +1,6 @@
 # coach_agent/graph/maybe_schedule_nudge.py
-from state_types import State
-from services import REPO
+from ..state_types import State
+from ..services import REPO
 
 def maybe_schedule_nudge(state: State) -> dict:
     # 개발 단계: 예약 생략. Firestore/Cloud Tasks 붙일 때 구현.

@@ -1,6 +1,6 @@
 # coach_agent/graph/update_progress.py
-from state_types import State
-from services import REPO # REPO가 데이터베이스 인터페이스일 때
+from ..state_types import State
+from ..services import REPO # REPO가 데이터베이스 인터페이스일 때
 
 def update_progress(state: State) -> dict:
     """

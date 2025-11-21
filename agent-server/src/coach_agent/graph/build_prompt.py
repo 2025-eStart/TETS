@@ -1,7 +1,7 @@
 # coach_agent/graph/build_prompt.py
 import yaml
-from state_types import State, SessionType
-from services import REPO
+from ..state_types import State, SessionType
+from ..services import REPO
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
 
