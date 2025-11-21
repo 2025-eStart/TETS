@@ -50,8 +50,6 @@ def route_session(state: State) -> dict:
 # (build_graph의 add_conditional_edges가 호출)
 # 이 함수는 'route_session' 작업자가 State에 저장한 값을 읽기만 합니다.
 def cond_route_session(state: State) -> str:
-    """state.next_route에 저장된 목적지를 반환합니다."""
-    
     if not state.next_route:
         # 비상 상황 (route_session이 next_route를 설정하지 않은 경우)
         return "GENERAL"
