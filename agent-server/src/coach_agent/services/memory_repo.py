@@ -36,15 +36,66 @@ class MemoryRepo(Repo):
         })
 
     def update_progress(self, user_id: str, week: int, exit_hit: bool) -> None:
+        """
+        진행도(최근 활동 시간 등)만 갱신한다.
+        주차 진급/완료 판단은 mark_session_as_completed / advance_to_next_week가 담당.
+        """
         s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
         s["last_activity_at"] = datetime.now(timezone.utc)
-        if exit_hit:
-            s["status"] = "completed"
-            u = self.get_user(user_id)
-            if week < 10:
-                u["current_week"] = week + 1
-            else:
-                u["program_status"] = "completed"
+        DB["weekly_sessions"][(user_id, week)] = s
+
+    # --- 미접속 기간에 따른 세션 초기화/유지 메서드들 ---
+
+    def mark_session_as_completed(self, user_id: str, week: int, completed_at: datetime) -> None:
+        """
+        현재 주차 세션 완료 + 사용자 last_weekly_session_completed_at 업데이트
+        (current_week는 여기서 바꾸지 않는다)
+        """
+        s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
+        s["status"] = "completed"
+        s["completed_at"] = completed_at
+        DB["weekly_sessions"][(user_id, week)] = s
+
+        u = self.get_user(user_id)
+        u["last_weekly_session_completed_at"] = completed_at
+
+    def advance_to_next_week(self, user_id: str) -> int:
+        """
+        current_week +1 또는 프로그램 완료 처리 후 새 current_week 반환
+        """
+        u = self.get_user(user_id)
+        current_week = u.get("current_week", 1)
+        next_week = current_week + 1
+
+        if next_week <= 10:
+            u["current_week"] = next_week
+        else:
+            u["program_status"] = "completed"
+            # 프로그램 완료 후 current_week를 굳이 늘릴 필요 없다면 유지
+            next_week = current_week
+
+        return u.get("current_week", next_week)
+
+    def rollback_user_to_week_1(self, user_id: str) -> None:
+        """
+        21일 이상 미접속 시 week 1로 롤백
+        """
+        u = self.get_user(user_id)
+        u["current_week"] = 1
+        u["program_status"] = "active"
+        u["last_weekly_session_completed_at"] = None
+        # 필요하면 weekly_sessions도 정리 가능 (여기선 남겨둠)
+
+    def restart_current_week_session(self, user_id: str, week: int) -> None:
+        """
+        현재 주차 세션 재시작: 상태 초기화 정도만 수행
+        """
+        s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
+        s["status"] = "in_progress"
+        s["last_activity_at"] = datetime.now(timezone.utc)
+        # 체크포인트/상태를 초기화하고 싶다면 여기서 처리
+        s["checkpoint"] = {"step_index": 0}
+        DB["weekly_sessions"][(user_id, week)] = s        
 
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
@@ -82,3 +133,5 @@ class MemoryRepo(Repo):
                     })
         # 주차 순서대로 정렬
         return sorted(summaries, key=lambda s: s["week"])
+    
+    

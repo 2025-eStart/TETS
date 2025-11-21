@@ -73,18 +73,86 @@ class FirestoreRepo(Repo):
         })
 
     def update_progress(self, user_id: str, week: int, exit_hit: bool) -> None:
+        """
+        진행도/최근 활동 시간만 갱신.
+        주차 진급/프로그램 완료는 mark_session_as_completed / advance_to_next_week가 담당.
+        """
         s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
-        patch = {"last_activity_at": firestore.SERVER_TIMESTAMP}
+        patch = {
+            "last_activity_at": firestore.SERVER_TIMESTAMP
+        }
         if exit_hit:
-            patch["status"] = "ended"
-            # 주차 진도 올리기
-            u = self.get_user(user_id)
-            next_week = week + 1
-            if next_week <= 10:
-                self.upsert_user(user_id, {"current_week": next_week})
-            else:
-                self.upsert_user(user_id, {"program_status": "completed"})
+            # 여기서는 단순히 '이번 턴에서 exit_goal을 만족했다' 정도만 기록할 수도 있음
+            patch["exit_hit_last_turn"] = True
+
         _sessions_col(user_id).document(s["id"]).set(patch, merge=True)
+
+    # --- [1] 상담 완료 여부 기록 ---
+    def mark_session_as_completed(self, user_id: str, week: int, completed_at: datetime) -> None:
+        """
+        현재 주차 세션을 completed로 표시하고,
+        user 문서에 last_weekly_session_completed_at을 기록
+        """
+        s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
+
+        # 1) 세션 문서 업데이트
+        _sessions_col(user_id).document(s["id"]).set({
+            "status": "ended",
+            "completed_at": completed_at
+        }, merge=True)
+
+        # 2) 사용자 문서에 최근 완료 시점 기록
+        _user_doc(user_id).set({
+            "last_weekly_session_completed_at": completed_at
+        }, merge=True)
+
+    # --- [2] 상담 완료 후: 주차 진급 ---
+    def advance_to_next_week(self, user_id: str) -> int:
+        """
+        user.current_week -> +1, 프로그램 완료 처리까지 담당.
+        """
+        u_ref = _user_doc(user_id)
+        snap = u_ref.get()
+        if snap.exists:
+            u = snap.to_dict()
+        else:
+            u = {"user_id": user_id, "current_week": 1, "program_status": "active"}
+
+        current_week = int(u.get("current_week", 1))
+        next_week = current_week + 1
+
+        if next_week <= 10:
+            u_ref.set({"current_week": next_week}, merge=True)
+            return next_week
+        else:
+            # 프로그램 완료 처리
+            u_ref.set({"program_status": "completed"}, merge=True)
+            return current_week
+
+    # --- [3] 21일 <= 미접속기간 && 이번주 상담 미완료(마지막 상담 완료 날짜+7일 이후): week 1으로 롤백 ---
+    def rollback_user_to_week_1(self, user_id: str) -> None:
+        """
+        21일 이상 미접속 시 프로그램을 week 1부터 다시 시작하게 롤백
+        """
+        _user_doc(user_id).set({
+            "current_week": 1,
+            "program_status": "active",
+            "last_weekly_session_completed_at": None,
+        }, merge=True)
+        # 필요하면 sessions 컬렉션도 정리할 수 있음 (여기서는 그대로 둠)
+
+    # --- [4] 24시간 <= 미접속 기간 < 21일 && 이번주 상담 미완료(마지막 상담 완료 날짜+7일 이후): 현재 주차 세션 재시작 ---
+    def restart_current_week_session(self, user_id: str, week: int) -> None:
+        """
+        active/paused 세션을 다시 시작.
+        CHECKPOINT/STATE를 어떻게 할지는 정책에 따라 다르게 구현 가능.
+        """
+        s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
+        _sessions_col(user_id).document(s["id"]).set({
+            "status": "active",
+            "last_activity_at": firestore.SERVER_TIMESTAMP,
+            "checkpoint": {"step_index": 0},  # 필요시 초기화
+        }, merge=True)
 
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
