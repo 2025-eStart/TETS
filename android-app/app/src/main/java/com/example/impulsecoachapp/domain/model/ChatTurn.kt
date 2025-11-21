@@ -14,8 +14,7 @@ data class ChatTurn(
     val assistantMessage: ChatMessage,
     val isSessionEnded: Boolean,
 
-    // 서버의 'protocol' 데이터와 매핑될 필드들 추가
     val currentWeek: Int = 1,
     val weekTitle: String? = null,
-    val weekGoals: List<String>? = emptyList()
+    val weekGoals: List<String> = emptyList()
 )
