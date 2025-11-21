@@ -1,9 +1,13 @@
 # coach_agent/graph/build_prompt.py
 import yaml
-from ..state_types import State
+from ..state_types import State, CounselorTurn
 from ..services import REPO
-
-# 랭체인 관련 임포트
+from ..prompts import (
+    FIXED_NEW_USER_SCRIPT,
+    TEMPLATE_GREETING_WEEKLY,
+    TEMPLATE_GREETING_GENERAL,
+    TEMPLATE_CONVERSATION
+)
 from langchain_core.prompts import (
     ChatPromptTemplate, 
     HumanMessagePromptTemplate, 
@@ -12,14 +16,6 @@ from langchain_core.prompts import (
 )
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
 
-# [Refactoring] 프롬프트 파일에서 템플릿 가져오기
-# (같은 폴더에 prompts.py가 있다고 가정)
-from .prompts import (
-    TEMPLATE_GREETING_NEW_USER,
-    TEMPLATE_GREETING_WEEKLY,
-    TEMPLATE_GREETING_GENERAL,
-    TEMPLATE_CONVERSATION
-)
 
 # --- 헬퍼 함수들 (기존 유지) ---
 def _clean_message_content(msg: BaseMessage) -> BaseMessage:
@@ -67,8 +63,21 @@ def build_prompt(state: State) -> dict:
 
         if nickname is None:
             # (1) 신규 사용자
-            prompt_template = ChatPromptTemplate.from_template(TEMPLATE_GREETING_NEW_USER)
-            variables = {
+            manual_output = CounselorTurn(
+            response_text=FIXED_NEW_USER_SCRIPT, # 포맷팅 없이 고정 멘트 사용
+            session_goals_met=False,
+            reasoning="신규 사용자 최초 진입. 고정된 환영 인사와 닉네임 요청을 출력함."
+        )
+
+            # (2) State 업데이트를 위한 딕셔너리 리턴
+            #     * LLM이 invoke 되었을 때의 결과 처리 방식과 동일하게 맞춰줍니다.
+            return {
+                # 대화 기록(History)에 추가될 AIMessage
+                "messages": [AIMessage(content=manual_output.response_text)],
+                # 그래프 흐름 제어에 필요한 플래그 (Pydantic 필드값 사용)
+                "session_goals_met": manual_output.session_goals_met,
+                # reasoning도 state에 저장 중이라면 추가
+                "reasoning": manual_output.reasoning 
             }
             
         elif session_type == "WEEKLY":
