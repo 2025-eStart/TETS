@@ -145,13 +145,14 @@ class FirestoreRepo(Repo):
     def restart_current_week_session(self, user_id: str, week: int) -> None:
         """
         active/paused 세션을 다시 시작.
-        CHECKPOINT/STATE를 어떻게 할지는 정책에 따라 다르게 구현 가능.
+        CHECKPOINT/STATE도 초기화.
         """
         s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
         _sessions_col(user_id).document(s["id"]).set({
             "status": "active",
             "last_activity_at": firestore.SERVER_TIMESTAMP,
-            "checkpoint": {"step_index": 0},  # 필요시 초기화
+            "checkpoint": {"step_index": 0},    # 1. 진행 단계 초기화
+            "state": {},                        # 2. 세션 상태 초기화
         }, merge=True)
 
     def last_seen_touch(self, user_id: str) -> None:
