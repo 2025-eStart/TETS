@@ -10,9 +10,10 @@ from coach_agent.configuration import Configuration
 
 def load_state(state: State, config: RunnableConfig) -> dict:
     
-    # 1. Config & Time 설정
+    # --- 1. Config 로드 & Time 설정 ---
+    # Config: (main.py -> configuration.py -> 여기서 사용)
     cfg = Configuration.from_runnable_config(config)
-    user_id = cfg.user_id
+    user_id = cfg.user_id # 안드로이드가 보낸 ID가 여기 들어옴
     now_utc = datetime.now(timezone.utc)
 
     # --- 2. REPO에서 유저 메타데이터 로드 ---
@@ -31,7 +32,7 @@ def load_state(state: State, config: RunnableConfig) -> dict:
             raw_last_user_message = msg_content
     
     # --- 4. 닉네임 처리 로직 ---
-    # DB에 있는 닉네임을 우선 가져옵니다.
+    # DB에 있는 닉네임을 우선 가져옴
     current_nickname = user_data.get("nickname")
     final_last_user_message = raw_last_user_message
     
@@ -56,14 +57,26 @@ def load_state(state: State, config: RunnableConfig) -> dict:
     # --- 5. 미접속 기간 계산 (DB 갱신 *전에* 수행) ---
     last_seen_timestamp = user_data.get("last_seen_at")
     days_since_last_seen = _days_since(last_seen_timestamp, now_utc)
+    
     # --- 6. 현재 주차 및 주간 세션 로드 ---
     current_week = user_data.get("current_week", 1)
     weekly_session = REPO.get_active_weekly_session(user_id, current_week)
+    
+    # --- 7. 세션 타입 결정 로직 ---
+    if cfg.session_type_override:
+        # API 서버가 시키는 대로 설정 (WEEKLY or GENERAL)
+        final_session_type = cfg.session_type_override
+        print(f"👮‍♂️ [LoadState] API Override: {final_session_type}") # 디버깅
+    else:
+        # API 지시가 없으면 DB나 기본값 사용 (기존 로직)
+        final_session_type = user_data.get("session_type", "WEEKLY")
+    
     
     return {
         "user_id": user_id,
         "now_utc": now_utc,
         "user": user_data,                   # 닉네임 업데이트 반영됨
+        "session_type": final_session_type,  # 결정된 세션 타입 저장
         "nickname": current_nickname,        # 닉네임 필드 별도 업데이트
         "last_user_message": final_last_user_message, # 소비되었으면 None
         "days_since_last_seen": days_since_last_seen,
