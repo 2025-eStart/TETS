@@ -2,8 +2,8 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from .base_repo import Repo
-from .firebase_admin_client import get_db
+from coach_agent.services.base_repo import Repo
+from coach_agent.services.firebase_admin_client import get_db
 from firebase_admin import firestore
 from google.api_core.exceptions import FailedPrecondition, NotFound
 from google.cloud.firestore_v1 import FieldFilter

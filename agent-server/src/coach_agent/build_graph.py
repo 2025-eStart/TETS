@@ -1,18 +1,18 @@
 # coach_agent/build_graph.py
 from langgraph.graph import StateGraph, END
-from .state_types import State
-from .configuration import Configuration
-from .graph.load_state import load_state
-from .graph.route_session import route_session, cond_route_session
-from .graph.pick_week import pick_week
-from .graph.build_prompt import build_prompt
-from .graph.decide_intervention import decide_intervention
-from .graph.run_llm import run_llm
-from .graph.rewrite_tone import rewrite_tone
-from .graph.update_progress import update_progress
-from .graph.persist_turn import persist_turn_node
-from .graph.generate_and_save_summary import generate_and_save_summary
-from .graph.maybe_schedule_nudge import maybe_schedule_nudge
+from coach_agent.state_types import State
+from coach_agent.configuration import Configuration
+from coach_agent.graph.load_state import load_state
+from coach_agent.graph.route_session import route_session, cond_route_session
+from coach_agent.graph.pick_week import pick_week
+from coach_agent.graph.build_prompt import build_prompt
+from coach_agent.graph.decide_intervention import decide_intervention
+from coach_agent.graph.run_llm import run_llm
+from coach_agent.graph.rewrite_tone import rewrite_tone
+from coach_agent.graph.update_progress import update_progress
+from coach_agent.graph.persist_turn import persist_turn_node
+from coach_agent.graph.generate_and_save_summary import generate_and_save_summary
+from coach_agent.graph.maybe_schedule_nudge import maybe_schedule_nudge
 
 def build_graph(checkpointer=None):
     """

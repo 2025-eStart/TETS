@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.screens.chat.ChatScreen
 
@@ -15,11 +14,6 @@ fun AppNavHost(
     currentTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit
 ) {
-    // 예시용 더미 메시지
-    val sampleMessages = listOf(
-        ChatMessage.GuideMessage("안녕! 오늘의 소비 습관을 함께 알아보자!"),
-        ChatMessage.UserResponse("네, 좋아요.")
-    )
     NavHost(
         navController = navController,
         startDestination = BottomTab.Chat.name

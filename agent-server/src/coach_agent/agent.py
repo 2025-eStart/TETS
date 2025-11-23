@@ -1,6 +1,6 @@
 # coach_agent/agent.py
-from .build_graph import build_graph
-from .services.firebase_admin_client import get_db
+from coach_agent.build_graph import build_graph
+from coach_agent.services.firebase_admin_client import get_db
 from langchain_google_firestore import FirestoreSaver
 
 # 1. Firestore Checkpointer 인스턴스 생성

@@ -1,8 +1,8 @@
 # coach_agent/graph/build_prompt.py
 import yaml
-from ..state_types import State, CounselorTurn
-from ..services import REPO
-from ..prompts import (
+from coach_agent.state_types import State, CounselorTurn
+from coach_agent.services import REPO
+from coach_agent.prompts import (
     FIXED_NEW_USER_SCRIPT,
     TEMPLATE_GREETING_WEEKLY,
     TEMPLATE_GREETING_GENERAL,
