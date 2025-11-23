@@ -12,7 +12,6 @@ import com.example.impulsecoachapp.data.model.chat.MessageData
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
 import com.example.impulsecoachapp.domain.repository.ChatRepository
-import com.google.firebase.auth.FirebaseAuth
 import javax.inject.Inject
 
 class ActualChatRepository @Inject constructor(
@@ -55,7 +54,7 @@ class ActualChatRepository @Inject constructor(
 
             // 4-3. 도메인 모델(ChatTurn)로 변환
             val chatTurn = ChatTurn(
-                assistantMessage = ChatMessage.GuideMessage(lastMessageContent),
+                assistantMessage = assistantMessage,
                 isSessionEnded = values.exit,
                 currentWeek = values.currentWeek,
                 weekTitle = values.protocol?.title ?: "상담",
