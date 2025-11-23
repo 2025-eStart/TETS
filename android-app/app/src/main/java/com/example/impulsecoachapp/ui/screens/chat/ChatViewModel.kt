@@ -27,24 +27,47 @@ class ChatViewModel @Inject constructor(
     private val _isSessionEnded = MutableStateFlow(false)
     val isSessionEnded: StateFlow<Boolean> = _isSessionEnded.asStateFlow()
 
-    // ★ 추가: 상담 제목 및 목표 (UI 표시용)
-    private val _sessionTitle = MutableStateFlow("상담 로딩 중...")
+    // 상담 제목 및 목표 (UI 표시용)
+    private val _sessionTitle = MutableStateFlow("상담 준비 중...")
     val sessionTitle: StateFlow<String> = _sessionTitle.asStateFlow()
 
     private val _sessionGoals = MutableStateFlow<List<String>>(emptyList())
     val sessionGoals: StateFlow<List<String>> = _sessionGoals.asStateFlow()
 
-    init {
-        // 화면 진입 시, 빈 메시지를 보내서 서버의 "첫 인사(GREETING)"를 유도하거나
-        // 또는 저장된 대화 내역을 불러오는 로직이 필요합니다.
-        // 여기서는 "서버에 접속했다"는 신호를 보내는 것으로 가정합니다.
-        // (LangGraph 서버 로직상, nickname이 없으면 첫 메시지가 닉네임이 되므로 주의 필요)
+    /**
+     * 화면 진입 시 한 번만 호출:
+     * - 서버에 "빈 신호"를 보내서 첫 턴(닉네임 안내/인사말)을 서버가 생성하게 함
+     * - 이미 메시지가 있거나 로딩 중이면 아무 것도 안 함 (재진입 방지)
+     */
+    fun startSessionIfNeeded() {
+        if (_messages.value.isNotEmpty() || _isLoading.value) return
 
-        // 임시: 사용자가 먼저 말을 걸도록 하거나,
-        // 서버에 "init" 같은 특수 커맨드를 보내는 방법도 있습니다.
-        // 일단은 빈 리스트로 시작합니다.
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            try {
+                // text = "" 이 "빈 신호" 역할 (서버에서 nickname 없으면 닉네임 안내로 응답하도록 설계)
+                val result = repository.sendChatMessage(text = "", endSession = false)
+
+                result.fold(
+                    onSuccess = { chatTurn ->
+                        applyChatTurn(chatTurn)
+                    },
+                    onFailure = { error ->
+                        _messages.value = _messages.value + ChatMessage.GuideMessage(
+                            "서버 연결 오류: ${error.message}"
+                        )
+                    }
+                )
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
+    /**
+     * 사용자가 채팅창에 입력했을 때 호출되는 함수
+     */
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
 
@@ -60,22 +83,8 @@ class ChatViewModel @Inject constructor(
 
                 result.fold(
                     onSuccess = { chatTurn ->
-                        // 3. 응답 처리
-                        _messages.value = _messages.value + chatTurn.assistantMessage
-
-                        // 4. 메타 데이터 업데이트 (제목, 목표)
-                        if (!chatTurn.weekTitle.isNullOrBlank()) {
-                            _sessionTitle.value = "${chatTurn.currentWeek}주차: ${chatTurn.weekTitle}"
-                        }
-
-                        // weekGoals는 이제 List<String> (non-null)이므로 그냥 비어있는지만 체크
-                        if (chatTurn.weekGoals.isNotEmpty()) {
-                            _sessionGoals.value = chatTurn.weekGoals
-                        }
-
-                        if (chatTurn.isSessionEnded) {
-                            _isSessionEnded.value = true
-                        }
+                        // 3. 서버 응답 반영
+                        applyChatTurn(chatTurn)
                     },
                     onFailure = { error ->
                         _messages.value = _messages.value + ChatMessage.GuideMessage(
@@ -86,6 +95,28 @@ class ChatViewModel @Inject constructor(
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * 서버에서 내려온 ChatTurn을 ViewModel 상태에 반영하는 공통 함수
+     */
+    private fun applyChatTurn(chatTurn: ChatTurn) {
+        // 1) 봇 메시지 추가
+        _messages.value = _messages.value + chatTurn.assistantMessage
+
+        // 2) 메타데이터(주차/제목/목표) 업데이트
+        if (!chatTurn.weekTitle.isNullOrBlank()) {
+            _sessionTitle.value = "${chatTurn.currentWeek}주차: ${chatTurn.weekTitle}"
+        }
+
+        if (chatTurn.weekGoals.isNotEmpty()) {
+            _sessionGoals.value = chatTurn.weekGoals
+        }
+
+        // 3) 세션 종료 여부
+        if (chatTurn.isSessionEnded) {
+            _isSessionEnded.value = true
         }
     }
 }

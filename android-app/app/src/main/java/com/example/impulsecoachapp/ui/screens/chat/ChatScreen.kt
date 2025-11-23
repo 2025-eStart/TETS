@@ -30,10 +30,6 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-/**
- * 1. "Smart" Composable (Route)
- * - ViewModel을 주입받고, 상태를 수집하여 "Dumb" Composable에 전달합니다.
- */
 @Composable
 fun ChatScreen(
     selectedTab: BottomTab,
@@ -45,9 +41,14 @@ fun ChatScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val isSessionEnded by viewModel.isSessionEnded.collectAsState()
 
-    // ★ 추가된 상태 구독
     val sessionTitle by viewModel.sessionTitle.collectAsState()
     val sessionGoals by viewModel.sessionGoals.collectAsState()
+
+    // 📌 화면이 처음 구성될 때 한 번만 서버에 "빈 신호" 보내서
+    // LangGraph가 첫 턴(닉네임 안내/인사)을 생성하도록 유도
+    LaunchedEffect(Unit) {
+        viewModel.startSessionIfNeeded()
+    }
 
     ScreenScaffold(
         selectedTab = selectedTab,
@@ -59,8 +60,8 @@ fun ChatScreen(
             messages = messages,
             isLoading = isLoading,
             isSessionEnded = isSessionEnded,
-            sessionTitle = sessionTitle, // 전달
-            sessionGoals = sessionGoals, // 전달
+            sessionTitle = sessionTitle,
+            sessionGoals = sessionGoals,
             onSendMessage = { viewModel.sendMessage(it) }
         )
     }
@@ -73,8 +74,8 @@ fun ChatScreenContent(
     messages: List<ChatMessage>,
     isLoading: Boolean,
     isSessionEnded: Boolean,
-    sessionTitle: String,          // 매개변수 추가
-    sessionGoals: List<String>,    // 매개변수 추가
+    sessionTitle: String,
+    sessionGoals: List<String>,
     onSendMessage: (String) -> Unit
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -91,10 +92,10 @@ fun ChatScreenContent(
                 WindowInsets.ime.union(WindowInsets(bottom = innerPadding.calculateBottomPadding()))
             )
     ) {
-        // ★ 상단 바 개선: 제목 표시
+        // 상단 바: 서버에서 내려온 주차/제목 표시
         TopSessionBar(title = sessionTitle)
 
-        // (선택 사항) 목표 체크리스트를 접었다 폈다 하는 UI가 있으면 좋음
+        // 나중에 목표 리스트 UI 추가하고 싶으면 여기서 sessionGoals 사용
         // if (sessionGoals.isNotEmpty()) { GoalsList(sessionGoals) }
 
         MessageList(
@@ -108,6 +109,10 @@ fun ChatScreenContent(
         )
     }
 }
+
+// 이하 TopSessionBar / UserInput / TopDateTimeBar / MessageList / ChatBubble 는 그대로 사용
+// (이미 잘 구성되어 있어서, 위 로직과 충돌 없음)
+
 
 /**
  * 3. "Dumb" Composable (Content)
