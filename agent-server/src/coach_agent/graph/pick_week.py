@@ -1,7 +1,7 @@
 # coach_agent/graph/pick_week.py
-from ..state_types import State
-from ..utils.protocol_loader import load_week_spec
-from ..services import REPO
+from coach_agent.state_types import State
+from coach_agent.utils.protocol_loader import load_week_spec
+from coach_agent.services import REPO
 
 def pick_week(state: State) -> dict:
     spec = load_week_spec("v1", state.current_week)

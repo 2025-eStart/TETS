@@ -2,8 +2,8 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from langchain_core.messages import SystemMessage, HumanMessage
-from ..config import settings
-from ..state_types import CounselorTurn
+from coach_agent.config import settings
+from coach_agent.state_types import CounselorTurn
 
 def get_llm():
     return ChatOpenAI(model=settings.OPENAI_MODEL, temperature=0.2)

@@ -3,7 +3,7 @@ import yaml
 from typing import Any
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from .llm import get_llm 
+from coach_agent.services.llm import get_llm 
 
 def _to_text(content: Any) -> str:
     if isinstance(content, list):

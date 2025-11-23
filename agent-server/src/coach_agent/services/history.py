@@ -1,7 +1,7 @@
 # coach_agent/services/history.py
 from typing import Any
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from . import REPO
+from coach_agent.services import REPO
 
 def _to_text(content: Any) -> str:
     """BaseMessage.content를 안전하게 str로 변환."""

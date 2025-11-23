@@ -1,7 +1,7 @@
 # coach_agent/services/memory_repo.py
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from .base_repo import Repo
+from coach_agent.services.base_repo import Repo
 
 DB: Dict[str, Any] = {
     "users": {},           # user_id -> dict
