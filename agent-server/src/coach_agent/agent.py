@@ -1,7 +1,7 @@
 # coach_agent/agent.py
 from langgraph.checkpoint.memory import MemorySaver
 from coach_agent.build_graph import build_graph
-from coach_agent.config import settings
+from coach_agent.settings import settings
 
 # 설정값 확인
 REPO_BACKEND = settings.REPO_BACKEND
