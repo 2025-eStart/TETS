@@ -1,21 +1,29 @@
 # coach_agent/agent.py
+from langgraph.checkpoint.memory import MemorySaver
 from coach_agent.build_graph import build_graph
-from coach_agent.services.firebase_admin_client import get_db
-from langchain_google_firestore import FirestoreSaver
+from coach_agent.config import settings
 
-# 1. Firestore Checkpointer 인스턴스 생성
+# 설정값 확인
+REPO_BACKEND = settings.REPO_BACKEND
+print(f"🤖 [Agent] Checkpointer 모드: {REPO_BACKEND}")
 
-# get_db()로 '클라이언트' 객체를 먼저 가져옵니다.
-db_client = get_db() 
+if REPO_BACKEND == "firestore":
+    # Firestore 모드일 때만 관련 라이브러리 import (에러 방지)
+    from coach_agent.services.firebase_admin_client import get_db
+    from langchain_google_firestore import FirestoreSaver
 
-# FirestoreSaver는 (클라이언트, "컬렉션이름")을 인자로 받습니다.
-checkpointer = FirestoreSaver(
-    client=db_client, 
-    collection="langgraph_checkpoints"
-)
+    # 1. Firestore Checkpointer 생성
+    db_client = get_db()
+    checkpointer = FirestoreSaver(
+        client=db_client, 
+        collection="langgraph_checkpoints"
+    )
+    print("🔥 Firestore Checkpointer 연결됨")
 
-# 2. 기존 build_graph 함수를 호출하여 그래프 컴파일
-#    Checkpointer를 주입합니다.
+else:
+    # 2. Memory Checkpointer 생성 (로컬 개발용)
+    checkpointer = MemorySaver()
+    print("🧠 Memory Checkpointer 사용 (서버 재시작 시 대화 기억 휘발됨)")
+
+# 3. 그래프 컴파일 (선택된 checkpointer 주입)
 app = build_graph(checkpointer=checkpointer)
-
-# 'app' 변수가 langgraph.json에 의해 export 됩니다.
