@@ -9,6 +9,7 @@
 # 주요 기능:
     - API 1: 스레드 생성/유지; 유저 상태에 따라 적절한 스레드 ID와 세션 타입 생성 및 반환
     - API 2: 주어진 스레드 ID로 LangGraph 그래프 실행
+    - API 3: 서랍 기능 (과거 채팅 내역 접근)
 
 # 채팅 기능 요구사항: 세션 & 스레드(채팅방) 관리 규칙
     1. weekly session 을 수행한 지 만 일주일이 지난 후에야 다음 상담이 진행되도록 한다. 마지막 weekly 상담으로부터 아직 7일이 지나지 않았으면 채팅창에 접속하더라도 주간 상담이 진행되지 않는다.
@@ -62,6 +63,11 @@ class ChatResponse(BaseModel):
     current_week: int
     week_title: str
     week_goals: List[str]
+
+class SessionSummary(BaseModel): # 서랍 기능
+    session_id: str
+    title: str       # 예: "1주차: 시작이 반이다" 또는 "일반 상담 (2025-11-24)"
+    date: str        # 예: "2025-11-24"
 
 # --- 헬퍼 함수 ---
 def _get_active_thread_id(user_id: str, week: int) -> Optional[str]:
@@ -207,3 +213,57 @@ async def chat_endpoint(req: ChatRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+    
+# --- API 3: 서랍 (과거 채팅 내역 접근) ---
+@server.get("/sessions/{user_id}", response_model=List[SessionSummary])
+async def get_user_sessions(user_id: str):
+    """
+    유저의 모든 과거 세션 목록을 반환 (최신순)
+    """
+    # 1. DB에서 목록 가져오기
+    sessions = REPO.get_all_sessions(user_id) 
+    
+    results = []
+    for s in sessions:
+        # --- [로직 1] ID 안전하게 가져오기 ---
+        # Firestore 문서를 dict로 변환할 때 'id' 필드를 넣었겠지만, 
+        # 혹시 몰라 'session_id' 필드도 확인하는 2중 안전장치
+        sid = s.get("id") or s.get("session_id")
+        if not sid: continue # ID가 없는 유령 데이터는 건너뜀
+
+        # --- [로직 2] 날짜 예쁘게 변환하기 (YYYY-MM-DD) ---
+        created_at = s.get("created_at")
+        date_str = ""
+        
+        if isinstance(created_at, datetime):
+            # datetime 객체라면 strftime으로 깔끔하게 변환 (가장 추천)
+            date_str = created_at.strftime("%Y-%m-%d")
+        elif created_at:
+            # 문자열이거나 다른 타입이면 문자열 변환 후 앞부분만 자름
+            date_str = str(created_at).split(" ")[0]
+        else:
+            # 날짜 정보가 없으면 오늘 날짜 혹은 "날짜 미상" 처리
+            date_str = datetime.now().strftime("%Y-%m-%d")
+
+        # --- [로직 3] 제목(Title) 결정 로직 ---
+        # 1순위: DB에 이미 저장된 구체적인 제목이 있으면 그걸 씀 (예: "불안 다루기")
+        # 2순위: 없으면 주차정보나 타입으로 생성
+        if s.get("title"):
+            display_title = s.get("title")
+        else:
+            week = s.get("week", 1)
+            sType = s.get("session_type", "WEEKLY")
+            
+            if sType == "WEEKLY":
+                display_title = f"{week}주차 상담"
+            else:
+                display_title = "자유 상담"
+
+        # 결과 리스트에 추가
+        results.append(SessionSummary(
+            session_id=sid,
+            title=display_title,
+            date=date_str
+        ))
+        
+    return results

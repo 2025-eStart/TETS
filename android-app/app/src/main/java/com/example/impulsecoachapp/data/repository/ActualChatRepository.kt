@@ -57,18 +57,22 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-    // [추가] 앱 진입 시 봇을 먼저 깨우는 함수
-    suspend fun startSession(): Result<ChatTurn> {
+
+
+
+    // 앱 진입 시 봇을 먼저 깨우는 함수
+    suspend fun startSession(forceNew: Boolean = false): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
 
         return try {
-            // 1. 방 번호가 없으면 초기화 (이미 있으면 기존 방 사용)
-            if (sessionManager.currentThreadId == null) {
-                initializeSession(userId, forceNew = false)
+            // 1. 세션 초기화 로직 수정
+            // 방이 없거나(null) OR 강제 리셋(forceNew)이면 초기화 요청
+            if (sessionManager.currentThreadId == null || forceNew) {
+                // 여기서 forceNew 값을 넘겨줘야 서버가 새 방을 줍니다!
+                initializeSession(userId, forceNew = forceNew)
             }
 
-            // 2. "깨우기 메시지(__init__)" 전송
-            // 사용자에겐 안 보여줄 것이므로 UI에는 표시 안 함 (ViewModel에서 처리)
+            // 2. 봇 깨우기 메시지 전송
             val request = ChatRequest(
                 userId = userId,
                 threadId = sessionManager.currentThreadId!!,
@@ -106,6 +110,18 @@ class ActualChatRepository @Inject constructor(
     // 현재 세션 타입 조회
     override fun getCurrentSessionType(): String {
         return sessionManager.currentSessionType
+    }
+
+    // ViewModel에서 호출할 과거 기록 가져오기 함수
+    suspend fun getHistoryList(): Result<List<SessionSummary>> {
+        val userId = deviceIdManager.getDeviceId()
+        return try {
+            val list = apiService.getSessions(userId)
+            Result.success(list)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
     }
 
     // 내부 헬퍼 함수: /session/init 호출 및 매니저 업데이트

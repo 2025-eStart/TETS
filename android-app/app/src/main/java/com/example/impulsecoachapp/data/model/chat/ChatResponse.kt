@@ -19,3 +19,10 @@ data class ChatResponse(
     @SerializedName("week_title") val weekTitle: String,
     @SerializedName("week_goals") val weekGoals: List<String>
 )
+
+// 3. 서랍 목록용 데이터 모델
+data class SessionSummary(
+    @SerializedName("session_id") val sessionId: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("date") val date: String
+)
