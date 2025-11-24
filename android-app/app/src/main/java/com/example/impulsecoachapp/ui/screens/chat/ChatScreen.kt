@@ -1,4 +1,3 @@
-// ui.screens.chat.ChatScreen
 package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.compose.foundation.Image
@@ -10,6 +9,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,9 +25,6 @@ import com.example.impulsecoachapp.R
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,30 +37,73 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSessionEnded by viewModel.isSessionEnded.collectAsState()
-
     val sessionTitle by viewModel.sessionTitle.collectAsState()
     val sessionGoals by viewModel.sessionGoals.collectAsState()
+    val historyList by viewModel.historyList.collectAsState()
 
-    // 📌 화면이 처음 구성될 때 한 번만 서버에 "빈 신호" 보내서
-    // LangGraph가 첫 턴(닉네임 안내/인사)을 생성하도록 유도
-    LaunchedEffect(Unit) {
-        viewModel.startSessionIfNeeded()
-    }
+    // [수정 1] LaunchedEffect 삭제함! (ViewModel init 블록에서 이미 실행됨)
 
-    ScreenScaffold(
-        selectedTab = selectedTab,
-        onTabSelected = onTabSelected
-    ) { innerPadding ->
-        ChatScreenContent(
-            modifier = Modifier,
-            innerPadding = innerPadding,
-            messages = messages,
-            isLoading = isLoading,
-            isSessionEnded = isSessionEnded,
-            sessionTitle = sessionTitle,
-            sessionGoals = sessionGoals,
-            onSendMessage = { viewModel.sendMessage(it) }
-        )
+    // [수정 2] 서랍 상태 관리 변수 추가
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState, // 상태 연결 필수
+        drawerContent = {
+            ModalDrawerSheet {
+                Text(
+                    text = "지난 대화 기록",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                HorizontalDivider() // Material3에서는 Divider 대신 HorizontalDivider 권장
+
+                // [NEW CHAT 버튼]
+                NavigationDrawerItem(
+                    label = { Text("✨ 새로운 상담 시작하기") },
+                    selected = false,
+                    onClick = {
+                        viewModel.onNewSessionClick()
+                        scope.launch { drawerState.close() } // 클릭 후 서랍 닫기
+                    }
+                )
+
+                HorizontalDivider()
+
+                // [과거 기록 리스트]
+                LazyColumn {
+                    items(historyList) { session ->
+                        NavigationDrawerItem(
+                            label = { Text(session.title) },
+                            badge = { Text(session.date) },
+                            selected = false,
+                            onClick = {
+                                // 나중에 구현: 과거 기록 불러오기
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    ) {
+        ScreenScaffold(
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected
+        ) { innerPadding ->
+            ChatScreenContent(
+                modifier = Modifier,
+                innerPadding = innerPadding,
+                messages = messages,
+                isLoading = isLoading,
+                isSessionEnded = isSessionEnded,
+                sessionTitle = sessionTitle,
+                sessionGoals = sessionGoals,
+                onSendMessage = { viewModel.sendMessage(it) },
+                // [수정 3] 메뉴 버튼 클릭 이벤트 전달
+                onMenuClick = { scope.launch { drawerState.open() } }
+            )
+        }
     }
 }
 
@@ -76,7 +116,8 @@ fun ChatScreenContent(
     isSessionEnded: Boolean,
     sessionTitle: String,
     sessionGoals: List<String>,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    onMenuClick: () -> Unit // 메뉴 클릭 콜백 추가
 ) {
     val layoutDirection = LocalLayoutDirection.current
     Column(
@@ -92,11 +133,8 @@ fun ChatScreenContent(
                 WindowInsets.ime.union(WindowInsets(bottom = innerPadding.calculateBottomPadding()))
             )
     ) {
-        // 상단 바: 서버에서 내려온 주차/제목 표시
-        TopSessionBar(title = sessionTitle)
-
-        // 나중에 목표 리스트 UI 추가하고 싶으면 여기서 sessionGoals 사용
-        // if (sessionGoals.isNotEmpty()) { GoalsList(sessionGoals) }
+        // [수정 4] 상단 바에 메뉴 클릭 이벤트 전달
+        TopSessionBar(title = sessionTitle, onMenuClick = onMenuClick)
 
         MessageList(
             messages = messages,
@@ -110,80 +148,38 @@ fun ChatScreenContent(
     }
 }
 
-// 이하 TopSessionBar / UserInput / TopDateTimeBar / MessageList / ChatBubble 는 그대로 사용
-// (이미 잘 구성되어 있어서, 위 로직과 충돌 없음)
-
-
-/**
- * 3. "Dumb" Composable (Content)
- * - ViewModel을 모르며, 오직 받은 데이터로 UI만 그립니다.
- * - 이 함수는 Preview가 매우 쉽습니다.
- */
-
-/*
+// [수정 5] 메뉴 아이콘이 있는 상단 바
 @Composable
-fun ChatScreenContent(
-    modifier: Modifier = Modifier,
-    innerPadding: PaddingValues,
-    messages: List<ChatMessage>,
-    isLoading: Boolean,
-    isSessionEnded: Boolean,
-    onSendMessage: (String) -> Unit
+fun TopSessionBar(
+    title: String,
+    onMenuClick: () -> Unit
 ) {
-    // [수정 5] 수평 패딩 계산을 위해 layoutDirection 가져오기
-    val layoutDirection = LocalLayoutDirection.current
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF7F6FB))
-            // [수정 6] 상단과 수평 패딩은 innerPadding에서 직접 가져와 적용합니다.
-            .padding(
-                top = innerPadding.calculateTopPadding(),
-                start = innerPadding.calculateStartPadding(layoutDirection),
-                end = innerPadding.calculateEndPadding(layoutDirection)
-            )
-            // [수정 7] 하단 패딩을 동적으로 계산합니다.
-            // 1. 키보드 인셋(ime)과
-            // 2. Scaffold의 하단 탭 바 인셋(innerPadding.bottom)을
-            // .union()을 사용해 둘 중 '더 큰(max)' 값으로 적용합니다.
-            .windowInsetsPadding(
-                WindowInsets.ime.union(
-                    // innerPadding의 하단 값만 WindowInsets으로 변환하여 union
-                    WindowInsets(bottom = innerPadding.calculateBottomPadding())
-                )
-            )
-    ) {
-        TopDateTimeBar() // 현재 시간을 표시
-        MessageList(
-            messages = messages,
-            modifier = Modifier.weight(1f)
-        )
-        UserInput(
-            isLoading = isLoading,
-            isSessionEnded = isSessionEnded,
-            onSendMessage = onSendMessage,
-            modifier = Modifier
-        )
-    }
-}
-*/
-
-// 새로 만든 상단 바 컴포넌트
-@Composable
-fun TopSessionBar(title: String) {
     Surface(
         color = Color.White,
         shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp), // 패딩 약간 조정
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // 햄버거 메뉴 아이콘
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "메뉴 열기",
+                    tint = Color(0xFF6200EE)
+                )
+            }
+
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF6200EE),
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
             )
         }
     }
@@ -221,7 +217,6 @@ fun UserInput(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.weight(1f),
-            // 플레이스홀더 색상 Gray로 고정
             placeholder = { Text("메시지를 입력하세요...", color = Color.Gray) },
             enabled = !isLoading,
             colors = TextFieldDefaults.colors(
@@ -230,8 +225,6 @@ fun UserInput(
                 disabledContainerColor = Color(0xFFF0F0F0),
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-
-                // 입력 텍스트 색상 Black으로 고정
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             ),
@@ -260,36 +253,6 @@ fun UserInput(
         }
     }
 }
-
-
-@Composable
-fun TopDateTimeBar() {
-// remember를 사용해 현재 날짜/시간을 계산 (성능 최적화)
-    val (currentDate, currentTime) = remember {
-        val now = Date()
-        val dateFormat = SimpleDateFormat("yyyy.MM.dd.E", Locale.KOREAN)
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREAN)
-        dateFormat.format(now) to timeFormat.format(now)
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-// 고정된 텍스트 대신 계산된 변수 사용
-        Text(currentDate, fontSize = 14.sp, color = Color.Gray)
-        Text(currentTime, fontSize = 14.sp, color = Color.Gray)
-        Image(
-            painter = painterResource(id = R.drawable.ic_user_profile),
-            contentDescription = "User",
-            modifier = Modifier.size(32.dp)
-        )
-    }
-}
-
 
 @Composable
 fun MessageList(
@@ -339,7 +302,6 @@ fun ChatBubble(message: ChatMessage) {
                     .padding(12.dp)
                     .weight(1f, fill = false)
             ) {
-                // 텍스트 색상 Black으로 고정
                 Text(text = message.text, fontSize = 16.sp, color = Color.Black)
             }
         }
@@ -353,7 +315,6 @@ fun ChatBubble(message: ChatMessage) {
                     .padding(12.dp)
                     .weight(1f, fill = false)
             ) {
-                // 텍스트 색상 Black으로 고정
                 Text(text = message.text, fontSize = 16.sp, color = Color.Black)
             }
         }

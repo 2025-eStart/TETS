@@ -51,6 +51,7 @@ def _load_past_summaries(user_id: str, current_week: int) -> list:
 def build_prompt(state: State) -> dict:
     spec = state.protocol
     session_type = state.session_type
+    nickname = state.nickname
 
     # 1. 첫 턴(인사)인지 확인
     is_first_turn = state.last_user_message is None
@@ -58,7 +59,6 @@ def build_prompt(state: State) -> dict:
 
     if is_first_turn:
         # --- 1-A. 첫 턴일 경우 (인사말 생성) ---
-        nickname = state.nickname
         days_since = state.days_since_last_seen
 
         if nickname is None:

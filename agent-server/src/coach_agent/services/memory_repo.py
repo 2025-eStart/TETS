@@ -100,6 +100,43 @@ class MemoryRepo(Repo):
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
 
+ # --- 서랍 기능: 모든 세션 조회 함수 ---
+    def get_all_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        유저의 모든 세션(주간 상담 등)을 리스트로 반환.
+        MemoryRepo 구조상 (user_id, week) 키를 순회하여 찾음.
+        """
+        results = []
+
+        # 1. 모든 주간 세션 순회
+        for (uid, week), session_data in DB["weekly_sessions"].items():
+            if uid == user_id:
+                # 데이터 원본 훼손 방지를 위해 복사
+                s = session_data.copy()
+
+                # 2. main.py 호환성을 위한 필드 보정
+                # (MemoryRepo는 저장 시 id, created_at 등을 안 넣었을 수 있음)
+                
+                # ID가 없으면 임의로 생성 (UI에서 구분용)
+                if "id" not in s:
+                    s["id"] = f"weekly_{uid}_{week}"
+                
+                # session_type이 없으면 WEEKLY로 가정
+                if "session_type" not in s:
+                    s["session_type"] = "WEEKLY"
+                
+                # created_at이 없으면 last_activity_at을 사용 (정렬용)
+                if "created_at" not in s:
+                    s["created_at"] = s.get("last_activity_at", datetime.now(timezone.utc))
+
+                results.append(s)
+
+        # 3. 최신순 정렬 (created_at 기준 내림차순)
+        # datetime 객체끼리 비교하여 정렬
+        results.sort(key=lambda x: x["created_at"], reverse=True)
+
+        return results
+ 
     def get_messages(self, user_id: str) -> List[Dict[str, Any]]:
         messages = [
             msg for msg in DB["messages"]
@@ -108,7 +145,7 @@ class MemoryRepo(Repo):
         ]
         return sorted(messages, key=lambda m: m["ts"])
     
-    # --- 요약 함수 2개 ---
+    # --- 요약 함수 ---
     def save_session_summary(self, user_id: str, week: int, summary_text: str) -> None:
         s = self.get_active_weekly_session(user_id, week)
         if s:
@@ -133,5 +170,4 @@ class MemoryRepo(Repo):
                     })
         # 주차 순서대로 정렬
         return sorted(summaries, key=lambda s: s["week"])
-    
     

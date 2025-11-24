@@ -3,6 +3,7 @@ package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.impulsecoachapp.data.model.chat.SessionSummary
 import com.example.impulsecoachapp.data.repository.ActualChatRepository
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
@@ -45,24 +46,56 @@ class ChatViewModel @Inject constructor(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
+    // 7. 서랍에 들어갈 과거 기록 목록
+    private val _historyList = MutableStateFlow<List<SessionSummary>>(emptyList())
+    val historyList: StateFlow<List<SessionSummary>> = _historyList.asStateFlow()
+
     init {
-        loadInitialMessage()
+        // 앱 켜질 때 1. 현재 방 접속, 2. 과거 기록 가져오기 둘 다 수행
+        resumeSession()
+        loadHistoryList()
     }
 
-    // 공통 함수(applyChatTurn) 재사용
-    private fun loadInitialMessage() {
+    // 상황 1: 앱 켜질 때 (이어하기)
+    private fun resumeSession() {
         viewModelScope.launch {
             _isLoading.value = true
-            // startSession: 봇 깨우기(__init__) -> 첫 인사 받아오기
-            val result = repository.startSession()
-
-            result.onSuccess { turn ->
-                // 성공 시: 공통 함수로 모든 상태(메시지, 제목, 목표, 주차) 한 방에 업데이트
-                applyChatTurn(turn)
-            }.onFailure {
-                _messages.value = listOf(ChatMessage.GuideMessage("서버와 연결할 수 없습니다."))
-            }
+            // forceNew = false : 기존 방 유지
+            processSessionStart(isReset = false)
             _isLoading.value = false
+        }
+    }
+
+    // 상황 2: 버튼 눌렀을 때 (새로하기)
+    fun onNewSessionClick() {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            // 1. 화면 비우기
+            _messages.value = emptyList()
+            _sessionTitle.value = "새로운 상담"
+
+            // 2. 강제 새 방 배정 (forceNew=true)
+            // 내부적으로 repository.startSession(true) 호출
+            processSessionStart(isReset = true)
+
+            // 3. ★ [핵심] 서랍 목록 새로고침!
+            // (방금 끝난 대화가 서랍으로 들어가야 하니까)
+            loadHistoryList()
+
+            _isLoading.value = false
+        }
+    }
+
+    // ★ 공통 로직 (Private Helper): 실제로 서버를 찌르는 역할
+    private suspend fun processSessionStart(isReset: Boolean) {
+        // Repository 하나만 호출하면 됨 (로직 중복 제거)
+        val result = repository.startSession(forceNew = isReset)
+
+        result.onSuccess { turn ->
+            applyChatTurn(turn)
+        }.onFailure {
+            _messages.value = listOf(ChatMessage.GuideMessage("연결 실패"))
         }
     }
 
@@ -88,30 +121,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // 새 세션 시작 (버튼 클릭 시)
-    fun onNewSessionClick() {
-        viewModelScope.launch {
-            try {
-                _isLoading.value = true
-
-                // 1. 서버에 강제 리셋 요청
-                val welcomeMessage = repository.startNewGeneralSession()
-
-                // 2. UI 상태 초기화 (새 방이니까 싹 비움)
-                _messages.value = listOf(ChatMessage.GuideMessage(welcomeMessage))
-                _isSessionEnded.value = false
-                _sessionTitle.value = "일반 상담" // 혹은 "로딩 중..."
-                _sessionGoals.value = emptyList()
-                // _currentWeek는 서버 응답에 따라 달라질 수 있으니 유지하거나 null 처리
-
-            } catch (e: Exception) {
-                _toastMessage.value = "세션 생성 실패: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
     // ★ 핵심: 서버 응답(ChatTurn)을 UI 상태로 변환하는 '단일 진실 공급원(Source of Truth)'
     private fun applyChatTurn(chatTurn: ChatTurn) {
         // 1. 메시지 추가
@@ -131,6 +140,17 @@ class ChatViewModel @Inject constructor(
         // 4. 종료 여부
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
+        }
+    }
+
+    // 과거 기록 가져오는 함수
+    private fun loadHistoryList() {
+        viewModelScope.launch {
+            // repository.getSessions()는 서버 /sessions/{id} 호출
+            val result = repository.getHistoryList()
+            result.onSuccess { list ->
+                _historyList.value = list
+            }
         }
     }
 

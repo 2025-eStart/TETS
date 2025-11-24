@@ -227,3 +227,26 @@ class FirestoreRepo(Repo):
         except Exception as e:
             print(f"FIRESTORE ERROR: Failed to get past summaries: {e}")
             return []
+        
+        
+    # 과거 채팅 접근 서랍용
+    def get_all_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        users/{uid}/sessions 컬렉션의 모든 문서를 최신순으로 가져옴
+        """
+        try:
+            # created_at 기준 내림차순 (최신이 위로)
+            docs = (_sessions_col(user_id)
+                    .order_by("created_at", direction=firestore.Query.DESCENDING)
+                    .stream())
+            
+            results = []
+            for d in docs:
+                data = d.to_dict()
+                data["id"] = d.id # 문서 ID 포함
+                results.append(data)
+            return results
+            
+        except Exception as e:
+            print(f"FIRESTORE ERROR (get_all_sessions): {e}")
+            return []

@@ -4,7 +4,16 @@ from coach_agent.services.llm import LLM_CHAIN # 미리 빌드된 체인 임포�
 from langchain_core.messages import AIMessage
 
 def run_llm(state: State) -> dict:
-    print(f"\n=== [DEBUG] RunLLM Node Started ===")
+    print(f"\n=== [DEBUG] RunLLM Node Started ===") # 디버깅 출력
+    
+    # 신규 유저(nickname==none)일 때 프롬프트 없음 -> LLM 호출 스킵
+    # 프롬프트가 없으면 LLM 호출 스킵
+    if not state.llm_prompt_messages:
+        print("⏩ [RunLLM] 프롬프트가 비어있어 LLM 호출을 건너뜁니다. (BuildPrompt에서 이미 처리됨)")
+        return {
+            "llm_output": None, # 후처리 노드(RewriteTone)도 스킵하게 유도
+            "exit": False       # 대화 계속
+        }
     
     # 0. LLM 호출 (CounselorTurn 객체 반환)
     structured_output = LLM_CHAIN.invoke(state.llm_prompt_messages)
