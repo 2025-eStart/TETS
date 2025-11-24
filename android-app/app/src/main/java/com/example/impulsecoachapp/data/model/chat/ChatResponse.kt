@@ -3,19 +3,19 @@ package com.example.impulsecoachapp.data.model.chat
 
 import com.google.gson.annotations.SerializedName
 
-data class LangGraphResponse(
-    @SerializedName("values") val values: StateValues
+// 1. [응답] 세션 초기화 결과
+data class InitSessionResponse(
+    @SerializedName("thread_id") val threadId: String,
+    @SerializedName("session_type") val sessionType: String, // "WEEKLY" or "GENERAL"
+    @SerializedName("display_message") val displayMessage: String = "",
+    @SerializedName("current_week") val currentWeek: Int = 1
 )
 
-// 서버의 state_types.py에 정의된 State와 매핑됩니다.
-data class StateValues(
-    @SerializedName("messages") val messages: List<MessageData>, // 위에서 수정한 MessageData(type, content) 재사용
-    @SerializedName("current_week") val currentWeek: Int = 1,
-    @SerializedName("exit") val exit: Boolean = false,
-    @SerializedName("protocol") val protocol: ProtocolData? = null
-)
-
-data class ProtocolData(
-    @SerializedName("title") val title: String? = "",
-    @SerializedName("goals") val goals: List<String>? = emptyList()
+// 2. [응답] 채팅 응답 결과
+data class ChatResponse(
+    @SerializedName("reply") val reply: String,
+    @SerializedName("is_ended") val isEnded: Boolean,
+    @SerializedName("current_week") val currentWeek: Int,
+    @SerializedName("week_title") val weekTitle: String,
+    @SerializedName("week_goals") val weekGoals: List<String>
 )

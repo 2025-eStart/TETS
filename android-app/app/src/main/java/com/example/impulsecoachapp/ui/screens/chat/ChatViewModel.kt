@@ -3,6 +3,7 @@ package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.impulsecoachapp.data.repository.ActualChatRepository
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
 import com.example.impulsecoachapp.domain.repository.ChatRepository
@@ -15,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val repository: ChatRepository
+    private val repository: ActualChatRepository
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -117,6 +118,31 @@ class ChatViewModel @Inject constructor(
         // 3) 세션 종료 여부
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
+        }
+    }
+
+    fun onNewSessionClick() {
+        // [수정] ActualChatRepository의 세션 매니저 상태 확인 필요
+        // (Clean Architecture 원칙상 Repository에 'currentSessionType' getter를 만드는 게 좋지만,
+        //  편의상 여기서는 예외 처리 로직만 간단히 구현)
+
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+
+                // 1. 강제 세션 초기화 요청 (GENERAL 모드)
+                val welcomeMessage = repository.startNewGeneralSession()
+
+                // 2. UI 초기화
+                _messages.value = listOf(ChatMessage.GuideMessage(welcomeMessage))
+                _isSessionEnded.value = false
+
+            } catch (e: Exception) {
+                // 에러 처리 (토스트 등)
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 }
