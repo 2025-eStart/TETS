@@ -1,4 +1,4 @@
-# coach_agent/config.py
+# coach_agent/settings.py
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
