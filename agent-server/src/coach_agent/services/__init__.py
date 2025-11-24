@@ -2,7 +2,7 @@
 import os
 from coach_agent.services.base_repo import Repo
 from coach_agent.services.memory_repo import MemoryRepo
-from coach_agent.config import settings
+from coach_agent.settings import settings
 
 # 1. 환경 변수 읽기
 REPO_BACKEND = settings.REPO_BACKEND

@@ -2,7 +2,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from langchain_core.messages import SystemMessage, HumanMessage
-from coach_agent.config import settings
+from coach_agent.settings import settings
 from coach_agent.state_types import CounselorTurn
 
 def get_llm():
