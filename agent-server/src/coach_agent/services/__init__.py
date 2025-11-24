@@ -2,9 +2,10 @@
 import os
 from coach_agent.services.base_repo import Repo
 from coach_agent.services.memory_repo import MemoryRepo
+from coach_agent.config import settings
 
 # 1. 환경 변수 읽기
-REPO_BACKEND = os.getenv("REPO_BACKEND", "memory")
+REPO_BACKEND = settings.REPO_BACKEND
 print(f"👀 [Services] 초기화 모드: {REPO_BACKEND}") #디버깅
 
 # 2. Firebase 모드면 저장소 객체 생성
