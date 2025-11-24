@@ -4,21 +4,16 @@ package com.example.impulsecoachapp.data.model.chat
 
 import com.google.gson.annotations.SerializedName
 
-data class LangGraphRequest(
-    @SerializedName("input") val input: InputData,
-    @SerializedName("config") val config: ConfigData? = null,
-    @SerializedName("stream_mode") val streamMode: List<String> = listOf("values") // 결과를 한 번에 받기 위함
+// 1. [요청] 세션 초기화 (/session/init)
+data class InitSessionRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("force_new") val forceNew: Boolean = false
 )
 
-data class InputData(
-    @SerializedName("messages") val messages: List<MessageData>
-)
-
-data class MessageData(
-    @SerializedName("type") val type: String,   // "user"
-    @SerializedName("content") val content: String
-)
-
-data class ConfigData(
-    @SerializedName("configurable") val configurable: Map<String, String>? = null
+// 2. [요청] 채팅 메시지 전송 (/chat)
+data class ChatRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("thread_id") val threadId: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("session_type") val sessionType: String
 )
