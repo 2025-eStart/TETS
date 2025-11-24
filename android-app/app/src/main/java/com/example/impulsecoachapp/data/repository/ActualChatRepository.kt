@@ -57,8 +57,43 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-    // [수정됨] 중복 제거 및 initializeSession 재사용
-    // 인터페이스 구현체이므로 'override'가 필수입니다.
+    // [추가] 앱 진입 시 봇을 먼저 깨우는 함수
+    suspend fun startSession(): Result<ChatTurn> {
+        val userId = deviceIdManager.getDeviceId()
+
+        return try {
+            // 1. 방 번호가 없으면 초기화 (이미 있으면 기존 방 사용)
+            if (sessionManager.currentThreadId == null) {
+                initializeSession(userId, forceNew = false)
+            }
+
+            // 2. "깨우기 메시지(__init__)" 전송
+            // 사용자에겐 안 보여줄 것이므로 UI에는 표시 안 함 (ViewModel에서 처리)
+            val request = ChatRequest(
+                userId = userId,
+                threadId = sessionManager.currentThreadId!!,
+                message = "__init__",
+                sessionType = sessionManager.currentSessionType
+            )
+
+            val response = apiService.sendChatMessage(request)
+
+            // 3. 봇의 첫 응답(인사말) 반환
+            val chatTurn = ChatTurn(
+                assistantMessage = ChatMessage.GuideMessage(response.reply),
+                isSessionEnded = response.isEnded,
+                currentWeek = response.currentWeek,
+                weekTitle = response.weekTitle,
+                weekGoals = response.weekGoals
+            )
+            Result.success(chatTurn)
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 중복 제거 및 initializeSession 재사용
     override suspend fun startNewGeneralSession(): String {
         val userId = deviceIdManager.getDeviceId()
 
@@ -68,7 +103,7 @@ class ActualChatRepository @Inject constructor(
         return initRes.displayMessage
     }
 
-    // [수정됨] 현재 세션 타입 조회 (인터페이스 구현)
+    // 현재 세션 타입 조회
     override fun getCurrentSessionType(): String {
         return sessionManager.currentSessionType
     }
