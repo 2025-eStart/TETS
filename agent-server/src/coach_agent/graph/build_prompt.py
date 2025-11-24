@@ -154,7 +154,8 @@ def build_prompt(state: State) -> dict:
             # history는 placeholder로 들어가므로 변수에서 제외하거나 text로 넣지 않음
             "user_message": state.last_user_message,
             "intervention_instruction": intervention_instruction,
-            "empathy_instruction": empathy_instruction
+            "empathy_instruction": empathy_instruction,
+            "nickname": nickname or "여행자",
         }
         
         # [수정] SystemMessage 안에 변수가 있으므로 SystemMessagePromptTemplate 사용 권장

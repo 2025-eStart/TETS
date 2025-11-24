@@ -32,27 +32,37 @@ def load_state(state: State, config: RunnableConfig) -> dict:
             raw_last_user_message = msg_content
     
     # --- 4. 닉네임 처리 로직 ---
-    # DB에 있는 닉네임을 우선 가져옴
+    # 4-1. DB에 있는 닉네임을 우선 가져옴
     current_nickname = user_data.get("nickname")
     final_last_user_message = raw_last_user_message
     
-    # 닉네임이 없고(None) + 사용자가 메시지를 보냈다면 -> 닉네임 설정으로 간주
+    # 4-2. 닉네임이 없고(None) + 사용자가 메시지를 보냈다면 -> 닉네임 설정 시도
     if current_nickname is None and raw_last_user_message is not None:
-        new_nickname = raw_last_user_message.strip()
-
-        # 유효성 검사 및 기본값
-        if not new_nickname or len(new_nickname) > 20:
-            new_nickname = "여행자"
+        input_text = raw_last_user_message.strip()
+        
+        # [Case A] 봇을 깨우는 신호("__init__")인 경우 -> 닉네임 설정 스킵
+        if input_text == "__init__":
+            # 메시지는 소비된 것으로 처리 (build_prompt로 넘기지 않음)
+            final_last_user_message = None
+            # 닉네임은 여전히 None -> build_prompt에서 FIXED_NEW_USER_SCRIPT 발동
             
-        # DB 업데이트
-        REPO.upsert_user(user_id, {"nickname": new_nickname})
-        
-        # 로컬 변수 업데이트 (반환을 위해)
-        current_nickname = new_nickname
-        user_data["nickname"] = new_nickname # user 객체도 최신화
-        
-        # 메시지 소비 처리 (인사말 생성을 위해 None으로 변경)
-        final_last_user_message = None
+        # [Case B] 사용자가 실제 닉네임(혹은 공백)을 입력한 경우
+        else:
+            # 빈칸이거나 유효하지 않거나 너무 길면 "여행자"로 설정
+            if not input_text or len(input_text) == 0 or len(input_text) > 20: 
+                new_nickname = "여행자"
+            else:
+                new_nickname = input_text
+
+            # DB 업데이트
+            REPO.upsert_user(user_id, {"nickname": new_nickname})
+            
+            # 로컬 변수 업데이트
+            current_nickname = new_nickname
+            user_data["nickname"] = new_nickname
+            
+            # 닉네임을 입력한 턴의 메시지는 소비 처리 (인사말 생성을 위해)
+            final_last_user_message = None
               
     # --- 5. 미접속 기간 계산 (DB 갱신 *전에* 수행) ---
     last_seen_timestamp = user_data.get("last_seen_at")
