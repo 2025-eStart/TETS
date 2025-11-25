@@ -133,7 +133,7 @@ async def init_session(req: InitSessionRequest):
             # [요구사항 3] 24시간 경과 -> 재시작 (새 방)
             REPO.restart_current_week_session(user_id, current_week)
             return InitSessionResponse(
-                thread_id=str(uuid.uuid4()), # 새 방
+                thread_id=str(uuid.uuid4()), # 새 스레드(채팅방)
                 session_type="WEEKLY",
                 display_message="지난 상담이 오래되어 이번 주차를 처음부터 다시 시작합니다.",
                 current_week=current_week
@@ -171,9 +171,13 @@ async def init_session(req: InitSessionRequest):
 @server.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
     try:
-        # 1. LangGraph Config 설정
-        # session_type은 init_session에서 결정되었지만, 
-        # 그래프 내부 로직(route_session)이 한 번 더 검증할 것임.
+        
+        # 1. 그래프 입력값(Inputs) 준비
+        inputs = {
+            "messages": [HumanMessage(content=req.message)],
+            "current_step_index": 0 
+        }
+        # 2. LangGraph Config 설정
         config = {
             "configurable": {
                 "thread_id": req.thread_id,
@@ -182,13 +186,10 @@ async def chat_endpoint(req: ChatRequest):
             }
         }
         
-        # 2. 그래프 실행
-        inputs = {"messages": [HumanMessage(content=req.message)]}
-        
-        # ainvoke로 비동기 실행
+        # 3. ainvoke로 그래프 비동기 실행
         final_state = await graph_app.ainvoke(inputs, config=config)
 
-        # 3. 결과 파싱
+        # 4. 결과 파싱
         messages = final_state.get("messages", [])
         last_ai_msg = ""
         # 가장 마지막 AI 메시지 찾기 (역순 탐색)

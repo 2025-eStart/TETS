@@ -17,7 +17,7 @@ def route_session(state: State) -> dict:
         - 1일 이상 미접속: 현재 주차 세션 재시작 후 WEEKLY
     - 진행 중인 세션 없음:
         - 최근 주간 세션 완료 후 7일 미만: GENERAL
-        - 그 외(7일 이상 지남): 다음 주차로 advance_to_next_week() 후 WEEKLY
+        - 그 외(7일 이상 지남): 다음 주차로. 상담 완료 시에 업데이트한 current_week 사용하여 WEEKLY
     """
     """
     LoadState에서 결정된(또는 API가 주입한) session_type을 최우선으로 따릅니다.
@@ -77,14 +77,8 @@ def route_session(state: State) -> dict:
         }
     else:
         # 7일 이상 지났거나(저번 주차 상담까지 완료), 아직 완료 기록이 없는 경우(첫 번째 상담)
-        new_week = state.current_week
-
-        # 첫 번째 상담이 아닌 경우(이전에 완료한 기록이 있을 경우) → 다음 주차로 진급
-        if last_completed_at:
-            new_week = REPO.advance_to_next_week(state.user_id)
-
         return {
-            "current_week": new_week,
+            "current_week": state.current_week,
             "next_route": "WEEKLY",
             "session_type": "WEEKLY",
         }

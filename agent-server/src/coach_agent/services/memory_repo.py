@@ -171,3 +171,19 @@ class MemoryRepo(Repo):
         # 주차 순서대로 정렬
         return sorted(summaries, key=lambda s: s["week"])
     
+    # --- 현재 주차 세션의 진행 단계(Step Index)를 저장 ---
+    def update_checkpoint(self, user_id: str, week: int, step_index: int) -> None:
+        # 1. 현재 세션 찾기
+        s = self.get_active_weekly_session(user_id, week)
+        
+        # 2. 세션이 있으면 업데이트
+        if s:
+            if "checkpoint" not in s:
+                s["checkpoint"] = {}
+            
+            s["checkpoint"]["step_index"] = step_index
+            
+            # DB 갱신 (MemoryRepo는 참조형이라 사실 위에서 바뀌지만 명시적으로)
+            DB["weekly_sessions"][(user_id, week)] = s
+        else:
+            print(f"⚠️ Warning: 세션이 없어서 체크포인트 저장 실패 ({user_id}, {week}주)")
