@@ -44,3 +44,6 @@ class Repo(Protocol):
         세션 상태(status, checkpoint 등)를 초기화/재시작한다.
         """
         ...
+        
+    # 현재 주차 세션의 진행 단계(Step Index)를 저장
+    def update_checkpoint(self, user_id: str, week: int, step_index: int) -> None: ...

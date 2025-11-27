@@ -76,7 +76,7 @@ def rewrite_tone(state: State) -> dict:
 
     # 디버깅 출력
     print(f"🔄 [Tone Polish] Nickname: {user_nickname}")
-    print(f"🔄 [Tone Polish] Before: {original_text[:30]}... -> After: {rewritten_text[:30]}...")
+    print(f"🔄 [Tone Polish] Before: {original_text}... -> After: {rewritten_text}...")
 
     # 3. State 업데이트 (중요!)
     # 기존 messages의 마지막(RunLLM이 넣은 것)을 덮어쓰거나 교체해야 함.

@@ -79,12 +79,15 @@ def build_graph(checkpointer=None):
     g.add_edge("DecideIntervention", "BuildPrompt")
     g.add_edge("BuildPrompt", "RunLLM")
     
+    g.add_edge("RunLLM", "PersistTurn") # 후처리 노드 활성화 시 이 엣지 삭제
+    
+    ''' 후처리 교정 임시 중단
     # [2-F] 후처리 및 종료 흐름 (Tail)
     g.add_edge("RunLLM", "RewriteTone")      # 초안 생성 후 교정
 
     # 1. 후처리한 메시지 반환 이후, 메시지 저장 (필수)
     g.add_edge("RewriteTone", "PersistTurn") # 교정 후 저장
-    
+    '''
     # 2. 저장 후, 진행률 업데이트
     g.add_edge("PersistTurn", "UpdateProgress")
     
