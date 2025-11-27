@@ -4,7 +4,7 @@ from coach_agent.utils.protocol_loader import load_week_spec
 from coach_agent.services import REPO
 
 def pick_week(state: State) -> dict:
-    spec = load_week_spec("v1", state.current_week)
+    spec = load_week_spec("v2", state.current_week)
 
     weekly_session = state.weekly_session
     if not weekly_session:

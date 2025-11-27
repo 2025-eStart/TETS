@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 @dataclass(kw_only=True)
 class Configuration:
     # 1. user_id는 이제 필수로 취급 (기본값 제거 또는 None 처리)
-    user_id: str 
+    user_id: str = "tester"  # 기본값을 "tester"로 설정하여 langsmith 디버깅 시 에러 방지
     
     # 2. API 서버가 내린 결정을 주입받을 필드 추가
     session_type_override: Optional[Literal["WEEKLY", "GENERAL"]] = None 
