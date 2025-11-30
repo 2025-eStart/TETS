@@ -1,7 +1,6 @@
 # coach_agent/graph/counsel_nodes.py
 
 from __future__ import annotations
-from datetime import datetime, timezone
 from typing import Dict, Any, List
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage
 from coach_agent.graph.state import State
@@ -337,7 +336,8 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
 
     # 3) 최근 메시지 직렬화
     recent_messages = _serialize_recent_messages(state.messages)
-
+    rag_snippets_preview = (state.rag_snippets or [])[:3]
+    
     # 4) 여기서 prompt 메시지 직접 구성
     system_content = (
         COMMON_IDENTITY
@@ -346,7 +346,12 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
         "주어진 세션 목표, core task, 후보 기법 목록, 현재까지의 진행 상황, "
         "사용자 발화, RAG 스니펫을 종합해 이번 턴에 사용할 가장 적절한 CBT 기법을 하나 선택하여\n\n"
         "사용자가 세션 목표에 한 걸음 더 다가가도록 돕는 상담 메시지를 작성하라."
-        "응답은 반드시 TechniqueSelection 스키마에 맞는 JSON으로 반환해야 한다.\n\n"
+        "응답은 반드시 TechniqueSelection 스키마에 맞는 JSON으로 반환해야 한다.\n"
+        "TechniqueSelection 스키마는 다음과 같다.\n"
+        "- technique_id: 선택한 CBT 기법의 ID (문자열)\n"
+        "- micro_goal: 이번 턴에서 달성할 구체적인 목표 (문자열)\n"
+        "- reason: 이 선택이 적절한 이유 (문자열)\n\n"
+        f"- 세션 목표(session_goal): {state.session_goal}\n"
         f"- 세션 목표(session_goal): {state.session_goal}\n"
         f"- 핵심 작업 태그(core_task_tags): {state.core_task_tags}\n"
         f"- 세션 진행도(session_progress): {state.session_progress}\n"

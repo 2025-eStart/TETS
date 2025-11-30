@@ -39,10 +39,10 @@ def build_main_graph(weekly_app, general_app, checkpointer=None):
         {
             "WEEKLY": "WeeklySubGraph",
             "GENERAL": "GeneralSubGraph",
-        },
-        "PersistTurn"
+        }
     )
-
+    builder.add_edge("WeeklySubGraph", "PersistTurn")
+    builder.add_edge("GeneralSubGraph", "PersistTurn")
     # SubGraph 실행 후 바로 END
     builder.add_edge("PersistTurn","UpdateProgress")
     builder.add_edge("UpdateProgress", END)
