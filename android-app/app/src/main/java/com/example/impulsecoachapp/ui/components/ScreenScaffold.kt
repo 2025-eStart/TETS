@@ -21,15 +21,8 @@ fun ScreenScaffold(
 ) {
     Scaffold(
         modifier = modifier,
-        // [수정 2] Scaffold가 키보드를 무시하도록 설정
-        // 이렇게 하면 bottomBar (NavBarLight)가 키보드를 따라 올라오지 않습니다.
+        // 내비게이션 바 삭제
         contentWindowInsets = WindowInsets.safeDrawing.exclude(WindowInsets.ime),
-        bottomBar = {
-            NavBarLight(
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected
-            )
-        },
         content = content
     )
 }
