@@ -1,5 +1,5 @@
 # coach_agent/graph/route_session.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.services import REPO
 from coach_agent.utils._days_since import _days_since
 

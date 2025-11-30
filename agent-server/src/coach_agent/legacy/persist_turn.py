@@ -1,5 +1,5 @@
 # coach_agent/graph/persist_turn.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.services.history import persist_turn 
 
 def persist_turn_node(state: State) -> dict:

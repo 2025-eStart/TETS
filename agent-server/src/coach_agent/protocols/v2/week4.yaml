@@ -1,26 +1,86 @@
-# coach_agent/protocols/v2/week4.yaml
 week: 4
-title: "Money Management II — 영혼을 위한 영양식 (Feeding the Soul)"
-goals:
-  - "쇼핑을 안 할 때 찾아오는 심심함과 공허함을 '나를 돌볼 시간'으로 재정의한다."
-  - "돈을 쓰지 않고도 내 기분을 좋게 만드는 '소확행 리스트'를 만든다."
-  - "양손을 쓰거나 몰입할 수 있는 활동으로 충동을 물리적으로 차단하는 법을 배운다."
 
-script_steps:
-  - "쇼핑을 안 하니 시간이 붕 뜨거나 왠지 허전하지 않은지 묻고, 그 공허함은 당연한 것임을 공감한다."
-  - "쇼핑이 잠깐 배부른 '패스트푸드'라면, 당신의 마음을 건강하게 채워줄 '집밥' 같은 활동(산책, 요리, 대화)은 무엇이 있을지 찾는다."
-  - "갑자기 충동이 올 때 즉시 실행할 수 있는 '5분 대처법(물 마시기, 스트레칭, 양손 쓰기)'을 하나 정해서 비상약처럼 챙겨둔다."
+agenda: "금전 관리 능력 강화 & 소비 환경 조정 (Money Management + 카드 제거)"
 
-prompt_seed:
-  - "쇼핑을 멈추면 갑자기 텅 빈 것 같은 느낌이 들 수 있어요. 그 빈자리를 무엇으로 채우면 당신의 영혼이 배부르다고 느낄까요?"
-  - "돈을 한 푼도 안 쓰고도 '아, 좋다'라고 느꼈던 순간이 언제였나요?"
+description: >
+  이번 주차는 충동·습관적 소비를 유지시키는 ‘환경적 요인’을 줄이고,
+  지출을 구조적으로 통제할 수 있는 기본 장치를 마련하는 단계입니다.
+  Mitchell CBT 치료의 핵심 구성 요소 중 하나로,
+  ‘현금 기반 소비’, ‘카드 제거 또는 제한’, ‘지출 한도 설정’, 
+  ‘쇼핑 접근성 낮추기’ 등 행동적 전략을 학습합니다.
+  이는 이후 자동사고 재구조화(Week 5~6)와 노출/반응예방(Week 8~9)의
+  치료 효과를 유지하는 데 필수적인 기반입니다.
 
-exit_criteria:
-  guideline: |
-    1. 쇼핑 부재 시의 공허함을 인지함.
-    2. 비소비성 대체 활동(Alternative) 2가지 이상 도출.
-    3. 즉각적인 5분 대처법 합의.
-  required:
-    patterns:
-      - "(?m)운동|산책|독서|청소|요리|친구|전화|게임|잠"
-    min_hits: 1
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "establish_money_management_and_reduce_access"
+
+core_task:
+  description: >
+    자신의 소비 패턴에 맞는 구체적 금전 관리 계획(예산/한도/현금 사용 등)을
+    최소 1개 이상 설정하고,
+    과소비를 유발하는 도구/환경(카드, 앱, 온라인 쇼핑 접근성)을 줄이기 위한
+    실행 전략을 1개 이상 합의한다.
+  tags:
+    - "money_management"
+    - "behavioral_planning"
+    - "environment_modification"
+    - "impulse_control"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "defined_budget_rule"
+    required: true
+    description: "본인에게 맞는 간단한 금전 관리 규칙(예: 주간 예산)을 하나 이상 정의했다."
+
+  - id: "agreed_access_reduction"
+    required: true
+    description: "카드 제거/한도 변경/쇼핑앱 삭제 등 접근성 조절 전략을 최소 1개 선택했다."
+
+  - id: "identified_risky_situations"
+    required: false
+    description: "자신에게 위험한 소비 상황을 하나 이상 언급했다."
+
+  - id: "planned_behavior_subs"
+    required: false
+    description: "충동이 생길 때 대체 행동을 하나 이상 정했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "problem_solving_CBT"
+  - "behavioral_activation"
+  - "implementation_intentions"
+  - "guided_discovery"
+  - "socratic_questioning"
+  - "normalization"
+  - "functional_analysis"
+  - "urge_surfing_light"   # 초기 단계용 가벼운 충동 조절 기법
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 12
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘금전 관리 계획 실험’을 해보세요.
+    정한 예산 규칙을 일주일 동안 시도해보고,
+    어떤 상황에서 잘 지켜졌는지/지켜지기 어려웠는지 간단히 기록하면 좋습니다.
+    또한 쇼핑 접근성을 줄이는 전략을 실행해보고 변화가 있었는지 관찰해보세요.
+  examples:
+    - "전주 대비 지출 한도 10% 줄이기 성공/실패 이유 기록"
+    - "퇴근 후 충동 구매를 줄이기 위해 카드 대신 현금 1만 원만 들고 다니기"
+    - "쇼핑앱 삭제 후 충동 빈도 변화 기록"

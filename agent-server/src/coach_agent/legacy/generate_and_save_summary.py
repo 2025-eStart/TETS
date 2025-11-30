@@ -1,5 +1,5 @@
 # coach_agent/graph/generate_and_save_summary.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.services import REPO
 from coach_agent.services.summarizer import create_session_summary # 요약 생성 로직
 

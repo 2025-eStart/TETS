@@ -1,27 +1,86 @@
-# coach_agent/protocols/v2/week7.yaml
 week: 7
-title: "Behavioral I — 충동의 파도 타기 (Urge Surfing)"
-goals:
-  - "충동은 '명령'이 아니라 지나가는 '파도'일 뿐임을 깨닫는다."
-  - "쇼핑몰에 들어가되 결제하지 않는 '중간 난이도'의 노출 실험(ERP)을 설계한다."
-  - "파도가 칠 때 휩쓸리지 않도록 지탱해줄 '6가지 질문(서핑 보드)'을 장착한다."
 
-script_steps:
-  - "충동을 억지로 누르면 더 튀어오름을 설명하고, 충동을 파도처럼 바라보고 흘려보내는(Urge Surfing) 개념을 소개한다."
-  - "이번 주는 일부러 쇼핑몰에 들어가서, 사고 싶은 마음이 들 때 창을 끄지 않고 3분간 'Benson의 질문(왜 원하는가? 기분은 어떤가?)'을 던지며 버티는 실험을 제안한다."
-  - "이 실험을 언제, 어디서 수행할지 구체적인 계획(Plan)을 잡고, 파도가 지나간 뒤의 상쾌함을 기대하게 한다."
+agenda: "심화 Cue/Chain 분석 + 자존감·자기평가 패턴 탐색"
 
-prompt_seed:
-  - "사고 싶은 마음이 들 때, 그 마음을 꾹 누르려고 하면 오히려 더 커지지 않던가요? 이번엔 파도 타듯 넘겨볼까요?"
-  - "파도가 덮칠 때 우리를 지켜줄 서핑 보드가 필요해요. '나는 지금 어떤 기분인가?' 같은 질문을 던져보는 건 어때요?"
+description: >
+  이번 주차는 두 번째 Cue/Chain 분석을 통해,
+  소비 충동이 반복되는 ‘심층적 촉발 패턴’을 이해하는 단계입니다.
+  또한 자존감 저하·자기비난·자격 기반 사고(“나는 이것을 사야 괜찮아진다”)처럼
+  소비를 강화시키는 자기평가 패턴을 탐색합니다.
+  이는 이후 Week 8~9의 노출·반응예방(ERP)에서 충동을 견디기 위한
+  핵심 인지적 기반을 형성합니다.
 
-exit_criteria:
-  guideline: |
-    1. 충동을 관찰의 대상(파도)으로 인식함.
-    2. 구체적인 노출 실험(ERP) 상황을 설정함.
-    3. 반응 방지 도구(질문, 호흡 등)를 준비함.
-  required:
-    patterns:
-      - "(?m)파도|서핑|관찰|흘려"
-      - "(?m)실험|도전|질문|보드"
-    min_hits: 1
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "advanced_cue_chain_and_self_esteem_patterns"
+
+core_task:
+  description: >
+    Week 3에서 수행했던 Cue–AT–Emotion–Behavior 분석을
+    새로운 사례에 다시 적용하여,
+    반복적 패턴(자기비난·보상 사고·비교 사고 등)을 1개 이상 인식한다.
+  tags:
+    - "cue_identification"
+    - "behavioral_chain"
+    - "self_esteem"
+    - "belief_patterns"
+    - "emotion_linking"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "identified_new_case"
+    required: true
+    description: "새로운 소비 사례를 하나 선택했다."
+
+  - id: "completed_second_chain"
+    required: true
+    description: "새 사례에 대해 Cue→AT→Emotion→Behavior 흐름을 다시 구성했다."
+
+  - id: "recognized_belief_pattern"
+    required: false
+    description: >
+      자기평가·자존감 관련 인지 패턴을 하나 이상 언급했다
+      (예: '나는 가치가 부족하니까...', '보상을 통해 기분을 유지해야 한다').
+
+  - id: "linked_pattern_to_behavior"
+    required: false
+    description: "해당 인지 패턴이 소비 행동과 어떻게 연결되는지 설명했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "behavioral_chain_analysis"
+  - "guided_discovery"
+  - "eliciting_automatic_thoughts"
+  - "emotion_labeling"
+  - "socratic_questioning"
+  - "belief_pattern_identification"
+  - "self_compassion_reframe"
+  - "normalization"
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘반복되는 패턴 관찰하기’를 해보세요.
+    소비 충동이 올라오거나, 구매를 한 후 후회/안도/기분전환 등을 느꼈던 순간을 떠올려,
+    그 감정 뒤에 어떤 자기평가나 믿음이 작동했는지 적어보면 좋습니다.
+  examples:
+    - "상황: SNS 비교 → AT: '나는 뒤처진 것 같아' → Emotion: 열등감 → Behavior: 즉흥 구매"
+    - "상황: 피곤한 상태 → AT: '나는 오늘 잘 버텼으니까 보상받아야 해' → Emotion: 위안 → Behavior: 사소한 쇼핑"
+    - "상황: 실수 후 기분 저하 → AT: '나는 부족해' → Emotion: 불안 → Behavior: 쇼핑앱 탐색"

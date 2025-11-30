@@ -1,27 +1,88 @@
-# coach_agent/protocols/v2/week3.yaml
 week: 3
-title: "Money Management I — 나를 지키는 안전장치 (Creating a Sanctuary)"
-goals:
-  - "환경 통제를 구속이 아닌, 충동으로부터 내 돈을 지키는 '보호막(Sanctuary)'으로 재정의한다."
-  - "결제 과정을 번거롭게 만드는 '마찰력(Friction)'을 높여 생각할 시간을 번다."
-  - "신용카드를 잠시 내려놓고 '체크카드/현금'을 사용하는 안전한 결제 환경을 만든다."
 
-script_steps:
-  - "맛있는 케이크가 눈앞에 있으면 누구나 참기 힘들듯, 의지력보다 중요한 건 나를 유혹하는 환경(앱 알림, 간편결제)을 안전하게 만드는 것임을 설명한다."
-  - "클릭 한 번으로 결제되는 '자동문'을 '수동문'으로 바꾸기 위해, 앱 삭제나 카드 정보 삭제 등 불편함(Friction)을 늘리는 방법을 제안한다."
-  - "이번 주는 신용카드 대신 '체크카드'나 '현금'을 사용하여, 돈이 나가는 감각을 되살리고 예산 내에서 지출하는 연습을 약속한다."
+agenda: "소비 촉발 요인(Cues) 분석 & 자동사고–감정–행동의 연결 이해"
 
-prompt_seed:
-  - "밤에 혼자 누워서 폰으로 클릭만 하면 집으로 배송되죠. 이 편리한 '자동문'을 조금 불편하지만 안전한 '수동문'으로 바꿀 방법이 없을까요?"
+description: >
+  이번 주차는 충동·습관적 소비가 ‘어떤 단서(cue)로 시작되는가’를 탐색하고,
+  그 단서가 만들어내는 사고–감정–행동 패턴을 명확하게 구조화하는 단계입니다.
+  하나의 대표 소비 사례를 실제로 해부하여,
+  사용자 스스로 자신의 자동사고와 감정, 그 결과로 이어진 행동을 연결지어
+  이해할 수 있도록 돕습니다.
+  이 단계는 이후의 인지 재구조화(Week 5~6)와 노출·반응예방(Week 8~9)의 핵심 기반이 됩니다.
 
-exit_criteria:
-  guideline: |
-    1. 환경 통제를 '나를 보호하는 행위'로 수용했다.
-    2. 디지털 마찰력(앱 삭제/알림 끄기)을 높이는 행동을 약속했다.
-    3. 결제 수단 변경(체크카드/현금)에 동의했다.
-  required:
-    patterns:
-      - "(?m)보호|안전|불편"
-      - "(?m)삭제|끄기|차단|지울"
-      - "(?m)체크|현금"
-    min_hits: 2
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "cue_analysis_and_AT_emotion_linking"
+
+core_task:
+  description: >
+    하나의 소비 사례를 선택하고,
+    그 사례에서의 촉발 요인(cue), 자동사고, 감정, 행동 결과를
+    S → T → E → B CBT 구조에 맞춰 순서대로 설명한다.
+  tags:
+    - "trigger_identification"
+    - "behavioral_chain"
+    - "automatic_thought"
+    - "emotion_linking"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "selected_one_case"
+    required: true
+    description: "이번 주 분석할 대표 소비 사례를 하나 명확히 선택했다."
+
+  - id: "identified_cue"
+    required: true
+    description: "해당 소비를 촉발한 단서(cue)를 최소 1개 이상 언급했다."
+
+  - id: "identified_AT"
+    required: true
+    description: "그때 떠올랐던 자동사고를 1개 이상 언어화했다."
+
+  - id: "identified_emotion"
+    required: false
+    description: "그때 느낀 감정을 최소 1개 이상 표현했다."
+
+  - id: "explained_chain"
+    required: false
+    description: "단서 → 사고 → 감정 → 행동의 흐름을 자신의 말로 설명했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "behavioral_chain_analysis"
+  - "guided_discovery"
+  - "eliciting_automatic_thoughts"
+  - "emotion_labeling"
+  - "socratic_questioning"
+  - "normalization"
+  - "cue_identification"
+  - "timeline_exploration"
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘Cue–AT–Emotion–Behavior 연결 기록’을 연습해보세요.
+    소비 충동이 올라왔던 순간을 떠올려서,
+    어떤 단서가 있었는지, 어떤 생각과 감정이 따라왔는지를
+    간단히 표처럼 적어보면 좋아요.
+  examples:
+    - "Cue: 업무 스트레스 → AT: ‘이 정도면 나한테 보상할 만해’ → Emotion: 긴장 완화 → Behavior: 간식/쇼핑"
+    - "Cue: 지루함 → AT: ‘뭐라도 사면 기분 풀릴 듯’ → Emotion: 미묘한 불안 → Behavior: 앱 둘러보기"
+    - "Cue: SNS 비교 → AT: ‘나도 저거 있어야 할 것 같아’ → Emotion: 열등감 → Behavior: 즉시 구매"
