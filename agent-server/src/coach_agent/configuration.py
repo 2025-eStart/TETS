@@ -6,7 +6,7 @@ from typing import Optional, Literal
 from langchain_core.runnables import RunnableConfig
 
 @dataclass(kw_only=True)
-class Context:
+class Configuration:
     # 1. user_id는 이제 필수로 취급 (기본값 제거 또는 None 처리)
     user_id: str = "tester"  # 기본값을 "tester"로 설정하여 langsmith 디버깅 시 에러 방지
     

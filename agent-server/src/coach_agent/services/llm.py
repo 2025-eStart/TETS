@@ -19,7 +19,7 @@ def _build_chat_llm() -> ChatOpenAI:
     if model_name_env is not None:
         model_name = model_name_env
     else:
-        model_name = "gpt-5.1-mini"
+        model_name = "gpt-5-mini"
 
     temperature_env = os.getenv("OPENAI_TEMPERATURE")
     if temperature_env is not None:
