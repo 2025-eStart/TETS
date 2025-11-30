@@ -1,5 +1,5 @@
 # coach_agent/graph/maybe_schedule_nudge.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.services import REPO
 
 def maybe_schedule_nudge(state: State) -> dict:

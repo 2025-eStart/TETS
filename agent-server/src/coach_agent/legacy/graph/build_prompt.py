@@ -7,9 +7,9 @@ from langchain_core.prompts import (
     SystemMessagePromptTemplate
 )
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
-from coach_agent.state_types import State, CounselorTurn
-from coach_agent.services import REPO
-from coach_agent.prompts import (
+from coach_agent.graph.state import State, CounselorTurn
+from coach_agent.legacy.services import REPO
+from coach_agent.legacy.prompts import (
     FIXED_NEW_USER_SCRIPT,
     TEMPLATE_GREETING_WEEKLY,
     TEMPLATE_GREETING_GENERAL,

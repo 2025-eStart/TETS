@@ -1,26 +1,87 @@
-# coach_agent/protocols/v2/week10.yaml
 week: 10
-title: "Relapse Prevention II — 새로운 여행의 시작 (A New Journey)"
-goals:
-  - "지난 10주간의 여정을 돌아보며 변화된 나(통장, 마음가짐)를 축하한다."
-  - "앞으로 쇼핑 대신 무엇으로 내 삶을 채우고 싶은지(가치) 선언한다."
-  - "루시와의 상담은 끝나지만, 내 안의 지혜로운 목소리가 계속 함께할 것임을 믿는다."
 
-script_steps:
-  - "1주 차의 당신과 지금의 당신, 무엇이 가장 많이 변했나요? 서로에게 박수를 보내며 축하하는 시간을 갖는다."
-  - "쇼핑이 빠져나간 자리에 이제 어떤 멋진 것들(꿈, 관계, 취미)을 채워 넣고 싶은지 이야기한다."
-  - "이건 끝이 아니라 시작이에요. 앞으로 흔들릴 때마다 꺼내 볼 '나에게 쓰는 편지'를 남기며 따뜻하게 작별한다."
+agenda: "재발 방지(Relapse Prevention) + 유지 계획(Maintenance Plan) + 전체 요약"
 
-prompt_seed:
-  - "와, 벌써 마지막이네요! 처음 만났을 때 기억나요? 그때랑 지금, 우리 여행자님은 얼마나 멋지게 변했나요?"
-  - "이제 쇼핑 말고, 당신의 소중한 열정을 어디에 쏟고 싶으세요?"
+description: >
+  이번 주차는 지난 9주간 배운 CBT 전략들을 통합하여,
+  장기적으로 소비 문제를 관리할 수 있는 유지 계획을 세우는 단계입니다.
+  충동·습관적 소비는 스트레스·감정·환경 변화에 다시 활성화될 수 있기 때문에,
+  '재발 경고 신호(early warning signs)'를 식별하고,
+  미리 대비할 수 있는 coping plan을 준비하는 것이 중요합니다.
+  또한 사용자가 치료 과정에서 가장 효과적이었던 기술을 정리해,
+  앞으로의 실천 전략(post-therapy plan)을 구체화합니다.
 
-exit_criteria:
-  guideline: |
-    1. 10주간의 긍정적 변화와 성취 확인.
-    2. 향후 삶의 방향성(가치) 설정.
-    3. 종결에 대한 소회 및 자기 효능감 표현.
-  required:
-    patterns:
-      - "(?m)변화|성장|감사|다짐|계속|목표|행복|편지"
-    min_hits: 1
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "relapse_prevention_and_future_planning"
+
+core_task:
+  description: >
+    충동·습관적 소비가 다시 악화될 가능성이 높은 상황(경고 신호)을 1~2개 확인하고,
+    이에 대한 재발 방지 전략(coping plan)을 최소 1개 이상 설정한다.
+    또한 지난 회기들에서 가장 효과적이었던 CBT 기술을 정리하여
+    향후 실천 계획을 세운다.
+  tags:
+    - "relapse_prevention"
+    - "coping_strategies"
+    - "maintenance_plan"
+    - "self_monitoring"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "identified_warning_sign"
+    required: true
+    description: "재발 가능성을 높이는 경고 신호(감정/상황/생각 패턴)를 1~2개 언급했다."
+
+  - id: "selected_coping_plan"
+    required: true
+    description: "해당 경고 신호에 대한 coping 전략을 최소 1개 선택했다."
+
+  - id: "reviewed_effective_skills"
+    required: false
+    description: "지난 치료에서 가장 효과적이었던 CBT 기술을 1개 이상 회고했다."
+
+  - id: "created_future_plan"
+    required: false
+    description: "향후 사용할 개인 맞춤 CBT 실천 전략을 구체적으로 말했다."
+
+# ===========================
+# 3) Allowed Techniques (LLM Dynamic)
+# ===========================
+allowed_techniques:
+  - "relapse_prevention_planning"
+  - "coping_skills_review"
+  - "guided_discovery"
+  - "socratic_questioning"
+  - "emotion_labeling"
+  - "implementation_intentions"
+  - "self_compassion_reframe"
+  - "problem_solving_CBT"
+  - "future_pacing"
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 12
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework (Final)
+# ===========================
+homework:
+  description: >
+    마지막 주차 숙제는 ‘나의 유지 계획(Maintenance Plan) 만들기’입니다.
+    앞으로 소비 충동이 올라왔을 때 적용할 기술과,
+    재발 경고 신호가 나타났을 때의 대응 전략을 하나의 문서나 메모로 정리해보세요.
+    CBT 치료 종료 이후에도 이 계획이 중요한 나침반 역할을 합니다.
+  examples:
+    - "경고 신호: 스트레스 + 우울감 → 대응: 깊은 호흡 + 자동사고 검토"
+    - "경고 신호: SNS 비교 증가 → 대응: 앱 사용 시간 제한 + 자기위로 문장"
+    - "경고 신호: 지출 증가 → 대응: 예산 규칙 재확인 + 금전관리 계획 조정"

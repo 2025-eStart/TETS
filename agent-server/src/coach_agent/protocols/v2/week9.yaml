@@ -1,27 +1,87 @@
-# coach_agent/protocols/v2/week9.yaml
 week: 9
-title: "Relapse Prevention I — 넘어져도 다시 일어나는 법 (The Compassionate Return)"
-goals:
-  - "앞으로 또 실수할 수 있음을 인정하고, 이를 실패가 아닌 '배움의 과정'으로 받아들인다."
-  - "가장 위험한 고위험 상황을 예측하고 '비상 대처 플랜(If-Then)'을 세운다."
-  - "혼자 힘으로 안 될 때 도움을 요청할 '조력자(Safety Net)'를 정한다."
 
-script_steps:
-  - "우린 로봇이 아니기에 또 넘어질 수 있다. 중요한 건 '에라 모르겠다(Relapse)' 포기하지 않고 '다시 가자(Lapse)'고 일어나는 것임을 강조한다."
-  - "앞으로 닥칠 가장 위험한 순간(세일 기간, 우울한 날)을 상상하고, 그때 즉시 가동할 '비상 탈출 버튼(행동 수칙)'을 만든다."
-  - "위기 상황에서 나를 도와줄 친구나 가족, 혹은 스스로에게 해줄 위로의 말을 정해 '안전망'을 구축한다."
+agenda: "스트레스 관리 & 문제 해결 (Stress Management + Problem Solving)"
 
-prompt_seed:
-  - "앞으로 걷다 보면 돌부리에 걸려 넘어질 수도 있어요. 그때 '난 망했어' 대신 스스로에게 어떤 말을 해주면 다시 일어날 수 있을까요?"
-  - "혼자서 버티기 힘들 때, '나 좀 도와줘'라고 신호를 보낼 수 있는 당신만의 안전장치는 무엇인가요?"
+description: >
+  이번 주차는 소비 충동을 유발하는 주요 감정 요인인 스트레스와 부정적 감정을
+  다루는 방법을 배우는 단계입니다.
+  스트레스는 충동·습관적 소비의 핵심 촉발 요인이므로,
+  효과적인 스트레스 대처 전략(호흡, 이완, 자기위로, 감정 수용 등)과
+  문제 해결(problem-solving) 능력을 익히는 것이 중요합니다.
+  이는 ERP(Week 8)의 유지와 재발 방지의 기반이 됩니다.
 
-exit_criteria:
-  guideline: |
-    1. 실수(Slip)와 재발(Relapse)의 차이 이해 및 수용.
-    2. 고위험 상황에 대한 대처 계획(If-Then) 수립.
-    3. 사회적 지지나 자기 위로 등 안전망(Safety Net) 확보.
-  required:
-    patterns:
-      - "(?m)실수|괜찮|다시|복귀|일어"
-      - "(?m)비상|계획|안전망|도움|친구"
-    min_hits: 1
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "stress_management_and_problem_solving"
+
+core_task:
+  description: >
+    최근 스트레스를 유발한 구체적 상황을 하나 선택하고,
+    그 상황에서의 감정/자동사고/반응을 파악한 뒤,
+    사용할 수 있는 스트레스 대처 전략 또는 문제 해결 전략을
+    최소 1개 이상 선택하거나 생성한다.
+  tags:
+    - "stress_management"
+    - "emotion_regulation"
+    - "problem_solving"
+    - "coping_strategies"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "identified_stress_trigger"
+    required: true
+    description: "최근 스트레스 상황 또는 감정 유발 상황을 하나 명확하게 선택했다."
+
+  - id: "analyzed_emotion_response"
+    required: true
+    description: "그 상황에서 나타난 감정·생각·행동 반응을 설명했다."
+
+  - id: "selected_coping_strategy"
+    required: true
+    description: "사용 가능한 스트레스 대처 전략 또는 문제 해결 전략을 최소 1개 선택했다."
+
+  - id: "linked_strategy_to_trigger"
+    required: false
+    description: "선택한 전략이 해당 스트레스 상황에 어떤 효과를 줄지 설명했다."
+
+# ===========================
+# 3) Allowed Techniques (LLM Dynamic)
+# ===========================
+allowed_techniques:
+  - "stress_management_training"
+  - "breathing_relaxation"
+  - "guided_discovery"
+  - "emotion_labeling"
+  - "socratic_questioning"
+  - "problem_solving_CBT"
+  - "implementation_intentions"
+  - "normalization"
+  - "self_compassion_reframe"
+  - "urge_surfing_light"
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘스트레스 대처 전략 실험’을 해보세요.
+    최근 스트레스를 받았던 상황을 다시 떠올리거나 실제 상황이 닥쳤을 때,
+    이번에 선택한 대처 전략을 1회 이상 시도해보고
+    감정 강도 변화와 충동 변화가 어땠는지 간단히 기록해보면 좋습니다.
+  examples:
+    - "상황: 업무 스트레스 → 대처전략: 깊은 호흡 3분 → 감정 변화 기록"
+    - "상황: SNS 비교로 불안함 → 대처전략: 자기위로 문장 말하기 → 충동 강도 변화 기록"
+    - "상황: 과제 압박 → 대처전략: 문제 해결 5단계 중 ‘할 수 있는 일 1개 정하기’ 실행"

@@ -1,27 +1,83 @@
-# coach_agent/protocols/v2/week5.yaml
 week: 5
-title: "Cognitive Restructuring I — 내 안의 영업사원 (The Internal Salesperson)"
-goals:
-  - "사고 싶을 때마다 나를 설득하는 합리화 목소리를 '내면의 영업사원'으로 객관화한다."
-  - "그 영업사원의 말이 사실인지, 아니면 내 '마음의 허기(Needs)'를 이용한 상술인지 간파한다."
-  - "다음에 영업사원이 찾아왔을 때 딱 잘라 거절할 '진실의 문장(Coping Card)'을 만든다."
 
-script_steps:
-  - "물건을 살 때 스스로에게 했던 그럴싸한 핑계(세일이야, 오늘 고생했잖아)를 '내 안의 영업사원'이 하는 말이라고 이름 붙여본다."
-  - "그 영업사원의 주장이 100% 사실인지 되물으며, 그가 팔려고 하는 게 물건인지 아니면 '위로'나 '인정'인지 진짜 의도를 파헤친다."
-  - "다음에 영업사원이 '이건 기회야!'라고 꼬드길 때, 마음속으로 외칠 단호한 '거절 멘트(진실의 문장)'를 하나 정해둔다."
+agenda: "자동사고 탐색 & 사고–감정–행동 연결 강화 (Cognitive Responses Part 1)"
 
-prompt_seed:
-  - "사고 싶을 때 우리 뇌는 천재적인 영업사원이 되죠. 최근에 지름신이 당신을 꼬실 때 썼던 가장 강력한 멘트는 뭐였나요?"
-  - "그 말이 정말 100% 사실일까요? 혹시 당신의 외로움이나 스트레스를 이용해 물건을 팔려는 수작은 아니었을까요?"
+description: >
+  이번 주차는 소비 충동을 유발하는 ‘자동사고’를 보다 깊이 탐색하고,
+  그 사고가 감정과 행동을 어떻게 변화시키는지 연결을 강화하는 단계입니다.
+  Week 3에서 Cue–AT–Emotion–Behavior를 1차적으로 구조화했다면,
+  이번 주는 더 다양한 자동사고를 뽑아내고 그 패턴을 파악하는 주차입니다.
+  또한 소비를 강화시키는 생각(예: 보상, 자격, 즉각적 위안)을 정확히 인식하도록 돕습니다.
+  이는 이후 Week 6의 본격적인 인지 재구조화(근거 평가, 대안적 사고 생성)의 기반입니다.
 
-exit_criteria:
-  guideline: |
-    1. 주된 합리화 패턴(영업사원의 멘트)을 식별함.
-    2. 그 생각에 대한 반박(팩트 체크)이 이루어짐.
-    3. 구체적인 대처 문장(Self-talk)이 완성됨.
-  required:
-    patterns:
-      - "(?m)영업사원|핑계|합리화"
-      - "(?m)거절|반박|사실|아니|진실"
-    min_hits: 1
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "automatic_thought_elicitation_and_cognitive_linking"
+
+core_task:
+  description: >
+    하나의 대표 소비 사례에서 다양한 자동사고(AT)를 2개 이상 탐색하고,
+    그 사고가 감정·행동과 어떻게 연결되었는지 자신의 말로 설명한다.
+  tags:
+    - "automatic_thought"
+    - "emotion_linking"
+    - "cognitive_patterns"
+    - "behavioral_chain"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "elicited_two_ATs"
+    required: true
+    description: "소비 상황에서 떠오른 자동사고를 2개 이상 구체적으로 말했다."
+
+  - id: "linked_AT_to_emotion"
+    required: true
+    description: "자동사고가 감정·행동에 어떤 영향을 주었는지 설명했다."
+
+  - id: "identified_cognitive_pattern"
+    required: false
+    description: "특정 인지 패턴(예: 과잉일반화, 정서적 추론)을 1개 이상 인식했다."
+
+  - id: "recognized_short_term_reward"
+    required: false
+    description: "소비 행동이 단기적으로 어떤 보상을 주었는지 언급했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "eliciting_automatic_thoughts"
+  - "guided_discovery"
+  - "socratic_questioning"
+  - "emotion_labeling"
+  - "downward_arrow"
+  - "behavioral_chain_analysis"
+  - "normalization"
+  - "cognitive_patterns_identification"
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘자동사고 기록 노트’를 작성해보세요.
+    소비 욕구가 올라왔던 상황을 떠올려서,
+    어떤 생각이 가장 먼저 스쳐 지나갔는지 1~2문장으로 적어보면 좋습니다.
+    특히 감정 변화가 어떤 식으로 이어졌는지 함께 적으면 Week 6에서 매우 도움이 됩니다.
+  examples:
+    - "상황: SNS에서 다른 사람 쇼핑 인증 → AT: '나도 이건 있어야 할 것 같아' → Emotion: 불안/초조"
+    - "상황: 지친 퇴근길 → AT: '오늘은 나한테 보상하는 날이야' → Emotion: 안도감/위안"
+    - "상황: 무료함 → AT: '뭐라도 사면 기분 나아질 듯' → Emotion: 무기력 → Behavior: 쇼핑앱 열기"

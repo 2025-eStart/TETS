@@ -1,5 +1,5 @@
 # coach_agent/graph/pick_week.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.utils.protocol_loader import load_week_spec
 from coach_agent.services import REPO
 

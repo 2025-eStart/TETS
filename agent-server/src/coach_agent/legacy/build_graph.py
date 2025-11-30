@@ -1,7 +1,7 @@
 # coach_agent/build_graph.py
 from langgraph.graph import StateGraph, END
-from coach_agent.state_types import State
-from coach_agent.configuration import Configuration
+from coach_agent.graph.state import State
+from coach_agent.configuration import Context
 from coach_agent.graph.load_state import load_state
 from coach_agent.graph.route_session import route_session, cond_route_session
 from coach_agent.graph.pick_week import pick_week
@@ -23,11 +23,7 @@ def build_graph(checkpointer=None):
     - 체크포인터를 주입받아 상태 복구 가능
     """
     # checkpointer와 config_schema를 StateGraph에 등록
-    g = StateGraph(
-        State, 
-        checkpointer=checkpointer,
-        config_schema=Configuration
-    )
+    g = StateGraph(State, context_schema=Context)
 
     # =======================================================
     # 1. ⚙️ 모든 노드 정의 블록 (Add All Nodes First)
@@ -108,4 +104,4 @@ def build_graph(checkpointer=None):
     g.add_edge("GenerateAndSaveSummary", "MaybeScheduleNudge")
     g.add_edge("MaybeScheduleNudge", END) # 모든 턴의 최종 목적지
 
-    return g.compile()
+    return g.compile(checkpointer=checkpointer)

@@ -1,5 +1,5 @@
 # coach_agent/graph/decide_intervention.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.utils.metrics import score_input_quality
 
 def decide_intervention(state: State) -> dict:

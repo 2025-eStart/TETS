@@ -19,8 +19,10 @@ langchain-google-firestore
 
 ## ======== RAG ======== ##
 # --- Vector DB: Pinecone ---
-pinecone-client                # Pinecone 최신 SDK(v5)
+pinecone                # Pinecone 최신 SDK(v5)
 langchain-pinecone             # LangChain ↔ Pinecone 연결 어댑터
+langchain_huggingface
+langchain_community           # LangChain 커뮤니티 모듈들(여기서 PineconeVectorStore 사용)
 
 # --- Embedding / 문서처리 ---
 sentence-transformers          # (Hugging Face 임베딩용)

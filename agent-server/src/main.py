@@ -32,7 +32,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 
 # 내 프로젝트 모듈
-from coach_agent.agent import app as graph_app  # 컴파일된 그래프
+from coach_agent.graph import app as graph_app  # 컴파일된 그래프
 from coach_agent.services import REPO           # DB 접근용 (Firestore/Memory)
 from coach_agent.utils._days_since import _days_since
 from coach_agent.services.firestore_repo import _weekly_key # 주간 세션 키 생성용
@@ -175,7 +175,6 @@ async def chat_endpoint(req: ChatRequest):
         # 1. 그래프 입력값(Inputs) 준비
         inputs = {
             "messages": [HumanMessage(content=req.message)],
-            "current_step_index": 0 
         }
         # 2. LangGraph Config 설정
         config = {

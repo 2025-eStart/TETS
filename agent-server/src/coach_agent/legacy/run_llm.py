@@ -1,5 +1,5 @@
 # coach_agent/graph/run_llm.py
-from coach_agent.state_types import State
+from coach_agent.graph.state import State
 from coach_agent.services.llm import LLM_CHAIN
 from coach_agent.services import REPO
 from langchain_core.messages import AIMessage # 후처리 노드 사용 시 삭제

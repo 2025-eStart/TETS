@@ -52,6 +52,7 @@ class FirestoreRepo(Repo):
             "user_id": user_id,
             "week": int(week),
             "status": "active",
+            "created_at": firestore.SERVER_TIMESTAMP,
             "started_at": firestore.SERVER_TIMESTAMP,
             "last_activity_at": firestore.SERVER_TIMESTAMP,
             "checkpoint": {"step_index": 0},
@@ -274,7 +275,7 @@ class FirestoreRepo(Repo):
             # 3. 문서가 없는 경우 (범인은 바로 너!)
             if not docs:
                 print(f"🚨 [DB Error] 업데이트 대상을 못 찾았습니다!")
-                print(f"   - 검색 조건: week={week}, status='in_progress'")
+                print(f"   - 검색 조건: week={week}, status='active'")
                 print(f"   - 힌트: DB에 week가 문자열 '1'로 되어있지 않나요? 혹은 status가 다른 값인가요?")
                 
                 # (옵션) 혹시 몰라 문자열로도 한 번 더 찾아봄 (자동 보정 시도)
