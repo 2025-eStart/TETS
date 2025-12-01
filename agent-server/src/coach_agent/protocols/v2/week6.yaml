@@ -55,13 +55,14 @@ success_criteria:
 # ===========================
 allowed_techniques:
   - "cognitive_restructuring"
-  - "evidence_for_against"
+  - "examine_evidence"              # evidence_for_against → examine_evidence
   - "socratic_questioning"
   - "guided_discovery"
   - "downward_arrow"
   - "cognitive_distortion_identification"
-  - "emotion_labeling"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
   - "functional_analysis"
+
 
 blocked_techniques: []
 

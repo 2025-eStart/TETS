@@ -5,30 +5,31 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import List
 import os
+import time
 
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Pinecone as PineconeVectorStore
+from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
-from pinecone import Pinecone
+from pinecone import Pinecone, ServerlessSpec
 
 
 # ---- 내부 헬퍼: 임베딩 & 벡터스토어 초기화 ----
 
 @lru_cache
-def _get_embeddings() -> OpenAIEmbeddings:
-    """
-    CBT/CBD 코퍼스를 위해 사용하는 임베딩 모델.
-    - 환경변수 EMBEDDING_MODEL 로 override 가능
-    """
+def _get_embeddings() -> HuggingFaceEmbeddings:
     model_name = os.getenv("EMBEDDING_MODEL")
-    return OpenAIEmbeddings(model=model_name)
+    
+    return HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs={'device': 'cpu'},
+        encode_kwargs={'normalize_embeddings': True}
+    )
 
 
 @lru_cache
 def _get_vectorstore() -> PineconeVectorStore:
     """
-    Pinecone 상의 CBT/CBD 전용 인덱스를 LangChain VectorStore로 래핑.
+    Pinecone v3 + LangChain-Pinecone 공식 연동
     """
     api_key = os.getenv("PINECONE_API_KEY")
     index_name = os.getenv("PINECONE_CBT_INDEX_NAME")
@@ -38,17 +39,23 @@ def _get_vectorstore() -> PineconeVectorStore:
     if not index_name:
         raise RuntimeError("PINECONE_CBT_INDEX_NAME is not set.")
 
-    # pinecone 클라이언트 초기화 (서버리스 기준)
+    # 1. Pinecone Client (v3) 인스턴스 생성
     pc = Pinecone(api_key=api_key)
+    
+    # 2. Index 객체 가져오기
+    pinecone_index = pc.Index(index_name)
 
-    # LangChain VectorStore 래퍼 생성
+    # 3. Embeddings 준비
     embeddings = _get_embeddings()
-    vectorstore = PineconeVectorStore.from_existing_index(
-        index_name=index_name,
+    
+    # 4. LangChain VectorStore 생성 (신형 방식)
+    # 신형 패키지는 index 객체를 직접 받습니다.
+    vectorstore = PineconeVectorStore(
+        index=pinecone_index,
         embedding=embeddings,
-        # namespace나 metadata 필터를 쓰고 있으면 여기서 추가 가능
-        # namespace="cbt_corpus",
+        text_key="text"  # Pinecone 메타데이터 필드명 (보통 'text' 또는 'page_content')
     )
+    
     return vectorstore
 
 
@@ -56,27 +63,21 @@ def _get_vectorstore() -> PineconeVectorStore:
 
 def search_cbt_corpus(query: str, top_k: int = 5) -> List[Document]:
     """
-    CBT/CBD 전용 RAG 코퍼스에서 질의문(query)에 대한 관련 문서를 검색.
-    
-    Args:
-        query: LLM이 던지는 자연어 질의 (예: "Socratic questioning for automatic thoughts")
-        top_k: 상위 몇 개의 문서를 가져올지 (기본 5개)
-
-    Returns:
-        langchain_core.documents.Document 객체 리스트
-        - 각 Document의 .page_content 에 텍스트
-        - 각 Document의 .metadata 에 출처/테크닉/페이지 등 메타데이터
+    CBT/CBD 전용 RAG 코퍼스 검색
     """
     if not query or not query.strip():
         return []
 
-    vectorstore = _get_vectorstore()
-
-    # similarity_search → List[Document] 반환
-    docs: List[Document] = vectorstore.similarity_search(
-        query=query,
-        k=top_k,
-        # CBT/CBD 전용 필터가 있으면 여기 metadata_filter로 추가:
-        # filter={"domain": "cbt_cbd"}
-    )
-    return docs
+    try:
+        vectorstore = _get_vectorstore()
+        
+        # 검색 실행
+        docs: List[Document] = vectorstore.similarity_search(
+            query=query,
+            k=top_k
+        )
+        return docs
+    except Exception as e:
+        print(f"[RAG Search Error] {e}")
+        # 에러가 나도 챗봇이 죽지 않도록 빈 리스트 반환
+        return []

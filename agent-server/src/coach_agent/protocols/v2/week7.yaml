@@ -51,16 +51,16 @@ success_criteria:
 
 # ===========================
 # 3) Allowed Techniques
-# ===========================
 allowed_techniques:
   - "behavioral_chain_analysis"
   - "guided_discovery"
   - "eliciting_automatic_thoughts"
-  - "emotion_labeling"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
   - "socratic_questioning"
   - "belief_pattern_identification"
   - "self_compassion_reframe"
   - "normalization"
+
 
 blocked_techniques: []
 

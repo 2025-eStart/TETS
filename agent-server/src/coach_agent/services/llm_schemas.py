@@ -1,8 +1,33 @@
 # coach_agent/services/llm_schemas.py
 
-from typing import Optional, Dict, Any
+from typing import Optional, Literal, List
 from pydantic import BaseModel, Field
 
+class ProgressUpdate(BaseModel):
+    
+    # 예: 내담자의 통찰력 점수 (변화 없으면 None)
+    insight_score: Optional[int] = Field(
+        default=None, 
+        description="내담자의 인사이트 수준 (1~10). 변화가 없으면 null."
+    )
+    
+    # 예: 저항감 수준
+    resistance_level: Optional[Literal["LOW", "MEDIUM", "HIGH"]] = Field(
+        default=None,
+        description="내담자의 저항 수준. 변화가 없으면 null."
+    )
+    
+    # 예: 이번에 완료한 상담 단계
+    completed_step: Optional[str] = Field(
+        default=None,
+        description="이번 턴에서 완료한 상담 단계 (예: 'identify_trigger'). 없으면 null."
+    )
+    
+    # 예: 내담자가 언급한 핵심 키워드 추가
+    add_keyword: Optional[str] = Field(
+        default=None,
+        description="내담자 프로필에 추가할 새로운 키워드."
+    )
 
 class CounselorTurn(BaseModel):
     response_text: str = Field(
@@ -18,9 +43,24 @@ class CounselorTurn(BaseModel):
         )
     )
 
-    progress_delta: Optional[Dict[str, Any]] = Field(
+    progress_delta: Optional[ProgressUpdate] = Field(
         default=None,
         description="이번 턴으로 인해 session_progress에 반영해야 할 변화 정보."
+    )
+    
+    criteria_evaluations: Optional[List[dict]] = Field(
+        default=[],
+        description="성공 기준 달성 여부 평가 (필요 시 구체적 모델로 변경 권장)"
+    )
+
+    suggest_end_session: bool = Field(
+        default=False,
+        description="상담사가 보기에 세션 목표를 달성하여 종료해도 되는지 여부"
+    )
+    
+    session_goals_met: bool = Field(
+        default=False,
+        description="세션 목표가 달성되었는지 여부"
     )
 
 

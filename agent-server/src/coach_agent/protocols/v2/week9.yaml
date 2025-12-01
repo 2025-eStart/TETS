@@ -51,16 +51,17 @@ success_criteria:
 # 3) Allowed Techniques (LLM Dynamic)
 # ===========================
 allowed_techniques:
-  - "stress_management_training"
-  - "breathing_relaxation"
+  - "mindfulness_training"          # stress_management_training → mindfulness_training
+  - "relaxation_training"           # breathing_relaxation → relaxation_training
   - "guided_discovery"
-  - "emotion_labeling"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
   - "socratic_questioning"
-  - "problem_solving_CBT"
-  - "implementation_intentions"
+  - "problem_solving"               # problem_solving_CBT → problem_solving
+  - "action_plans"                  # implementation_intentions → action_plans
   - "normalization"
   - "self_compassion_reframe"
-  - "urge_surfing_light"
+  - "aware_technique"               # urge_surfing_light → aware_technique
+
 
 blocked_techniques: []
 

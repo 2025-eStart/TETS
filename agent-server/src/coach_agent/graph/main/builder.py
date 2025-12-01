@@ -6,6 +6,7 @@ from coach_agent.graph.main.edge import route_session
 from coach_agent.graph.main.load_state import load_state
 from coach_agent.graph.main.persist_turn_node import persist_turn_node
 from coach_agent.graph.main.update_progress import update_progress
+from coach_agent.graph.main.load_protocol import load_protocol
 from coach_agent.services.checkpointer import firestore_checkpointer
 from coach_agent.graph.state import State
 
@@ -27,14 +28,16 @@ def build_main_graph(weekly_app, general_app, checkpointer=None):
 
     # session_type 초기화 노드
     builder.add_node("LoadState", load_state)
+    builder.add_node("LoadProtocol", load_protocol)
     builder.add_node("PersistTurn", persist_turn_node)
     builder.add_node("UpdateProgress", update_progress)
 
     # 흐름: START → LoadState -> HandleOffTopic → RouteSession(conditional) → SubGraph → END
     builder.add_edge(START, "LoadState")
+    builder.add_edge("LoadState", "LoadProtocol")
     
     builder.add_conditional_edges(
-        "LoadState",
+        "LoadProtocol",
         route_session,
         {
             "WEEKLY": "WeeklySubGraph",

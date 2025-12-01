@@ -44,11 +44,11 @@ success_criteria:
 # 3) Allowed Techniques
 # ===========================
 allowed_techniques:
-  - "psychoeducation_CBT"
-  - "guided_discovery"
-  - "normalization"
-  - "motivation_scaling"
-  - "behavioral_chain_analysis_light"
+  - "emotion_chart"
+  - "socratic_questioning"
+  - "effect_of_belief"
+  - "behavior_consequence_inquiry"
+  
 
 constraints:
   max_turns: 10

@@ -31,51 +31,65 @@ def _extract_last_user_text(messages: list[BaseMessage]) -> Optional[str]:
                     return "\n".join(parts)
     return None
 
-
 def _is_offtopic_for_weekly(state: State, user_text: str) -> bool:
     """
-    LLM을 이용해 '이번 발화가 weekly CBT-소비 상담 주제에서 벗어났는지' 판단.
-
-    반환:
-        True  → OFF_TOPIC (이번 턴은 HandleOffTopic에서 처리하고 종료)
-        False → ON_TOPIC (그냥 다음 노드로 넘김)
+    LLM을 이용해 '이번 발화가 대화 흐름(맥락)에서 벗어났는지' 판단.
     """
-    # weekly 아젠다/goal 정보를 컨텍스트로 같이 넘겨서 좀 더 정교하게 판단
-    agenda = state.agenda or ""
-    session_goal = state.session_goal or ""
-    core_tags = ", ".join(state.core_task_tags or [])
+    
+    # 1. 힌트: AI가 직전에 뭐라고 물었는지 가져오기
+    last_ai_text = "(없음 - 대화 시작)"
+    # 뒤에서부터 찾아서 가장 최근의 AI 메시지 확보
+    for msg in reversed(state.messages):
+        if msg.type == "ai":
+            last_ai_text = msg.content
+            break
 
+    # 2. System Prompt: '주제'보다 '맥락'을 우선시하도록 변경
     system_prompt = (
-        "너는 CBT 기반 '소비 습관 교정' 챗봇의 필터 역할을 하는 분류기야.\n"
-        "지금 들어온 사용자의 발화가 **이번 주차 소비/돈/쇼핑/지출 관련 CBT 상담 주제**와 "
-        "충분히 관련이 있는지 판단해야 한다.\n\n"
-        "아래 기준을 사용해:\n"
-        "1) 소비, 돈, 지출, 쇼핑, 예산, 카드값, 소비 후 감정(죄책감/후회 등), "
-        "   충동구매, 습관적 소비와 직접적으로 연결되면 → ON_TOPIC\n"
-        "2) 상담 챗봇 자체에 대한 질문, 앱/기술 질문, 전혀 다른 고민(연애, 가족, 학업 등)만 이야기하면 → OFF_TOPIC\n"
-        "3) 소비 이야기가 섞여 있더라도, 거의 전부가 다른 주제(예: 인생 전체 고민, 정치, 시사 등)이면 → OFF_TOPIC\n\n"
-        "반드시 다음 중 하나만 답해:\n"
+        "너는 상담 챗봇의 **대화 맥락 판별기(Context Validator)**야.\n"
+        "사용자의 발화가 **'현재 진행 중인 대화의 흐름'**이나 **'상담 주제(소비 습관)'**와 "
+        "관련이 있는지 판단해야 해.\n\n"
+        
+        "**[판단 기준 - 우선순위 순]**\n"
+        "1. **맥락 연결성 (Context Coherence):**\n"
+        "   - 상담사(AI)의 직전 질문이나 요청에 대해 **사용자가 대답하고 있는가?**\n"
+        "   - (예: AI가 '어떤 음식을 드셨나요?'라고 물었다면, '치킨을 먹었다'는 ON_TOPIC이다. 돈 얘기가 없어도 됨.)\n"
+        "   - 단순한 리액션(네, 아니요, 좋아요, 글쎄요)이나 모르겠다는 대답도 흐름상 자연스러우면 ON_TOPIC이다.\n\n"
+        
+        "2. **주제 적합성 (Domain Relevance):**\n"
+        "   - 맥락과 상관없이 새로운 이야기를 꺼냈을 때, 그 내용이 '소비, 지출, 돈, 습관, 감정, 일상 스트레스' 등 상담과 관련된 것이면 ON_TOPIC이다.\n\n"
+        
+        "3. **이탈 (OFF_TOPIC):**\n"
+        "   - 위 1, 2번에 모두 해당하지 않는 경우.\n"
+        "   - 뜬금없이 연예인 이야기, 정치, 스포츠, 코딩 질문 등 상담과 전혀 무관한 화제로 넘어가는 경우.\n\n"
+        
+        "반드시 다음 중 하나만 출력해:\n"
         "- ON_TOPIC\n"
-        "- OFF_TOPIC\n"
+        "- OFF_TOPIC"
     )
 
+    # 3. Human Prompt: 직전 AI 발화를 같이 보여줌
     human_prompt = (
-        f"이번 주차 아젠다: {agenda}\n"
-        f"세션 목표: {session_goal}\n"
-        f"core_task_tags: {core_tags}\n\n"
-        f"사용자 발화:\n```{user_text}```\n\n"
-        "위 기준에 따라 이 발화가 이번 '소비 CBT 주간 상담'과 관련이 있으면 'ON_TOPIC', "
-        "관련이 거의 없으면 'OFF_TOPIC'만 정확히 한 줄로 출력해."
+        f"[상황 정보]\n"
+        f"- 현재 주차: {state.current_week}주차\n"
+        f"- 상담사의 직전 발화: \"{last_ai_text}\"\n\n"
+        
+        f"[사용자 발화]\n"
+        f"```{user_text}```\n\n"
+        "위 사용자 발화가 상담사의 질문에 대한 대답이거나, 상담 흐름상 자연스러운가? (ON_TOPIC / OFF_TOPIC)"
     )
 
+    # 4. LLM 호출
     res = CHAT_LLM.invoke(
         [SystemMessage(content=system_prompt),
          HumanMessage(content=human_prompt)]
     )
-    decision = (res.content or "").strip().upper()
-    return decision.startswith("OFF")  # 'OFF_TOPIC', 'OFF-TOPIC' 등 방어적 처리
-    # 필요하면 여기서 로그도 찍어도 됨.
+    
+    # 디버깅용 로그 (필요시 주석 해제)
+    # print(f"\n[OffTopic Check]\nQ: {last_ai_text[:50]}...\nA: {user_text}\nResult: {res.content}")
 
+    decision = (res.content or "").strip().upper()
+    return decision.startswith("OFF")
 
 def handle_offtopic(state: State) -> Dict[str, Any]:
     """
@@ -95,6 +109,21 @@ def handle_offtopic(state: State) -> Dict[str, Any]:
     last_user_text = _extract_last_user_text(state.messages)
     if not last_user_text:
         # 유저 발화가 없으면 할 수 있는 게 없음 → 그냥 패스
+        return {}
+
+    # 3. 예외 처리: 첫 진입, 명령어, 짧은 인사는 무조건 통과
+    
+    # (A) 메시지 개수로 판단 (HumanMessage가 1개 이하면 이제 막 시작한 것)
+    human_msgs = [m for m in state.messages if isinstance(m, HumanMessage)]
+    if len(human_msgs) <= 1:
+        print("[HandleOffTopic] 첫 번째 메시지(Init)이므로 검사 건너뜀 -> ON_TOPIC 처리")
+        return {}
+
+    # (B) 특정 명령어/트리거 단어 리스트 판단 (필요시 추가)
+    bypass_keywords = ["/start", "시작", "안녕", "반가워", "__init__"]
+    # 텍스트가 짧고(10자 이하) + 키워드가 포함되어 있다면 패스
+    if len(last_user_text) < 10 and any(k in last_user_text for k in bypass_keywords):
+        print(f"[HandleOffTopic] 단순 인사/명령어('{last_user_text}') 감지 -> ON_TOPIC 처리")
         return {}
 
     # LLM으로 오프토픽 여부 판별

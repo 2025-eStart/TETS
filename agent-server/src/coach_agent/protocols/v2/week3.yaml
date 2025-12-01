@@ -57,11 +57,12 @@ allowed_techniques:
   - "behavioral_chain_analysis"
   - "guided_discovery"
   - "eliciting_automatic_thoughts"
-  - "emotion_labeling"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
   - "socratic_questioning"
   - "normalization"
   - "cue_identification"
   - "timeline_exploration"
+
 
 blocked_techniques: []
 

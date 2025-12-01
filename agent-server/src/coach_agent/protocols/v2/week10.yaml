@@ -52,15 +52,16 @@ success_criteria:
 # 3) Allowed Techniques (LLM Dynamic)
 # ===========================
 allowed_techniques:
-  - "relapse_prevention_planning"
-  - "coping_skills_review"
+  - "relapse_prevention"            # relapse_prevention_planning → relapse_prevention
+  - "relapse_prevention"            # coping_skills_review → relapse_prevention (코핑 스킬 유지·점검 성격)
   - "guided_discovery"
   - "socratic_questioning"
-  - "emotion_labeling"
-  - "implementation_intentions"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "action_plans"                  # implementation_intentions → action_plans
   - "self_compassion_reframe"
-  - "problem_solving_CBT"
-  - "future_pacing"
+  - "problem_solving"               # problem_solving_CBT → problem_solving
+  - "outcome_evaluation"            # future_pacing → outcome_evaluation 계열로 매핑
+
 
 blocked_techniques: []
 

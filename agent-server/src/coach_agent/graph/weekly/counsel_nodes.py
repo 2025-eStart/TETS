@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from typing import Dict, Any, List
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage
 from coach_agent.graph.state import State
 from coach_agent.prompts.identity import COMMON_IDENTITY
 from coach_agent.services.llm import TECHNIQUE_SELECTOR, LLM_CHAIN, CHAT_LLM
@@ -269,7 +269,6 @@ def counsel_prepare(state: State) -> Dict[str, Any]:
     return updates
 
 
-
 # ======= selector ========
 #helper
 def _serialize_recent_messages(messages: List[BaseMessage], max_turns: int = 6) -> List[Dict[str, Any]]:
@@ -305,18 +304,53 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
     if state.phase != "COUNSEL":
         print(f"[select_technique_llm] phase != 'COUNSEL' (현재: {state.phase!r}) → 업데이트 없음")
         return {}
-
+    
+    # intervention.yaml 카탈로그 로드
     updates: Dict[str, Any] = {}
+    catalog = load_techniques_catalog()
+    
+    # 기법 유지(Persistence) 로직 
+    technique_history = state.technique_history or []
+    MIN_PERSISTENCE = 2  # 최소 2턴은 같은 기법을 유지 (원하는 대로 조절 가능)
 
-    # 1) candidate_techniques 확보 (없으면 allowed_techniques로 fallback)
+    if technique_history:
+        last_entry = technique_history[-1]
+        last_id = last_entry.get("technique_id")
+        
+        # 뒤에서부터 세어서 연속으로 몇 번 썼는지 계산
+        consecutive_count = 0
+        for entry in reversed(technique_history):
+            if entry.get("technique_id") == last_id:
+                consecutive_count += 1
+            else:
+                break
+        
+        # 아직 최소 유지 턴수를 채우지 못했다면 -> LLM 호출 없이 기존 기법 유지
+        if last_id in catalog and consecutive_count < MIN_PERSISTENCE:
+            print(f"[select_technique_llm] 🔒 기법 유지 모드: '{last_id}' (연속 {consecutive_count}회 사용 중)")
+            
+            # 메타데이터 다시 로드 (혹시 State에서 유실됐을 경우 대비)
+            meta = catalog[last_id]
+            
+            # 기존 micro_goal을 그대로 유지하거나, 필요하면 빈칸으로 두어 Applier가 흐름을 잇게 함
+            # 여기서는 이전 micro_goal을 그대로 계승
+            last_micro_goal = last_entry.get("micro_goal", "")
+
+            return {
+                "selected_technique_id": last_id,
+                "selected_technique_meta": {"id": last_id, **meta},
+                "micro_goal": last_micro_goal 
+            }
+    # ------------------------------------------------------------------
+
+    # 새 기법 선정
+    # candidate_techniques 확보 (없으면 allowed_techniques로 fallback)
     candidate_ids = state.candidate_techniques or state.allowed_techniques or []
     if not candidate_ids:
         print("[select_technique_llm] 경고: candidate_techniques와 allowed_techniques가 모두 비어 있습니다.")
         return {}
 
-    # 2) intervention.yaml 카탈로그 로드
-    catalog = load_techniques_catalog()
-
+    
     candidate_defs: List[Dict[str, Any]] = []
     for tid in candidate_ids:
         meta = catalog.get(tid)
@@ -342,31 +376,66 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
     system_content = (
         COMMON_IDENTITY
         + "\n\n"
-        "너는 CBT 기반 충동/습관적 소비 교정을 돕는 전문 상담가다.\n"
-        "주어진 세션 목표, core task, 후보 기법 목록, 현재까지의 진행 상황, "
-        "사용자 발화, RAG 스니펫을 종합해 이번 턴에 사용할 가장 적절한 CBT 기법을 하나 선택하여\n\n"
-        "사용자가 세션 목표에 한 걸음 더 다가가도록 돕는 상담 메시지를 작성하라."
-        "응답은 반드시 TechniqueSelection 스키마에 맞는 JSON으로 반환해야 한다.\n"
-        "TechniqueSelection 스키마는 다음과 같다.\n"
-        "- technique_id: 선택한 CBT 기법의 ID (문자열)\n"
+        "너는 CBT 기반 충동/습관적 소비 교정을 돕는 '기법 코디네이터' 상담가다.\n"
+        "네 임무는 이번 턴에 사용할 **딱 하나의 CBT 기법(technique_id)** 을 고르고,\n"
+        "그 기법으로 이번 턴에 달성할 micro-goal 을 정의하는 것이다.\n\n"
+
+        "각 후보 기법(candidate_techniques)은 techniques.yaml에서 온 메타 정보를 포함하고 있다.\n"
+        "각 기법에는 대략 다음과 같은 필드가 있다:\n"
+        "- id: 내부 식별자 (예: identifying_automatic_thoughts)\n"
+        "- level: 'intervention' 또는 'technique'\n"
+        "- typical_targets: 이 기법이 직접적으로 다루는 문제/상태 태그들\n"
+        "- good_for_focus: 세션의 초점(agenda, session_goal, core_task_tags)에 잘 맞는 영역 태그들\n"
+        "- rag_tags: 이론 스니펫 검색에 사용하는 태그들\n\n"
+
+        "기법 선택 시 다음 원칙을 따르라:\n"
+        "1) **세션 초점과의 정합성 (good_for_focus 기준)**\n"
+        "   - 아래에 주어진 session_goal, agenda, core_task_tags 를 하나의 '세션 초점 태그 집합'으로 보고,\n"
+        "     각 기법의 good_for_focus 와 얼마나 많이 겹치는지 평가하라.\n"
+        "   - 세션이 집중하고자 하는 테마와 잘 맞는 기법에 가중치를 둔다.\n\n"
+        "2) **사용자 현재 상태와의 정합성 (typical_targets 기준)**\n"
+        "   - recent_messages, session_progress, rag_snippets 에 나타난 사용자의 현재 고민, 감정, 행동 패턴을 읽고,\n"
+        "     그것을 태그화했다고 가정하고 각 기법의 typical_targets 와의 일치 정도를 평가하라.\n"
+        "   - 사용자가 \"지금 당장\" 겪고 있는 문제를 직접적으로 다룰 수 있는 기법을 최우선으로 고려한다.\n\n"
+        "3) **우선순위 규칙**\n"
+        "   - 1차 기준: typical_targets 와의 일치도 (사용자 상태와 얼마나 직접적으로 맞닿는가)\n"
+        "   - 2차 기준: good_for_focus 와의 일치도 (이번 세션의 agenda / session_goal / core_task_tags 와의 정합성)\n"
+        "   - 3차 기준: technique_history 를 참고하여, 같은 기법이 과도하게 반복되지 않도록 조정하라.\n"
+        "     (단, 특정 기법을 반복 훈습하는 것이 core_task 달성에 필수적이라면 반복 선택도 허용한다.)\n"
+        "   - 4차 기준: level 과 난이도. 초기/불안정 상태에서는 너무 무거운 schema/core belief 작업보다\n"
+        "     감정 라벨링, 자동사고 유도, 증거 탐색 등 비교적 부담이 덜한 기법을 우선 사용하라.\n\n"
+        "4) **선택 결과**\n"
+        "   - TechniqueSelection.technique_id 에는 반드시 위 후보 목록 중 하나의 id 만 넣어라.\n"
+        "   - micro_goal 은, 선택한 기법을 이용해 이번 턴에 실제로 무엇을 해볼지\n"
+        "     '한 번의 턴에서 달성 가능한 크기'로 구체적 행동/사고 작업 단위로 적어라.\n"
+        "   - reason 에는 위 기준(typical_targets, good_for_focus, technique_history 등)을 토대로\n"
+        "     왜 이 기법이 지금 턴에 가장 적합한지 간단히 설명하라.\n\n"
+        "응답은 반드시 TechniqueSelection 스키마에 맞는 JSON 형식이어야 한다.\n"
+        "- technique_id: 선택한 CBT 기법의 ID (문자열, 후보 목록 중 하나)\n"
         "- micro_goal: 이번 턴에서 달성할 구체적인 목표 (문자열)\n"
         "- reason: 이 선택이 적절한 이유 (문자열)\n\n"
+
         f"- 세션 목표(session_goal): {state.session_goal}\n"
-        f"- 세션 목표(session_goal): {state.session_goal}\n"
+        f"- 세션 agenda: {getattr(state, 'agenda', None)}\n"
         f"- 핵심 작업 태그(core_task_tags): {state.core_task_tags}\n"
         f"- 세션 진행도(session_progress): {state.session_progress}\n"
         f"- 기법 사용 히스토리(technique_history): {state.technique_history}\n"
         f"- 세션 제약(constraints): {state.constraints}\n"
-        f"- RAG 이론 스니펫 일부(rag_snippets): {state.rag_snippets[:3]}\n"
-        f"- 후보 기법 목록(candidate_techniques): {candidate_defs}\n"
+        f"- RAG 이론 스니펫 일부(rag_snippets_preview): {rag_snippets_preview}\n"
+        f"- 후보 기법 목록(candidate_techniques with meta): {candidate_defs}\n"
+    )
+    human_content = (
+        "아래는 최근 대화 히스토리야.\n"
+        "이 히스토리와 세션 정보, candidate_techniques 의 typical_targets / good_for_focus 를 참고해서,\n"
+        "지금 사용자에게 **너무 무겁지 않지만 분명한 한 걸음**을 만들 수 있는 CBT 기법을 하나만 골라.\n\n"
+        "1) 사용자가 현재 겪는 핵심 문제/감정/사고 패턴과 잘 맞는지(typical_targets 기준)를 먼저 본 다음,\n"
+        "2) 이번 세션의 agenda, session_goal, core_task_tags 와도 잘 맞는지(good_for_focus 기준)를 고려해서\n"
+        "   최종적으로 가장 적합한 기법을 선택해.\n\n"
+        "그리고 그 기법으로 이번 턴에서 해볼 수 있는 한 턴짜리 micro-goal 을 정리해줘.\n\n"
+        f"최근 대화 요약(recent_messages): {recent_messages}\n\n"
+        "TechniqueSelection 스키마에 맞는 JSON만 반환해."
     )
 
-    human_content = (
-        "아래는 최근 대화 히스토리야. 사용자의 상태와 저항/회피, 인사이트 수준을 고려해서 "
-        "너무 무겁지 않으면서도 의미 있는 한 걸음을 만들 수 있는 CBT 기법을 하나 골라줘.\n\n"
-        f"최근 대화 요약(recent_messages): {recent_messages}\n\n"
-        "이번 턴에 사용할 CBT 기법과 micro-goal을 결정해줘."
-    )
 
     messages = [
         SystemMessage(content=system_content),
@@ -493,8 +562,15 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
     # 5) session_progress 업데이트
     new_session_progress: Dict[str, Any] = dict(state.session_progress or {})
     # progress_delta 반영
-    for key, value in progress_delta.items():
-        new_session_progress[key] = value
+    if progress_delta:
+        # 1. Pydantic 모델을 딕셔너리로 변환 (exclude_unset=True 권장)
+        # exclude_unset=True: LLM이 실제로 값을 채운 필드만 가져옵니다. (None인 필드 제외)
+        delta_dict = progress_delta.model_dump(exclude_unset=True)
+        
+        # 2. 딕셔너리 순회하며 업데이트
+        for key, value in delta_dict.items():
+            if value is not None:  # 한 번 더 안전하게 체크
+                new_session_progress[key] = value
 
     # turn_count += 1
     existing_turn_count = new_session_progress.get("turn_count", 0)
@@ -511,10 +587,7 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
         criteria_status[ev.criterion_id] = ev.met
         
     # 7) 이번 턴 AI 메시지 객체 생성
-    ai_message = AIMessage(content=response_text)
-
-    # 8) 🔥 요약 갱신 (summary 필드 업데이트)
-    new_summary = _summarize_conversation(state, ai_message)
+    ai_message = AIMessage(content=response_text)    
 
     print("🤖 [applier] LLM Response:")
     print(f"   - Technique: {state.selected_technique_id}")
@@ -525,7 +598,7 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
     print(f"   - turn_count -> {new_session_progress['turn_count']}")
     print(f"   - suggest_end_session: {llm_suggest}, session_goals_met: {llm_session_goals_met}")
     print(f"   - Assistant: {response_text[:120]}...")
-
+    
     return {
         "messages": [AIMessage(content=response_text)],
         "llm_output": response_text,
@@ -533,5 +606,66 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
         "session_progress": new_session_progress,
         "criteria_status": criteria_status,
         "llm_suggest_end_session": llm_suggest,
-        "summary": new_summary,
+    }
+    
+# ===== summarizer ======
+def summarize_and_filter_message(state: State) -> Dict[str, Any]:
+    """
+    [노드] 대화 내역이 길어지면 요약하고 State에서 메시지를 삭제하여 컨텍스트 윈도우를 관리함.
+    """
+    print("\n=== [DEBUG] SummarizeAndPrune Node Started ===")
+    
+    # 1. 설정: 유지할 메시지 개수 (최근 대화 N개는 살려둠)
+    KEEP_LAST_N = 6 
+    # 설정: 요약을 실행할 임계값 (메시지가 이보다 많으면 정리 시작)
+    THRESHOLD = 10
+
+    messages = state.messages
+    
+    # 메시지가 별로 없으면 아무것도 안 하고 패스
+    if len(messages) <= THRESHOLD:
+        print("[Prune] 메시지 개수가 적어서 정리를 건너뜁니다.")
+        return {}
+
+    # 2. 요약할 대상과 남길 대상 분리
+    # messages[:-KEEP_LAST_N] -> 요약하고 지울 애들 (오래된 것)
+    to_summarize = messages[:-KEEP_LAST_N]
+    
+    # 3. 요약 수행 (LLM 호출)
+    # 요약할 메시지들을 텍스트로 변환
+    conversation_text = ""
+    for msg in to_summarize:
+        role = "User" if msg.type == "human" else "Assistant"
+        conversation_text += f"{role}: {msg.content}\n"
+
+    current_summary = state.summary or "없음"
+
+    prompt = (
+        f"기존 요약:\n{current_summary}\n\n"
+        f"삭제될 오래된 대화:\n{conversation_text}\n\n"
+        "위 '오래된 대화'의 핵심 내용(사건, 감정, 주요 발언)을 '기존 요약'에 통합해서 "
+        "새로운 요약문을 작성해줘. "
+        "분석보다는 팩트 위주로 간결하게 기록해."
+    )
+    
+    # 요약 LLM 호출 (CHAT_LLM 사용)
+    response = CHAT_LLM.invoke([
+        SystemMessage(content="너는 상담 기록 요약가다."),
+        HumanMessage(content=prompt)
+    ])
+    new_summary = response.content
+
+    # 4. 메시지 삭제 오퍼레이션 생성
+    # LangGraph에서 RemoveMessage(id=...)를 리턴하면 State에서 사라짐
+    delete_ops = []
+    for msg in to_summarize:
+        if msg.id:
+            delete_ops.append(RemoveMessage(id=msg.id))
+
+    print(f"🧹 [Prune] 메시지 {len(to_summarize)}개 삭제 & 요약 갱신 완료.")
+
+    # 5. State 업데이트 반환
+    return {
+        "summary": new_summary,   # 요약 갱신
+        "messages": delete_ops    # 오래된 메시지 삭제 명령
     }
