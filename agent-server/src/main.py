@@ -63,6 +63,12 @@ class ChatResponse(BaseModel):
     current_week: int
     week_title: str
     week_goals: List[str]
+    
+# 과거 메시지 하나 (Response) (서랍용)
+class MessageHistoryItem(BaseModel):
+    role: str       # "human" | "ai"
+    text: str
+    created_at: Optional[datetime] = None
 
 class SessionSummary(BaseModel): # 서랍 기능
     session_id: str
@@ -208,14 +214,23 @@ async def chat_endpoint(req: ChatRequest):
         if not last_ai_msg:
             last_ai_msg = "(응답 없음)"
         
-        protocol = final_state.get("protocol") or {}
+        # week_title: 프로토콜의 agenda 사용
+        week_title = getattr(final_state, "agenda", None) or "상담"
+
+        # week_goals: success_criteria에서 description(or title)만 뽑아서 리스트로
+        raw_criteria = getattr(final_state, "success_criteria", []) or []
+        week_goals = [
+            c.get("description") or c.get("label") or c.get("id", "")
+            for c in raw_criteria
+            if isinstance(c, dict)
+        ]
         
         return ChatResponse(
             reply=last_ai_msg,
-            is_ended=final_state.get("exit", False),
-            current_week=final_state.get("current_week", 1),
-            week_title=protocol.get("title", "상담"),
-            week_goals=protocol.get("goals", [])
+            is_ended=getattr(final_state, "exit", False),
+            current_week=getattr(final_state, "current_week", 1),
+            week_title=week_title,
+            week_goals=week_goals
         )
 
     except Exception as e:
@@ -278,3 +293,12 @@ async def get_user_sessions(user_id: str):
         ))
         
     return results
+
+# --- API 4: 서랍 상세: 특정 세션의 대화 내용 가져오기 ---
+@server.get("/history/{user_id}/{thread_id}", response_model=List[MessageHistoryItem])
+async def get_session_history(user_id: str, thread_id: str):
+    """
+    특정 스레드(세션)의 모든 대화 내용을 시간순으로 반환
+    """
+    messages = REPO.get_session_messages(user_id, thread_id)
+    return messages
