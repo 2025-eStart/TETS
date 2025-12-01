@@ -45,12 +45,12 @@ def update_progress(state: State) -> Dict[str, Any]:
        - WEEKLY일 때:
          - REPO.update_progress(user_id, week, exit_hit=state.exit) 호출
          - 만약 이번 턴에 exit == True 이면:
-             · 해당 주차 세션 요약(agenda, summary, completed_at)을 세션 문서에 저장
-             · user.last_weekly_session_completed_at 갱신
-             · user.current_week 등도 필요하다면 갱신
-
-    ⚠️ '다음 주차로 진급', '프로그램 전체 완료' 판단은 따로 처리.
-       여기서는 "이 주차 세션이 어떻게 진행되고 있는지" + "요약/메타 저장"까지만 담당.
+             · 요약 텍스트를 세션 도큐먼트에 저장 (save_session_summary)
+             · mark_session_as_completed(user_id, week, completed_at)를 호출하여
+               - 세션 status=ended
+               - completed_at 기록
+               - user.last_weekly_session_completed_at 갱신
+               - user.current_week 주차 진급(또는 프로그램 완료 처리)
     """
 
     print("\n=== [DEBUG] update_progress Node Started ===")
@@ -58,17 +58,12 @@ def update_progress(state: State) -> Dict[str, Any]:
     # -------------------------
     # 1. in-graph 진행도 갱신
     # -------------------------
-
     new_turn_index = (state.turn_index or 0) + 1
-
-    # session_progress는 그냥 그대로 들고 가되,
-    # turn_count는 llm_technique_applier에서만 관리하도록 한다.
     new_session_progress: Dict[str, Any] = dict(state.session_progress or {})
 
     # -------------------------
     # 2. DB 진행도 / 메타 업데이트
     # -------------------------
-
     try:
         user_id = state.user_id
         current_week = state.current_week
@@ -82,19 +77,17 @@ def update_progress(state: State) -> Dict[str, Any]:
         now = datetime.now(timezone.utc)
 
         # 2-1) 항상: 유저 last_seen_at 업데이트
-        # REPO에 이런 메서드를 하나 두는 걸 추천:
-        #   def update_user_meta(self, user_id: str, **fields): ...
         try:
-            REPO.update_user_meta(
-                user_id=user_id,
-                last_seen_at=now,
-            )
-        except AttributeError:
-            # 기존 REPO에 update_user_meta가 없다면, 기존 update_user를 써도 됨
-            # REPO.update_user(user_id, {"last_seen_at": now})
-            pass
+            # FirestoreRepo에 정의된 헬퍼 사용
+            if hasattr(REPO, "last_seen_touch"):
+                REPO.last_seen_touch(user_id)
+            else:
+                # fallback: upsert_user 직접 호출
+                REPO.upsert_user(user_id, {"last_seen_at": now})
+        except Exception as e:
+            print(f"[update_progress] last_seen_at 업데이트 중 오류: {e}")
 
-        # 2-2) WEEKLY 세션 진행도/요약 저장
+        # 2-2) WEEKLY 세션 진행도/요약/완료 처리
         if session_type == "WEEKLY":
             # (기존 로직 유지) 이번 턴에서 종료 조건을 만족했는지 로그로 남김
             try:
@@ -110,48 +103,44 @@ def update_progress(state: State) -> Dict[str, Any]:
             except Exception as e:
                 print(f"[update_progress] REPO.update_progress 호출 중 오류: {e}")
 
-            # 이번 턴에 세션이 종료되었으면, 요약/agenda/완료시간까지 저장
+            # 이번 턴에 세션이 종료되었으면, 요약 + 완료 처리
             if state.exit:
-                agenda = state.agenda or f"{current_week}주차 상담"
-                summary = state.summary or ""
+                # 요약 텍스트 (없으면 빈 문자열)
+                summary_text = (state.summary or "").strip()
 
-                # 세션 단위 요약 저장용 메서드 예시
-                #   def save_weekly_session_summary(
-                #       self, user_id, week, agenda, summary, completed_at
-                #   ): ...
+                # 1) 세션 요약 저장 (summary 필드)
                 try:
-                    REPO.save_weekly_session_summary(
-                        user_id=user_id,
-                        week=current_week,
-                        agenda=agenda,
-                        summary=summary,
-                        completed_at=now,
-                    )
+                    if hasattr(REPO, "save_session_summary"):
+                        REPO.save_session_summary(
+                            user_id=user_id,
+                            week=current_week,
+                            summary_text=summary_text,
+                        )
+                        print(
+                            f"[update_progress] [{current_week}주차] "
+                            f"세션 요약 저장 완료"
+                        )
+                except Exception as e:
                     print(
-                        f"[update_progress] [{current_week}주차] "
-                        f"요약/agenda 저장 완료 (agenda={agenda!r})"
-                    )
-                except AttributeError:
-                    # 아직 구현 안 되어 있으면, 기존 save_message나 기타 메서드로 대체 가능
-                    print(
-                        "[update_progress] REPO.save_weekly_session_summary "
-                        "가 아직 구현되어 있지 않습니다."
+                        f"[update_progress] REPO.save_session_summary 호출 중 오류: {e}"
                     )
 
-                # user 문서에 '마지막 weekly 완료 시각' + 현재 주차 저장
+                # 2) 세션 완료 + 주차 진급 + last_weekly_session_completed_at
                 try:
-                    REPO.update_user_meta(
-                        user_id=user_id,
-                        last_weekly_session_completed_at=now,
-                        current_week=current_week,
+                    if hasattr(REPO, "mark_session_as_completed"):
+                        REPO.mark_session_as_completed(
+                            user_id=user_id,
+                            week=current_week,
+                            completed_at=now,
+                        )
+                        print(
+                            f"[update_progress] [{current_week}주차] "
+                            f"mark_session_as_completed 호출 (주차 진급 포함)"
+                        )
+                except Exception as e:
+                    print(
+                        f"[update_progress] REPO.mark_session_as_completed 호출 중 오류: {e}"
                     )
-                except AttributeError:
-                    # 마찬가지로 기존 update_user를 사용할 수도 있음
-                    # REPO.update_user(user_id, {
-                    #     "last_weekly_session_completed_at": now,
-                    #     "current_week": current_week,
-                    # })
-                    pass
 
     except Exception as e:
         print(f"[update_progress] 진행 상태/메타 업데이트 중 오류 발생: {e}")
@@ -159,7 +148,6 @@ def update_progress(state: State) -> Dict[str, Any]:
     # -------------------------
     # 3. state에 반영할 값 반환
     # -------------------------
-
     return {
         "turn_index": new_turn_index,
         "session_progress": new_session_progress,
@@ -191,4 +179,3 @@ def persist_turn_node(state: State) -> Dict[str, Any]:
         print(f"[persist_turn_node] persist_turn 호출 중 오류 발생: {e}")
 
     return {}
-

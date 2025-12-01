@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Dict, Any, List
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage
 from coach_agent.graph.state import State
-from coach_agent.prompts.identity import COMMON_IDENTITY
+from coach_agent.prompts.identity import PERSONA
 from coach_agent.services.llm import TECHNIQUE_SELECTOR, LLM_CHAIN, CHAT_LLM
 from coach_agent.utils.protocol_loader import load_techniques_catalog
 from coach_agent.rag.search import search_cbt_corpus  # ← 네 RAG 모듈에 맞게 import 수정
@@ -374,7 +374,7 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
     
     # 4) 여기서 prompt 메시지 직접 구성
     system_content = (
-        COMMON_IDENTITY
+        PERSONA
         + "\n\n"
         "너는 CBT 기반 충동/습관적 소비 교정을 돕는 '기법 코디네이터' 상담가다.\n"
         "네 임무는 이번 턴에 사용할 **딱 하나의 CBT 기법(technique_id)** 을 고르고,\n"
@@ -496,7 +496,7 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
 
     # 2) System + Human 메시지 구성
     system_content = (
-        COMMON_IDENTITY
+        PERSONA
         + "\n\n"
         "너는 CBT 기반 충동/습관적 소비 교정을 돕는 전문 상담가다.\n"
         "아래 정보를 참고하여, 이번 턴에서 선택된 CBT 기법을 활용해 "

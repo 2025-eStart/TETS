@@ -1,7 +1,6 @@
 # coach_agent/graph/update_progress.py 
 from __future__ import annotations
 from coach_agent.graph.state import State
-from coach_agent.services import REPO
 from coach_agent.services.history import persist_turn 
 from typing import Dict, Any
 

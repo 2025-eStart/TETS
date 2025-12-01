@@ -255,6 +255,30 @@ class FirestoreRepo(Repo):
             print(f"FIRESTORE ERROR (get_all_sessions): {e}")
             return []
         
+    # --- 특정 세션의 메시지 기록 가져오기 (서랍 상세용) ---
+    def get_session_messages(self, user_id: str, thread_id: str) -> List[Dict[str, Any]]:
+        try:
+            # sessions/{thread_id}/messages 컬렉션을 시간순 조회
+            docs = (_sessions_col(user_id)
+                    .document(thread_id)
+                    .collection("messages")
+                    .order_by("created_at")
+                    .stream())
+            
+            results = []
+            for d in docs:
+                data = d.to_dict()
+                # 필요한 필드만 정리해서 반환
+                results.append({
+                    "role": data.get("role"),
+                    "text": data.get("text"),
+                    "created_at": data.get("created_at")
+                })
+            return results
+        except Exception as e:
+            print(f"FIRESTORE ERROR (get_session_messages): {e}")
+            return []
+        
     # --- 현재 주차 세션의 진행 단계(Step Index)를 저장 ---
     def update_checkpoint(self, user_id: str, week: int, step_index: int) -> None:
         print(f"🔍 [DB Debug] 업데이트 시작: User='{user_id}', Week={week}({type(week)}), Step={step_index}")

@@ -272,18 +272,22 @@ async def get_user_sessions(user_id: str):
             date_str = datetime.now().strftime("%Y-%m-%d")
 
         # --- [로직 3] 제목(Title) 결정 로직 ---
+        # 상담 세션: {week}주차 상담 ({날짜})
+        # 일반 세션: FAQ ({날짜})
         # 1순위: DB에 이미 저장된 구체적인 제목이 있으면 그걸 씀 (예: "불안 다루기")
         # 2순위: 없으면 주차정보나 타입으로 생성
-        if s.get("title"):
-            display_title = s.get("title")
-        else:
-            week = s.get("week", 1)
-            sType = s.get("session_type", "WEEKLY")
-            
-            if sType == "WEEKLY":
-                display_title = f"{week}주차 상담"
+        s_type = s.get("session_type") 
+        week = s.get("week")
+        if s_type and week and date_str:
+            if s_type == "WEEKLY":
+                display_title = f"{week}주차 상담 ({date_str})"
             else:
-                display_title = "자유 상담"
+                display_title = f"FAQ({date_str})"
+        else:
+            if s_type == "WEEKLY":
+                display_title = f"상담 ({date_str})"
+            else:
+                display_title = "FAQ"
 
         # 결과 리스트에 추가
         results.append(SessionSummary(
