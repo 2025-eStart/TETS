@@ -52,6 +52,7 @@ class FirestoreRepo(Repo):
             "user_id": user_id,
             "week": int(week),
             "status": "active",
+            "created_at": firestore.SERVER_TIMESTAMP,
             "started_at": firestore.SERVER_TIMESTAMP,
             "last_activity_at": firestore.SERVER_TIMESTAMP,
             "checkpoint": {"step_index": 0},
@@ -105,6 +106,9 @@ class FirestoreRepo(Repo):
         _user_doc(user_id).set({
             "last_weekly_session_completed_at": completed_at
         }, merge=True)
+        
+        # 완료하자마자 바로 유저의 주차를 승급
+        self.advance_to_next_week(user_id)
 
     # --- [2] 상담 완료 후: 주차 진급 ---
     def advance_to_next_week(self, user_id: str) -> int:
@@ -153,6 +157,7 @@ class FirestoreRepo(Repo):
             "last_activity_at": firestore.SERVER_TIMESTAMP,
             "checkpoint": {"step_index": 0},    # 1. 진행 단계 초기화
             "state": {},                        # 2. 세션 상태 초기화
+            "summary": firestore.DELETE_FIELD   # 3. 요약본 삭제
         }, merge=True)
 
     def last_seen_touch(self, user_id: str) -> None:
@@ -227,9 +232,8 @@ class FirestoreRepo(Repo):
         except Exception as e:
             print(f"FIRESTORE ERROR: Failed to get past summaries: {e}")
             return []
-        
-        
-    # 과거 채팅 접근 서랍용
+           
+    # --- 과거 채팅 접근 서랍용 ---
     def get_all_sessions(self, user_id: str) -> List[Dict[str, Any]]:
         """
         users/{uid}/sessions 컬렉션의 모든 문서를 최신순으로 가져옴
@@ -250,3 +254,45 @@ class FirestoreRepo(Repo):
         except Exception as e:
             print(f"FIRESTORE ERROR (get_all_sessions): {e}")
             return []
+        
+    # --- 현재 주차 세션의 진행 단계(Step Index)를 저장 ---
+    def update_checkpoint(self, user_id: str, week: int, step_index: int) -> None:
+        print(f"🔍 [DB Debug] 업데이트 시작: User='{user_id}', Week={week}({type(week)}), Step={step_index}")
+        
+        try:
+            sessions_ref = _sessions_col(user_id)
+            
+            # 1. 쿼리 생성
+            # 주의: Firestore에서 숫자가 아닌 문자열로 저장되어 있을 수도 있으니 확인 필요
+            query = (sessions_ref
+                     .where(filter=FieldFilter("week", "==", week))
+                     .where(filter=FieldFilter("status", "==", "active"))
+                     .limit(1))
+            
+            # 2. 쿼리 실행 (리스트로 변환하여 개수 확인)
+            docs = list(query.stream())
+
+            # 3. 문서가 없는 경우 (범인은 바로 너!)
+            if not docs:
+                print(f"🚨 [DB Error] 업데이트 대상을 못 찾았습니다!")
+                print(f"   - 검색 조건: week={week}, status='active'")
+                print(f"   - 힌트: DB에 week가 문자열 '1'로 되어있지 않나요? 혹은 status가 다른 값인가요?")
+                
+                # (옵션) 혹시 몰라 문자열로도 한 번 더 찾아봄 (자동 보정 시도)
+                # print("   - 문자열 week로 재검색 시도...")
+                # query_str = sessions_ref.where(filter=FieldFilter("week", "==", str(week))).limit(1)
+                # docs = list(query_str.stream())
+                return 
+
+            # 4. 문서가 있는 경우 업데이트
+            for doc in docs:
+                doc.reference.update({
+                    "checkpoint.step_index": step_index, 
+                    "last_activity_at": firestore.SERVER_TIMESTAMP
+                })
+                print(f"✅ [DB Success] 진짜 저장 완료! (Doc ID: {doc.id}) -> Step {step_index}")
+                return
+
+        except Exception as e:
+            print(f"🔥 [DB Exception] Firestore 에러: {e}")
+                        
