@@ -51,15 +51,16 @@ success_criteria:
 # 3) Allowed Techniques (LLM Dynamic)
 # ===========================
 allowed_techniques:
-  - "exposure_planning"
-  - "response_prevention_planning"
-  - "urge_surfing"
-  - "behavioral_experiment"
+  - "exposure"                      # exposure_planning → exposure
+  - "aware_technique"               # response_prevention_planning → aware_technique
+  - "aware_technique"               # urge_surfing → aware_technique
+  - "behavioral_experiments"        # behavioral_experiment → behavioral_experiments
   - "guided_discovery"
   - "socratic_questioning"
-  - "emotion_labeling"
-  - "implementation_intentions"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "action_plans"                  # implementation_intentions → action_plans
   - "normalization"
+
 
 blocked_techniques: []
 

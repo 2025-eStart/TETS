@@ -50,16 +50,17 @@ success_criteria:
 
 # ===========================
 # 3) Allowed Techniques
-# ===========================
+# ===========================# 
 allowed_techniques:
-  - "problem_solving_CBT"
-  - "behavioral_activation"
-  - "implementation_intentions"
+  - "problem_solving"                # problem_solving_CBT → problem_solving
+  - "activity_scheduling"           # behavioral_activation → activity_scheduling
+  - "action_plans"                  # implementation_intentions → action_plans
   - "guided_discovery"
   - "socratic_questioning"
   - "normalization"
   - "functional_analysis"
-  - "urge_surfing_light"   # 초기 단계용 가벼운 충동 조절 기법
+  - "aware_technique"               # urge_surfing_light → aware_technique
+
 
 blocked_techniques: []
 

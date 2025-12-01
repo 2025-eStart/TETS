@@ -52,11 +52,12 @@ allowed_techniques:
   - "behavioral_chain_analysis"
   - "guided_discovery"
   - "socratic_questioning"
-  - "pros_cons_analysis"
+  - "advantages_disadvantages"      # pros_cons_analysis → advantages_disadvantages
   - "functional_analysis"
-  - "emotion_labeling"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
   - "normalization"
   - "motivation_scaling"
+
 
 blocked_techniques: []
 

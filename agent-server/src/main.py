@@ -191,11 +191,22 @@ async def chat_endpoint(req: ChatRequest):
         # 4. 결과 파싱
         messages = final_state.get("messages", [])
         last_ai_msg = ""
+        
         # 가장 마지막 AI 메시지 찾기 (역순 탐색)
         for msg in reversed(messages):
             if msg.type == "ai":
-                last_ai_msg = msg.content
+                # msg.content가 리스트일 수도 있고 문자열일 수도 있음 (방어 로직)
+                content = msg.content
+                if isinstance(content, list):
+                    # 리스트라면 문자열로 합침 (중요!)
+                    last_ai_msg = "\n\n".join([str(c) for c in content if isinstance(c, str)])
+                else:
+                    last_ai_msg = str(content)
                 break
+        
+        # 만약 메시지가 비어있다면 디버깅용 메시지
+        if not last_ai_msg:
+            last_ai_msg = "(응답 없음)"
         
         protocol = final_state.get("protocol") or {}
         
