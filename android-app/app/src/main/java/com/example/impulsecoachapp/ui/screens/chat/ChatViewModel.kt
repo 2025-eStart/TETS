@@ -1,4 +1,4 @@
-// ui.screens.chat.ChatViewModel
+// ui.screens.ChatViewModel.kt
 package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.lifecycle.ViewModel
@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.collections.plus
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -52,11 +53,50 @@ class ChatViewModel @Inject constructor(
 
     init {
         // 앱 켜질 때 1. 현재 방 접속, 2. 과거 기록 가져오기 둘 다 수행
-        resumeSession()
+        restoreSessionOrStartNew()
         loadHistoryList()
     }
 
-    // 상황 1: 앱 켜질 때 (이어하기)
+    // 상황 1: 앱 켜질 때 (이어하기. 채팅 내역 그대로 남아 있음)
+    private fun restoreSessionOrStartNew() {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            // 1) 현재 진행 중인 threadId가 있는지 확인
+            val threadId = repository.getCurrentThreadId()
+
+            if (threadId != null) {
+                // ✅ 이전에 진행 중이던 세션이 있다 → 서버에서 해당 스레드의 전체 로그를 가져온다
+                val historyResult = repository.getSessionHistory(threadId)
+
+                historyResult.onSuccess { list ->
+                    // 전체 대화를 그대로 복원
+                    _messages.value = list
+
+                    // (옵션) 세션 메타데이터도 같이 복원하고 싶다면:
+                    // - /sessions API에서 threadId 매칭해서 제목/주차/목표를 찾거나
+                    // - getSessionHistory 응답에 메타데이터를 추가해서 받아오면 됨
+                    // 여기서는 우선 메시지 복원만 처리
+
+                }.onFailure { e ->
+                    // 복원 실패 시: 안내 메시지 + 새 세션 시작으로 폴백
+                    _messages.value = listOf(
+                        ChatMessage.GuideMessage("이전 상담 내역을 불러오지 못했어요. 새로운 상담을 시작할게요.")
+                    )
+                    // 🔁 강제 새 세션 시작
+                    processSessionStart(isReset = true)
+                }
+
+            } else {
+                // ✅ 진행 중인 스레드가 없음 → 기존 로직대로 새 세션(or 기존 서버 세션) 시작
+                processSessionStart(isReset = false)
+            }
+
+            _isLoading.value = false
+        }
+    }
+
+    /* 과거 이어하기 함수
     private fun resumeSession() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -65,6 +105,7 @@ class ChatViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+    */
 
     // 상황 2: 버튼 눌렀을 때 (새로하기)
     fun onNewSessionClick() {
@@ -129,9 +170,9 @@ class ChatViewModel @Inject constructor(
         // 2. 주차 업데이트 (null -> 숫자)
         _currentWeek.value = chatTurn.currentWeek
 
-        // 3. 제목/목표 업데이트 (값이 있을 때만)
+        // 3. 주차 업데이트 (값이 있을 때만)
         if (!chatTurn.weekTitle.isNullOrBlank()) {
-            _sessionTitle.value = "${chatTurn.currentWeek}주차: ${chatTurn.weekTitle}"
+            _sessionTitle.value = "${chatTurn.currentWeek}주차 상담"
         }
         if (chatTurn.weekGoals.isNotEmpty()) {
             _sessionGoals.value = chatTurn.weekGoals

@@ -57,9 +57,6 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-
-
-
     // 앱 진입 시 봇을 먼저 깨우는 함수
     suspend fun startSession(forceNew: Boolean = false): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
@@ -112,12 +109,38 @@ class ActualChatRepository @Inject constructor(
         return sessionManager.currentSessionType
     }
 
+    // 현재 진행 중인 threadId 조회용 (없으면 null)
+    override fun getCurrentThreadId(): String? {
+        return sessionManager.currentThreadId
+    }
+
     // ViewModel에서 호출할 과거 기록 가져오기 함수
     suspend fun getHistoryList(): Result<List<SessionSummary>> {
         val userId = deviceIdManager.getDeviceId()
         return try {
             val list = apiService.getSessions(userId)
             Result.success(list)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    // 서랍 상세 조회
+    suspend fun getSessionHistory(threadId: String): Result<List<ChatMessage>> {
+        val userId = deviceIdManager.getDeviceId()
+        return try {
+            val responseList = apiService.getSessionHistory(userId, threadId)
+
+            // DTO -> Domain Model(ChatMessage) 변환
+            val chatMessages = responseList.map { item ->
+                when (item.role.lowercase()) {
+                    "user", "human" -> ChatMessage.UserResponse(item.text)
+                    "ai", "assistant", "bot" -> ChatMessage.GuideMessage(item.text)
+                    else -> ChatMessage.GuideMessage(item.text) // 알 수 없는 값은 봇 메시지 처리
+                }
+            }
+            Result.success(chatMessages)
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)

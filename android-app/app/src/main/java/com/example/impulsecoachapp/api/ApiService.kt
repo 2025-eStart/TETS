@@ -20,4 +20,11 @@ interface ApiService {
     // 3. 과거 세션 목록 조회
     @GET("sessions/{userId}")
     suspend fun getSessions(@Path("userId") userId: String): List<SessionSummary>
+
+    // 과거 대화 상세 내역 가져오기
+    @GET("history/{userId}/{threadId}")
+    suspend fun getSessionHistory(
+        @Path("userId") userId: String,
+        @Path("threadId") threadId: String
+    ): List<MessageHistoryResponse>
 }
