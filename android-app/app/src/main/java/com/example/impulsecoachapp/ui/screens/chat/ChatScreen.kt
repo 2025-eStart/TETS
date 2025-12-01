@@ -1,3 +1,4 @@
+//ui.screens.ChatScreen.kt
 package com.example.impulsecoachapp.ui.screens.chat
 
 import androidx.compose.foundation.Image
@@ -8,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
@@ -17,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +35,7 @@ fun ChatScreen(
     selectedTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit,
     onBackPressed: () -> Unit,
+    onOpenHistory: (String) -> Unit,          // ✅ 추가: 과거 채팅 threadId 넘겨줄 콜백
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -41,9 +45,7 @@ fun ChatScreen(
     val sessionGoals by viewModel.sessionGoals.collectAsState()
     val historyList by viewModel.historyList.collectAsState()
 
-    // [수정 1] LaunchedEffect 삭제함! (ViewModel init 블록에서 이미 실행됨)
-
-    // [수정 2] 서랍 상태 관리 변수 추가
+    // 서랍 상태 관리 변수 추가
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -52,7 +54,7 @@ fun ChatScreen(
         drawerContent = {
             ModalDrawerSheet {
                 Text(
-                    text = "지난 대화 기록",
+                    text = "지난 대화 & 새 채팅",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -78,7 +80,7 @@ fun ChatScreen(
                             badge = { Text(session.date) },
                             selected = false,
                             onClick = {
-                                // 나중에 구현: 과거 기록 불러오기
+                                onOpenHistory(session.sessionId) //historydetailscreen으로 이동
                                 scope.launch { drawerState.close() }
                             }
                         )
@@ -148,11 +150,12 @@ fun ChatScreenContent(
     }
 }
 
-// [수정 5] 메뉴 아이콘이 있는 상단 바
+// 메뉴 아이콘이 있는 상단 바
 @Composable
 fun TopSessionBar(
     title: String,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onBackPressed: (() -> Unit)? = null
 ) {
     Surface(
         color = Color.White,
@@ -162,9 +165,20 @@ fun TopSessionBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp), // 패딩 약간 조정
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // ✅ 히스토리 화면에서만 쓸 뒤로가기 버튼
+            if (onBackPressed != null) {
+                IconButton(onClick = onBackPressed) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "뒤로가기",
+                        tint = Color(0xFF6200EE)
+                    )
+                }
+            }
+
             // 햄버거 메뉴 아이콘
             IconButton(onClick = onMenuClick) {
                 Icon(
@@ -178,7 +192,7 @@ fun TopSessionBar(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF6200EE),
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }

@@ -40,7 +40,7 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
         return Result.success(dummyTurn)
     }
 
-    // [추가 구현 1] 새로운 세션 시작 (가짜 로직)
+    // 새로운 세션 시작 (가짜 로직)
     override suspend fun startNewGeneralSession(): String {
         delay(500) // 살짝 로딩 흉내
         turnCount = 0 // 턴 초기화
@@ -48,8 +48,14 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
         return "새로운 더미 상담이 시작되었습니다! (GENERAL 모드)"
     }
 
-    // [추가 구현 2] 현재 세션 타입 조회 (가짜 로직)
+    // 현재 세션 타입 조회 (가짜 로직)
     override fun getCurrentSessionType(): String {
         return dummySessionType
+    }
+
+    // 과거 대화 내역 조회를 위한 threid 조회
+    override fun getCurrentThreadId(): String? {
+        // 더미라서 별도 스레드 개념 없음 → null
+        return null
     }
 }

@@ -14,4 +14,6 @@ interface ChatRepository {
 
     // 2. 현재 세션 타입 조회 (ViewModel이 검사하기 위해)
     fun getCurrentSessionType(): String
+
+    fun getCurrentThreadId(): String?
 }
