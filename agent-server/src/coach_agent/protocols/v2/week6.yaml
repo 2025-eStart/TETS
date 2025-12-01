@@ -1,0 +1,89 @@
+week: 6
+
+agenda: "인지 재구조화(Cognitive Restructuring): 근거 평가 + 대안적 사고 생성"
+
+description: >
+  이번 주차는 충동·습관적 소비를 강화하는 자동사고의 타당성을 평가하고,
+  보다 균형 잡힌 관점(대안적 사고)을 실제로 만들어보는 단계입니다.
+  Week 5에서 탐색한 자동사고를 기반으로,
+  ‘근거/반대근거 평가’, ‘논리적 오류 탐색’, ‘대안적 사고 생성’을 수행합니다.
+  이는 CBT의 대표적 핵심 기법이며,
+  이후 Week 8~9의 노출·반응예방에서 충동을 견딜 수 있는 인지적 기반을 제공합니다.
+
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "cognitive_restructuring_AT"
+
+core_task:
+  description: >
+    Week 5에서 찾은 자동사고 중 하나를 선택하여,
+    그 사고의 근거와 반대 근거를 각각 최소 1개 이상 찾고,
+    그 정보를 기반으로 ‘대안적 사고’를 1개 생성한다.
+  tags:
+    - "cognitive_restructuring"
+    - "evidence_examination"
+    - "alternative_thought_generation"
+    - "belief_evaluation"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "selected_AT_for_restructuring"
+    required: true
+    description: "재구조화할 자동사고를 하나 명확하게 선택했다."
+
+  - id: "found_evidence_for"
+    required: true
+    description: "그 자동사고를 지지하는 근거를 하나 이상 말했다."
+
+  - id: "found_evidence_against"
+    required: true
+    description: "그 자동사고에 반대되는 근거를 하나 이상 말했다."
+
+  - id: "generated_alternative_thought"
+    required: true
+    description: "근거 분석을 기반으로 대안적 사고를 1개 이상 생성했다."
+
+  - id: "evaluated_emotion_shift"
+    required: false
+    description: "대안적 사고를 생각했을 때 감정 변화가 있었는지 언급했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "cognitive_restructuring"
+  - "examine_evidence"              # evidence_for_against → examine_evidence
+  - "socratic_questioning"
+  - "guided_discovery"
+  - "downward_arrow"
+  - "cognitive_distortion_identification"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "functional_analysis"
+
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 5
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘근거 평가 & 대안적 사고 생성 연습’을 해보세요.
+    충동이 올라왔던 상황을 떠올리며,
+    자동사고를 하나 적고, 그 사고의 근거와 반대 근거를 각각 1~2개씩 적어본 뒤,
+    가장 균형 잡힌 대안적 사고를 만들어보면 좋습니다.
+    다음 주(Week 7~8)의 ‘심층 인지 재구조화’와 ‘노출/반응예방’의 기반이 됩니다.
+  examples:
+    - "AT: '스트레스 받았으니 쇼핑해야 풀려' → For: 기분이 잠깐 좋아짐 → Against: 오래가진 않음, 후회함 → 대안적 사고: '잠깐 산책하거나 쉬어도 스트레스가 줄어들 수 있어.'"
+    - "AT: '나도 SNS처럼 예쁜 걸 가져야 해' → For: 갖고 싶다는 마음 → Against: 경제적 스트레스 증가 → 대안: '지금은 필요하지 않고, 나의 ‘필요’부터 먼저 챙겨도 괜찮아.'"

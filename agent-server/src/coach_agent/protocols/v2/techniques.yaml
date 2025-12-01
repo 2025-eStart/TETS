@@ -1,0 +1,799 @@
+# coach_agent/protocols/v2/techniques.yaml
+- id: "identifying_automatic_thoughts"
+  level: "intervention"
+  name: "자동사고 탐지"
+  description: >
+    상황-감정-사고를 연결해 자동사고가 발생한 순간을 포착하고
+    인식하게 돕는 핵심 개입. 내담자가 반복되는 사고 패턴을 자각하도록 한다.
+  typical_targets:
+    - "automatic_thought"
+    - "emotion_awareness"
+  good_for_focus:
+    - "awareness"
+    - "cognitive_monitoring"
+  rag_tags:
+    - "identifying automatic thoughts"
+    - "CBT basics"
+
+- id: "evaluating_automatic_thoughts"
+  level: "intervention"
+  name: "자동사고 평가"
+  description: >
+    자동사고의 증거·반증을 분석하고, 타당성을 평가하도록 유도하는 과정.
+    사고가 사실인지, 왜곡되었는지를 함께 검토한다.
+  typical_targets:
+    - "evaluate_belief"
+    - "cognitive_restructuring"
+  good_for_focus:
+    - "distorted_thoughts"
+    - "depression"
+    - "anxiety"
+  rag_tags:
+    - "evaluating automatic thoughts"
+    - "cognitive restructuring"
+
+- id: "responding_to_automatic_thoughts"
+  level: "intervention"
+  name: "자동사고에 대처하기"
+  description: >
+    부적응적 자동사고를 수정하고 대안적 사고를 생성하도록 돕는 개입.
+    사고 기록지 또는 구두 재구성을 통해 훈습한다.
+  typical_targets:
+    - "cognitive_restructuring"
+    - "coping_skills"
+  good_for_focus:
+    - "relapse_prevention"
+    - "behavior_change"
+  rag_tags:
+    - "responding to automatic thoughts"
+    - "CBT worksheet"
+
+- id: "socratic_questioning"
+  level: "technique"
+  name: "소크라테스식 질문(탐색적 질문)"
+  description: >
+    내담자가 자신의 사고·신념의 근거와 대안을 스스로 발견하도록 질문을 통해 유도하는 기술.
+    '왜 그렇다고 생각하나요?', '다른 설명은 없을까요?'와 같은 질문을 활용한다.
+  typical_targets:
+    - "evaluate_belief"
+    - "guided_discovery"
+  good_for_focus:
+    - "belief_flexibility"
+    - "cognitive_restructuring"
+  rag_tags:
+    - "Socratic questioning"
+    - "guided discovery"
+
+- id: "activity_scheduling"
+  level: "intervention"
+  name: "활동 스케줄링"
+  description: >
+    기분을 개선하고 행동 활성화를 위해 의미 있는 활동을 계획하고 실행하게 하는 기법.
+  typical_targets:
+    - "behavioral_activation"
+    - "motivation"
+  good_for_focus:
+    - "depression"
+    - "anhedonia"
+  rag_tags:
+    - "activity scheduling"
+    - "behavioral activation"
+
+- id: "action_plans"
+  level: "intervention"
+  name: "행동 계획"
+  description: >
+    문제 상황을 해결하기 위해 구체적이고 실행 가능한 단계로 나누어
+    목표를 설정하고 실천하도록 돕는다.
+  typical_targets:
+    - "problem_solving"
+    - "goal_setting"
+  good_for_focus:
+    - "relapse_prevention"
+    - "motivation"
+  rag_tags:
+    - "action plan"
+    - "CBT homework"
+
+- id: "modifying_beliefs"
+  level: "intervention"
+  name: "신념 수정"
+  description: >
+    중간신념·핵심신념을 평가하고 덜 경직된 신념으로 변형하는 과정을 포함한다.
+  typical_targets:
+    - "core_belief"
+    - "intermediate_belief"
+  good_for_focus:
+    - "schema_change"
+    - "chronic_patterns"
+  rag_tags:
+    - "modifying beliefs"
+    - "schemas"
+
+- id: "imagery"
+  level: "technique"
+  name: "이미지 기법"
+  description: >
+    상상을 활용해 감정 반응을 탐색하거나 신념에 접근하게 하는 기술.
+    재연·재구성·감정 처리 등에 사용된다.
+  typical_targets:
+    - "emotion_processing"
+    - "belief_access"
+  good_for_focus:
+    - "trauma"
+    - "anxiety"
+  rag_tags:
+    - "imagery"
+    - "experiential techniques"
+
+- id: "mindfulness"
+  level: "technique"
+  name: "마음챙김 통합"
+  description: >
+    현재 경험에 주의를 기울이고 수용함으로써 자동사고·감정에 대한
+    비판적 반응을 줄이는 데 활용한다.
+  typical_targets:
+    - "emotion_regulation"
+    - "awareness"
+  good_for_focus:
+    - "relapse_prevention"
+    - "stress_management"
+  rag_tags:
+    - "mindfulness"
+    - "acceptance"
+
+- id: "relapse_prevention"
+  level: "intervention"
+  name: "재발 예방"
+  description: >
+    치료 중 배운 기술을 유지하고 위기 상황에 대비하도록
+    경고 신호, 취약 상황, 대처 계획을 함께 정리한다.
+  typical_targets:
+    - "maintenance"
+    - "coping_skills"
+  good_for_focus:
+    - "addictive_behaviors"
+    - "depression"
+  rag_tags:
+    - "relapse prevention"
+    - "CBT maintenance"
+
+- id: "eliciting_automatic_thoughts"
+  level: "technique"
+  name: "자동사고 유도 질문"
+  description: >
+    내담자가 막연한 기분이나 상황만 이야기할 때,
+    “지금 머릿속에 무슨 생각이 스쳤는지”를 구체적으로 떠올리게 하는 질문/절차.
+    감정·신체감각을 묻고, 장면을 자세히 묘사하게 하고, 상황을 시각화·역할극·이미지로 재경험하게 하며,
+    의미를 묻거나 반대되는 가설적 생각을 제시하는 등 여러 방법으로 ‘핫 코그니션’을 끌어낸다.
+  typical_targets:
+    - "automatic_thought"
+    - "hot_cognition"
+    - "affect_shift"
+  good_for_focus:
+    - "assessment"
+    - "case_formulation"
+    - "session_blocking_emotion"
+  rag_tags:
+    - "eliciting automatic thoughts"
+    - "what was going through your mind"
+    - "hot cognitions"
+    - "CBT micro-skills"
+
+- id: "emotion_chart"
+  level: "intervention"
+  name: "감정 차트(Emotion Chart)"
+  description: >
+    분노, 슬픔, 불안 등 핵심 감정 카테고리를 세로축에 두고,
+    실제로 그 감정을 느꼈던 구체적 상황을 가로축에 정리하는 표.
+    각 상황에서 떠올랐던 자동사고를 함께 적어 감정-자동사고 연결을 학습하게 하고,
+    내담자가 자신의 감정 어휘를 넓히고 상황별 감정 레이블링을 정확하게 하도록 돕는다.
+  typical_targets:
+    - "emotion_labeling"
+    - "emotion_awareness"
+    - "automatic_thought"
+  good_for_focus:
+    - "emotion_identification"
+    - "psychoeducation"
+    - "homework_tracking"
+  rag_tags:
+    - "Emotion Chart"
+    - "emotion labeling"
+    - "identifying emotions"
+    - "CBT worksheet"
+
+- id: "rate_emotion_intensity"
+  level: "technique"
+  name: "감정 강도 평정하기"
+  description: >
+    내담자가 경험한 감정의 강도를 0~100% 혹은 ‘조금/중간/많이/매우’ 등의 척도로 수치화하게 하는 기법.
+    개입 전후 감정 강도 변화를 비교해 개입 효과를 판단하고,
+    “조금 불편하면 견딜 수 없다”는 식의 감정 관련 역기능적 신념을 검증하는 데 사용된다.
+  typical_targets:
+    - "emotion_intensity"
+    - "emotion_belief"
+    - "treatment_monitoring"
+  good_for_focus:
+    - "measure_change"
+    - "exposure_tolerance"
+    - "cognitive_restructuring_effect"
+  rag_tags:
+    - "rating degrees of emotion"
+    - "emotion scale"
+    - "0-100 ratings"
+    - "negative affect intensity"
+
+- id: "testing_your_thoughts_worksheet"
+  level: "intervention"
+  name: "Testing Your Thoughts 워크시트"
+  description: >
+    표준 사고기록지가 복잡하거나 부담스러운 내담자를 위해 사용되는 단순화된 사고검증 워크시트.
+    상황, 자동사고, 그 생각을 지지/반박하는 근거, 또 다른 관점, 최악/최선/가장 그럴듯한 시나리오,
+    그 생각을 유지했을 때·바꿨을 때 각각의 결과를 적게 함으로써
+    인지 재구조화의 핵심 질문들을 구조화된 단일 양식으로 안내한다.
+  typical_targets:
+    - "automatic_thought"
+    - "belief_evidence_balance"
+    - "catastrophic_thinking"
+  good_for_focus:
+    - "cognitive_restructuring"
+    - "low_readability_clients"
+    - "early_sessions"
+  rag_tags:
+    - "Testing Your Thoughts worksheet"
+    - "simplified thought record"
+    - "CBT worksheet"
+
+- id: "aware_technique"
+  level: "technique"
+  name: "AWARE 불안 대처 기법"
+  description: >
+    불안·강박적 자동사고에 대응하기 위해 사용하는 단계적 자기지시 기법.
+    Accept(불안을 수용하기), Watch(판단 없이 관찰하기), Act(불안을 안고 행동하기),
+    Repeat(앞 단계 반복하기), Expect the best(최악이 아닌 현실적·긍정적 결과를 기대하기)의
+    다섯 단계로 구성되어, 회피나 억압 대신 불안을 느끼면서도 목표 행동을 지속하도록 돕는다.
+  typical_targets:
+    - "anxious_automatic_thoughts"
+    - "obsessive_thoughts"
+    - "safety_behaviors"
+  good_for_focus:
+    - "anxiety_disorders"
+    - "exposure_with_response_prevention"
+    - "relapse_prevention"
+  rag_tags:
+    - "AWARE technique"
+    - "anxiety coping"
+    - "exposure and response prevention"
+    - "CBT acronym technique"
+
+- id: "distinguish_emotion_vs_thought"
+  level: "technique"
+  name: "감정과 자동사고 구분하기"
+  description: >
+    내담자가 사고(생각)과 감정을 혼동하는 경우,
+    둘의 정의와 차이를 명확히 설명하고 실제 예시를 통해 훈련시키는 기법.
+  typical_targets:
+    - "emotion_awareness"
+    - "thought_identification"
+  good_for_focus:
+    - "affect_regulation"
+    - "thought_clarity"
+  rag_tags:
+    - "emotion labeling"
+    - "thought vs emotion"
+
+- id: "emotion_labeling_training"
+  level: "intervention"
+  name: "감정 라벨링 훈련"
+  description: >
+    내담자가 자신의 감정을 식별하고 명명할 수 있도록 돕는 정서 인식 개입.
+    감정을 세분화하고, 신체감각·상황·표현 단서를 통해 감정을 찾도록 한다.
+  typical_targets:
+    - "emotion_awareness"
+  good_for_focus:
+    - "emotional_clarity"
+  rag_tags:
+    - "emotion labeling"
+    - "affect identification"
+
+
+- id: "use_emotion_intensity_for_guidance"
+  level: "technique"
+  name: "감정 강도를 이용한 치료 우선순위 설정"
+  description: >
+    감정 강도가 특히 높은 자동사고나 상황부터 먼저 다루어
+    치료 효과를 극대화하는 전략적 기법.
+  typical_targets:
+    - "priority_setting"
+  good_for_focus:
+    - "session_focus"
+    - "emotion_driven_intervention"
+  rag_tags:
+    - "emotion intensity"
+    - "prioritization"
+
+- id: "examine_evidence"
+  level: "technique"
+  name: "증거와 반증 탐색"
+  description: >
+    자동사고를 사실로 받아들이지 않고,
+    그 생각을 지지하는 증거와 반대되는 증거를 균형 있게 찾아보도록 돕는 질문 기법.
+    특히 우울·불안 상태에서 자동적으로 생기는 '확신성'을 낮추고
+    대안적 사고의 여지를 확보하는 데 핵심적이다.
+  typical_targets:
+    - "evaluate_belief"
+    - "automatic_thought"
+  good_for_focus:
+    - "cognitive_restructuring"
+    - "balanced_thinking"
+  rag_tags:
+    - "examine the evidence"
+    - "evidence for and against"
+
+- id: "outcome_evaluation"
+  level: "technique"
+  name: "최악-최선-현실적 결과 탐색"
+  description: >
+    자동사고가 예측하는 결과를 극단치(최악/최선)와
+    현실적 가능성으로 나누어 재평가하게 하는 기법.
+    사고의 과장성, 재앙화 경향을 낮추고 균형적 판단을 돕는다.
+  typical_targets:
+    - "catastrophizing"
+    - "future_prediction_bias"
+  good_for_focus:
+    - "anxiety"
+    - "automatic_thoughts"
+  rag_tags:
+    - "worst best most realistic"
+    - "outcome evaluation"
+
+- id: "effect_of_belief"
+  level: "technique"
+  name: "믿음 지속 vs 변화의 효과 탐색"
+  description: >
+    자동사고를 그대로 믿을 때의 결과와,
+    사고를 수정하거나 대안적 사고를 채택했을 때의 결과를 비교하게 하는 기법.
+    사고가 감정·행동에 미치는 영향을 인식하고, 동기를 강화시킨다.
+  typical_targets:
+    - "motivation"
+    - "cognitive_reframing"
+  good_for_focus:
+    - "behavioral_activation"
+    - "insight_building"
+  rag_tags:
+    - "effect of belief"
+    - "effect of changing thinking"
+
+- id: "behavior_consequence_inquiry"
+  level: "technique"
+  name: "행동 귀결 탐색 질문"
+  description: >
+    자동사고에 따라 실제 행동이 어떻게 달라지는지를 탐색하고,
+    변화 의도를 구체적 행동으로 연결하도록 돕는 질문 기법.
+  typical_targets:
+    - "behavior_activation"
+    - "avoidance_reduction"
+  good_for_focus:
+    - "activation"
+    - "anxiety_behavior_links"
+  rag_tags:
+    - "behavioral consequence inquiry"
+    - "link thoughts to behavior"
+
+- id: "belief_questionnaire"
+  level: "intervention"
+  name: "신념 질문지"
+  description: >
+    내담자가 미리 작성한 신념 질문지를 검토하여 규칙·태도·가정을 파악하는 개입.
+  typical_targets:
+    - "intermediate_belief"
+  rag_tags:
+    - "belief questionnaire"
+
+- id: "belief_advantages_disadvantages"
+  level: "technique"
+  name: "신념의 장단점 분석"
+  description: >
+    특정 신념을 유지할 때의 이점과 손해를 비교해보며,
+    신념 변화의 동기를 높이고 경직성을 완화하는 기법.
+  typical_targets:
+    - "belief_strength"
+    - "cognitive_restructuring"
+  rag_tags:
+    - "advantages and disadvantages"
+
+- id: "behavioral_experiments"
+  level: "intervention"
+  name: "행동 실험"
+  description: >
+    신념이 예측하는 결과가 실제로 일어나는지 행동을 통해 확인하여
+    신념의 타당성을 직접 검증하는 개입.
+  typical_targets:
+    - "assumption_testing"
+    - "behavioral_activation"
+  rag_tags:
+    - "behavioral experiment"
+
+- id: "cognitive_continuum"
+  level: "technique"
+  name: "인지 연속선 기법"
+  description: >
+    '성공–실패', '유능–무능'처럼 이분법적 신념을
+    연속선 상의 여러 위치에 배치해보며 유연한 판단을 돕는 기법.
+  typical_targets:
+    - "dichotomous_thinking"
+    - "intermediate_belief"
+  rag_tags:
+    - "cognitive continuum"
+
+- id: "intellectual_emotional_roleplay"
+  level: "technique"
+  name: "지적–정서적 역할극"
+  description: >
+    내담자에게 논리적 사고(지적 반응)와 감정 기반 반응(정서적 반응)을
+    모두 연습시켜, 신념 변화가 감정으로도 수용될 수 있도록 돕는 기법.
+  typical_targets:
+    - "belief_internalization"
+  rag_tags:
+    - "role play"
+    - "intellectual emotional role play"
+
+- id: "reference_point_comparison"
+  level: "technique"
+  name: "타인을 기준점으로 비교하기"
+  description: >
+    내담자가 지나치게 엄격한 신념을 가지고 있을 때,
+    다른 사람들의 신념·행동을 비교하게 하여 유연성을 확보하는 기법.
+  typical_targets:
+    - "belief_flexibility"
+  rag_tags:
+    - "reference point"
+    - "belief comparison"
+
+- id: "therapist_self_disclosure"
+  level: "technique"
+  name: "치료자의 자기개방"
+  description: >
+    치료자가 신중하게 자신의 경험을 공유하여
+    내담자가 자신의 신념을 새로운 각도로 바라보도록 돕는 기법.
+  typical_targets:
+    - "belief_flexibility"
+    - "therapeutic_alliance"
+  rag_tags:
+    - "self-disclosure"
+
+# ============================
+# Chapter 13 — Intermediate Beliefs
+# ============================
+
+- id: "cognitive_conceptualization_diagram"
+  level: "intervention"
+  name: "인지 개념화 다이어그램 작성"
+  description: >
+    자동사고–중간신념–핵심신념의 연결 구조를 시각적으로 정리하여
+    내담자의 사고 패턴을 파악하도록 돕는 개입.
+  typical_targets:
+    - "intermediate_beliefs"
+    - "core_beliefs"
+    - "schema_awareness"
+  good_for_focus:
+    - "belief_change"
+    - "case_conceptualization"
+  rag_tags:
+    - "cognitive conceptualization diagram"
+    - "schema"
+
+- id: "eliciting_intermediate_beliefs"
+  level: "technique"
+  name: "중간신념 탐색"
+  description: >
+    '규칙·태도·가정' 형태의 중간신념을 찾아내기 위해 상황별 자동사고의 의미를 반복적으로 탐색하는 기법.
+  typical_targets:
+    - "intermediate_beliefs"
+  good_for_focus:
+    - "schema_awareness"
+  rag_tags:
+    - "intermediate beliefs"
+    - "assumptions"
+    - "rules attitudes"
+
+- id: "downward_arrow"
+  level: "technique"
+  name: "다운워드 애로우"
+  description: >
+    자동사고가 의미하는 더 깊은 뜻을 반복적으로 질문하여
+    신념 수준까지 도달하는 탐색 기법.
+  typical_targets:
+    - "intermediate_beliefs"
+    - "core_beliefs"
+  good_for_focus:
+    - "belief_identification"
+  rag_tags:
+    - "downward arrow"
+    - "meaning of the meaning"
+
+- id: "advantages_disadvantages"
+  level: "technique"
+  name: "장단점 분석"
+  description: >
+    특정 신념을 유지할 때와 수정할 때의 장단점을 비교하여
+    신념 변화의 동기를 유도하는 기법.
+  typical_targets:
+    - "intermediate_beliefs"
+    - "core_beliefs"
+  good_for_focus:
+    - "belief_change_motivation"
+  rag_tags:
+    - "A/D analysis"
+    - "advantages disadvantages"
+
+- id: "acting_as_if"
+  level: "technique"
+  name: "As-If 행동 실험"
+  description: >
+    바람직한 신념을 이미 가진 사람처럼 행동해보고
+    그 결과를 검증하는 기법.
+  typical_targets:
+    - "intermediate_beliefs"
+    - "behavioral_change"
+  good_for_focus:
+    - "behavioral_experiment"
+  rag_tags:
+    - "acting as if"
+    - "behavioral experiment"
+
+- id: "using_others_as_reference"
+  level: "technique"
+  name: "타인 기준 비교"
+  description: >
+    동일한 상황에서 ‘그 외의 사람들은 어떻게 생각할까?’를 탐색하여
+    자기 비판적 신념을 조정하는 기법.
+  typical_targets:
+    - "intermediate_beliefs"
+  good_for_focus:
+    - "balanced_perspective"
+  rag_tags:
+    - "reference others"
+    - "perspective taking"
+
+
+# ============================
+# Chapter 14 — Core Beliefs
+# ============================
+
+- id: "identify_core_beliefs"
+  level: "intervention"
+  name: "핵심 신념 탐색"
+  description: >
+    자동사고의 반복적 의미 탐색을 통해 내담자가 가진
+    핵심 신념(무가치감, 사랑받지 못함, 무능감 등)을 도출하는 개입.
+  typical_targets:
+    - "core_beliefs"
+  good_for_focus:
+    - "belief_identification"
+  rag_tags:
+    - "core belief"
+    - "identify core belief"
+
+- id: "monitor_core_belief_operation"
+  level: "technique"
+  name: "핵심 신념 작동 모니터링"
+  description: >
+    특정 상황에서 핵심 신념이 활성화되는 패턴을 기록하여
+    신념-감정-행동 연결을 자각하는 기법.
+  typical_targets:
+    - "core_beliefs"
+    - "schema_awareness"
+  good_for_focus:
+    - "relapse_prevention"
+  rag_tags:
+    - "core belief activation"
+    - "monitoring schema"
+
+- id: "develop_new_core_belief"
+  level: "intervention"
+  name: "대체 핵심 신념 개발"
+  description: >
+    비적응적 핵심 신념을 대체할 새로운 신념을 명료하게 언어화하도록 돕는 개입.
+  typical_targets:
+    - "core_beliefs"
+  good_for_focus:
+    - "belief_change"
+  rag_tags:
+    - "new core belief"
+    - "adaptive belief"
+
+- id: "strengthen_new_core_belief"
+  level: "technique"
+  name: "새 핵심 신념 강화"
+  description: >
+    새로운 핵심 신념을 강화하기 위해 증거 수집, 행동 실험, 사고 기록 등 다양한 자료를 활용하는 기법.
+  typical_targets:
+    - "core_beliefs"
+  good_for_focus:
+    - "maintenance"
+  rag_tags:
+    - "strengthen core belief"
+    - "evidence log"
+
+- id: "core_belief_worksheet"
+  level: "intervention"
+  name: "핵심 신념 워크시트"
+  description: >
+    핵심 신념을 명시하고, 반증 증거를 찾고, 새로운 신념을 작성하는
+    구조화된 워크시트 기반 개입.
+  typical_targets:
+    - "core_beliefs"
+  good_for_focus:
+    - "structured_belief_change"
+  rag_tags:
+    - "core belief worksheet"
+
+
+# ============================
+# Chapter 15 — Additional Techniques
+# ============================
+
+- id: "problem_solving"
+  level: "intervention"
+  name: "문제 해결 훈련"
+  description: >
+    문제 정의, 아이디어 생성, 해결책 평가, 실행 계획 등 체계적 문제 해결 단계를 훈련하는 기법.
+  typical_targets:
+    - "behavior_change"
+    - "coping_skills"
+  good_for_focus:
+    - "executive_function"
+  rag_tags:
+    - "problem solving"
+    - "skills training"
+
+- id: "decision_making"
+  level: "technique"
+  name: "의사결정 훈련"
+  description: >
+    가치와 결과를 비교하여 더욱 합리적 결정을 내리도록 돕는 기법.
+  typical_targets:
+    - "decision_making"
+  good_for_focus:
+    - "life_management"
+  rag_tags:
+    - "decision making"
+
+- id: "refocusing"
+  level: "technique"
+  name: "리포커싱"
+  description: >
+    반추, 걱정, 생각 과몰입을 줄이기 위해 주의를 전환하거나
+    다른 과제를 활용하는 기법.
+  typical_targets:
+    - "rumination"
+    - "anxiety"
+  good_for_focus:
+    - "attention_shift"
+  rag_tags:
+    - "refocusing"
+
+- id: "activity_chart"
+  level: "intervention"
+  name: "행동 및 기분 기록표"
+  description: >
+    하루 활동과 그때의 기분을 함께 기록하여
+    활동-감정의 상관을 파악하는 개입.
+  typical_targets:
+    - "behavioral_activation"
+    - "mood_tracking"
+  good_for_focus:
+    - "behavior_insight"
+  rag_tags:
+    - "activity chart"
+    - "mood behavior tracking"
+
+- id: "relaxation_training"
+  level: "technique"
+  name: "이완 훈련"
+  description: >
+    복식호흡, 근육 이완, 기타 신체적 이완 기술을 사용하여
+    불안과 긴장을 낮추는 기법.
+  typical_targets:
+    - "anxiety"
+    - "stress"
+  good_for_focus:
+    - "calming"
+  rag_tags:
+    - "relaxation"
+
+- id: "mindfulness_training"
+  level: "technique"
+  name: "마인드풀니스 훈련"
+  description: >
+    현재 순간에 비판단적으로 주의를 두는 연습을 통해
+    사고-감정 과몰입을 낮추는 기법.
+  typical_targets:
+    - "anxiety"
+    - "attention"
+  good_for_focus:
+    - "emotional_regulation"
+  rag_tags:
+    - "mindfulness"
+
+- id: "graded_task_assignment"
+  level: "intervention"
+  name: "점진적 과제 할당"
+  description: >
+    매우 쉬운 단계부터 점차 난이도를 높이는 방식으로
+    회피 감소와 자신감 향상을 목표로 하는 개입.
+  typical_targets:
+    - "avoidance"
+    - "behavioral_activation"
+  good_for_focus:
+    - "anxiety_exposure"
+  rag_tags:
+    - "graded task"
+    - "task assignment"
+
+- id: "exposure"
+  level: "intervention"
+  name: "노출 훈련"
+  description: >
+    회피 행동을 줄이기 위해 공포 자극에 반복·점진적으로 노출하는 기법.
+  typical_targets:
+    - "avoidance"
+    - "anxiety"
+  good_for_focus:
+    - "behavioral_activation"
+  rag_tags:
+    - "exposure therapy"
+
+- id: "role_playing"
+  level: "technique"
+  name: "역할극"
+  description: >
+    사회기술, 자신감, 대인행동 등을 연습하기 위해 여러 역할을 수행하는 기법.
+  typical_targets:
+    - "social_skills"
+    - "assertiveness"
+  good_for_focus:
+    - "interpersonal_effectiveness"
+  rag_tags:
+    - "role play"
+
+- id: "pie_technique"
+  level: "technique"
+  name: "파이 기법"
+  description: >
+    책임이나 원인을 파이 차트처럼 분배하여
+    비합리적 자기책임감을 조정하는 기법.
+  typical_targets:
+    - "guilt"
+    - "self_blame"
+  good_for_focus:
+    - "balanced_perspective"
+  rag_tags:
+    - "pie technique"
+
+- id: "self_comparison"
+  level: "technique"
+  name: "자기 비교"
+  description: >
+    자신과 타인을 비교하는 대신 과거의 ‘나’와 현재의 ‘나’를 비교하도록 유도하는 기법.
+  typical_targets:
+    - "self_criticism"
+  good_for_focus:
+    - "self-esteem"
+  rag_tags:
+    - "self comparison"
+
+- id: "credit_list"
+  level: "technique"
+  name: "크레딧 리스트"
+  description: >
+    일일 성취와 노력, 긍정적 행동을 기록하여
+    자기비하적 사고를 완화하는 기법.
+  typical_targets:
+    - "self_criticism"
+    - "depression"
+  good_for_focus:
+    - "positive_reinforcement"
+  rag_tags:
+    - "credit list"

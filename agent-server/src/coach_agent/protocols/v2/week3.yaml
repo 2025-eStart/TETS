@@ -1,0 +1,89 @@
+week: 3
+
+agenda: "소비 촉발 요인(Cues) 분석 & 자동사고–감정–행동의 연결 이해"
+
+description: >
+  이번 주차는 충동·습관적 소비가 ‘어떤 단서(cue)로 시작되는가’를 탐색하고,
+  그 단서가 만들어내는 사고–감정–행동 패턴을 명확하게 구조화하는 단계입니다.
+  하나의 대표 소비 사례를 실제로 해부하여,
+  사용자 스스로 자신의 자동사고와 감정, 그 결과로 이어진 행동을 연결지어
+  이해할 수 있도록 돕습니다.
+  이 단계는 이후의 인지 재구조화(Week 5~6)와 노출·반응예방(Week 8~9)의 핵심 기반이 됩니다.
+
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "cue_analysis_and_AT_emotion_linking"
+
+core_task:
+  description: >
+    하나의 소비 사례를 선택하고,
+    그 사례에서의 촉발 요인(cue), 자동사고, 감정, 행동 결과를
+    S → T → E → B CBT 구조에 맞춰 순서대로 설명한다.
+  tags:
+    - "trigger_identification"
+    - "behavioral_chain"
+    - "automatic_thought"
+    - "emotion_linking"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "selected_one_case"
+    required: true
+    description: "이번 주 분석할 대표 소비 사례를 하나 명확히 선택했다."
+
+  - id: "identified_cue"
+    required: true
+    description: "해당 소비를 촉발한 단서(cue)를 최소 1개 이상 언급했다."
+
+  - id: "identified_AT"
+    required: true
+    description: "그때 떠올랐던 자동사고를 1개 이상 언어화했다."
+
+  - id: "identified_emotion"
+    required: false
+    description: "그때 느낀 감정을 최소 1개 이상 표현했다."
+
+  - id: "explained_chain"
+    required: false
+    description: "단서 → 사고 → 감정 → 행동의 흐름을 자신의 말로 설명했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "behavioral_chain_analysis"
+  - "guided_discovery"
+  - "eliciting_automatic_thoughts"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "socratic_questioning"
+  - "normalization"
+  - "cue_identification"
+  - "timeline_exploration"
+
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘Cue–AT–Emotion–Behavior 연결 기록’을 연습해보세요.
+    소비 충동이 올라왔던 순간을 떠올려서,
+    어떤 단서가 있었는지, 어떤 생각과 감정이 따라왔는지를
+    간단히 표처럼 적어보면 좋아요.
+  examples:
+    - "Cue: 업무 스트레스 → AT: ‘이 정도면 나한테 보상할 만해’ → Emotion: 긴장 완화 → Behavior: 간식/쇼핑"
+    - "Cue: 지루함 → AT: ‘뭐라도 사면 기분 풀릴 듯’ → Emotion: 미묘한 불안 → Behavior: 앱 둘러보기"
+    - "Cue: SNS 비교 → AT: ‘나도 저거 있어야 할 것 같아’ → Emotion: 열등감 → Behavior: 즉시 구매"
