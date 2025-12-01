@@ -1,34 +1,44 @@
-# app/graph/general.py
-# general subgraph nodes, edges, builder for CBT Coach Agent (dummy version)
+# coach_agent/graph/general/build.py
 
 from langgraph.graph import StateGraph, START, END
-from langchain_core.messages import AIMessage
+
 from coach_agent.graph.state import State
+from coach_agent.graph.general.nodes import (
+    init_general_state,
+    general_greeting,
+    prepare_general_answer,
+    run_general_llm,
+)
+from coach_agent.graph.general.router import route_general
 
-def general_turn(state: State) -> dict:
-    """General 모드 한 턴: 자유 상담 더미 응답."""
-    content = (
-        "소비나 감정에 대해 편하게 이야기해줘요. "
-        "지금은 WEEKLY가 아닌 일반 상담 모드예요. (더미 응답)"
-    )
-    msg = AIMessage(content=content)
-
-    # 여기서는 exit은 항상 False 유지
-    return {
-        "messages": [msg],
-    }
 
 def build_general_subgraph():
-    """
-    GeneralSubGraph (더미 버전)
-
-    - 한 턴에 general_turn만 실행
-    - exit은 항상 False.
-    """
     builder = StateGraph(State)
-    builder.add_node("GeneralTurn", general_turn)
-    builder.add_edge(START, "GeneralTurn")
-    builder.add_edge("GeneralTurn", END)
 
-    app = builder.compile()
-    return app
+    # ====== Nodes ======
+    builder.add_node("Init", init_general_state)
+    builder.add_node("Greeting", general_greeting)
+    builder.add_node("PrepareQA", prepare_general_answer)
+    builder.add_node("RunLLM", run_general_llm)
+
+    # ====== Edges ======
+    builder.add_edge(START, "Init")
+
+    # Init 이후 분기: 안내 멘트 vs Q&A
+    builder.add_conditional_edges(
+        "Init",
+        route_general,
+        {
+            "GREETING": "Greeting",
+            "QA": "PrepareQA",
+        },
+    )
+
+    # 안내 멘트는 한 번 보여주고 바로 END → 다음 턴에 사용자 질문
+    builder.add_edge("Greeting", END)
+
+    # Q&A 흐름: 프롬프트 준비 → LLM→ END
+    builder.add_edge("PrepareQA", "RunLLM")
+    builder.add_edge("RunLLM", END)
+
+    return builder.compile()

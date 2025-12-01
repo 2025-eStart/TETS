@@ -193,3 +193,51 @@ def load_techniques_catalog() -> Dict[str, Dict[str, Any]]:
         catalog[tech_id] = normalized
 
     return catalog
+
+#-----------------------------
+# 3) 일반 FAQ 세션용, homework만 로드
+# -----------------------------
+def load_homework_block_for_week(week: int) -> str:
+    """
+    프로토콜 원문 텍스트에서
+    '# ===========================' / '# 4) Homework' 이후의 내용을
+    전부 잘라서 반환한다.
+
+    전제:
+      - 파일은 YAML이지만, 우리가 필요한 건 '# 4) Homework' 이후의
+        원문 텍스트(주석/마크다운) 그대로이다.
+      - '그 이후 전부가 homework' 라는 네 설명에 맞춰 구현.
+    """
+    path = folder / f"week{week}.yaml"
+
+    try:
+        raw_text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"[Protocol] Homework 파일을 찾을 수 없습니다: {path}")
+        return ""
+
+    lines = raw_text.splitlines(keepends=False)
+
+    in_homework = False
+    homework_lines: list[str] = []
+
+    HOMEWORK_MARKER = "# 4) Homework"
+    for line in lines:
+        # 시작 지점: '# 4) Homework'가 포함된 줄
+        if not in_homework and HOMEWORK_MARKER in line:
+            in_homework = True
+            # '이후의 내용 전부'가 homework이므로,
+            # 이 줄 바로 다음 줄부터 homework로 취급
+            continue
+
+        if in_homework:
+            # 네 설명 기준: 끝나는 지점은 정의 안 되어 있고,
+            # 파일 끝까지가 homework이므로 별도 종료 조건은 두지 않음
+            homework_lines.append(line)
+
+    if not homework_lines:
+        print(f"[Protocol] week={week} 프로토콜에서 Homework 섹션을 찾지 못했습니다.")
+        return ""
+
+    homework_text = "\n".join(homework_lines).strip()
+    return homework_text
