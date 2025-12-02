@@ -29,6 +29,8 @@ import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
 import kotlinx.coroutines.launch
+import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
+
 
 @Composable
 fun ChatScreen(
@@ -44,10 +46,11 @@ fun ChatScreen(
     val sessionTitle by viewModel.sessionTitle.collectAsState()
     val sessionGoals by viewModel.sessionGoals.collectAsState()
     val historyList by viewModel.historyList.collectAsState()
-
-    // 서랍 상태 관리 변수 추가
+    // 서랍 상태 관리 변수
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    // 로딩 문구
+    val loadingStage by viewModel.loadingStage.collectAsState()
 
     ModalNavigationDrawer(
         drawerState = drawerState, // 상태 연결 필수
@@ -98,6 +101,7 @@ fun ChatScreen(
                 innerPadding = innerPadding,
                 messages = messages,
                 isLoading = isLoading,
+                loadingStage = loadingStage,
                 isSessionEnded = isSessionEnded,
                 sessionTitle = sessionTitle,
                 sessionGoals = sessionGoals,
@@ -115,6 +119,7 @@ fun ChatScreenContent(
     innerPadding: PaddingValues,
     messages: List<ChatMessage>,
     isLoading: Boolean,
+    loadingStage: LoadingStage?,
     isSessionEnded: Boolean,
     sessionTitle: String,
     sessionGoals: List<String>,
@@ -141,6 +146,7 @@ fun ChatScreenContent(
         MessageList(
             messages = messages,
             isLoading = isLoading,
+            loadingStage = loadingStage,
             modifier = Modifier.weight(1f)
         )
         UserInput(
@@ -273,6 +279,7 @@ fun UserInput(
 fun MessageList(
     messages: List<ChatMessage>,
     isLoading: Boolean,
+    loadingStage: LoadingStage?,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -306,7 +313,7 @@ fun MessageList(
         // 2.  로딩 중일 때만 보여주는 가짜 메시지(애니메이션)
         if (isLoading) {
             item {
-                GeneratingBubble()
+                GeneratingBubble(loadingStage = loadingStage)
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }

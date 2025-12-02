@@ -146,6 +146,7 @@ fun HistoryDetailScreen(
                         MessageList(
                             messages = messages,
                             isLoading = isLoading,
+                            loadingStage = null,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
