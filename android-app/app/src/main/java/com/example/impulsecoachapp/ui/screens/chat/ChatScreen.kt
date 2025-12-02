@@ -65,7 +65,7 @@ fun ChatScreen(
 
                 // [NEW CHAT 버튼]
                 NavigationDrawerItem(
-                    label = { Text("✨ 새로운 상담 시작하기") },
+                    label = { Text("✨ 새 FAQ 시작하기") },
                     selected = false,
                     onClick = {
                         viewModel.onNewSessionClick()

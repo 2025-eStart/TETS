@@ -85,7 +85,7 @@ class HistoryDetailViewModel @Inject constructor(
             val result = repository.startSession(forceNew = true)
 
             result.onFailure { e ->
-                _errorMessage.value = "새로운 상담을 시작하지 못했습니다: ${e.message}"
+                _errorMessage.value = "새 FAQ를 시작하지 못했습니다: ${e.message}"
             }
 
             // 새 세션이 생겼으니 목록을 최신 상태로 갱신

@@ -1,4 +1,3 @@
-//data.repository.ActualChatRepository
 package com.example.impulsecoachapp.data.repository
 
 import com.example.impulsecoachapp.api.ApiService
@@ -22,24 +21,25 @@ class ActualChatRepository @Inject constructor(
     ): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
 
+        // ✅ [수정됨] 오타 수정 (failrue -> failure)
+        if (userId.isBlank()){
+            return Result.failure(IllegalStateException("유저 ID가 생성되지 않았습니다."))
+        }
+
         return try {
-            // 1. 방 번호가 없으면 서버에 요청 (Lazy Initialization)
             if (sessionManager.currentThreadId == null) {
                 initializeSession(userId, forceNew = false)
             }
 
-            // 2. 채팅 요청 준비
             val request = ChatRequest(
                 userId = userId,
-                threadId = sessionManager.currentThreadId!!, // 위에서 초기화 보장됨
+                threadId = sessionManager.currentThreadId!!,
                 message = text,
                 sessionType = sessionManager.currentSessionType
             )
 
-            // 3. 채팅 API 호출
             val response = apiService.sendChatMessage(request)
 
-            // 4. 응답 변환 (DTO -> Domain Model)
             val chatTurn = ChatTurn(
                 assistantMessage = ChatMessage.GuideMessage(response.reply),
                 isSessionEnded = response.isEnded,
@@ -52,7 +52,6 @@ class ActualChatRepository @Inject constructor(
 
         } catch (e: Exception) {
             e.printStackTrace()
-            // 필요시: sessionManager.clearSession()
             Result.failure(e)
         }
     }
@@ -61,15 +60,16 @@ class ActualChatRepository @Inject constructor(
     suspend fun startSession(forceNew: Boolean = false): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
 
+        // ✅ [추천] 여기에도 안전장치를 추가하세요 (앱 켤 때 실행되는 곳이라 더 중요함)
+        if (userId.isBlank()){
+            return Result.failure(IllegalStateException("유저 ID가 생성되지 않았습니다."))
+        }
+
         return try {
-            // 1. 세션 초기화 로직 수정
-            // 방이 없거나(null) OR 강제 리셋(forceNew)이면 초기화 요청
             if (sessionManager.currentThreadId == null || forceNew) {
-                // 여기서 forceNew 값을 넘겨줘야 서버가 새 방을 줍니다!
                 initializeSession(userId, forceNew = forceNew)
             }
 
-            // 2. 봇 깨우기 메시지 전송
             val request = ChatRequest(
                 userId = userId,
                 threadId = sessionManager.currentThreadId!!,
@@ -79,7 +79,6 @@ class ActualChatRepository @Inject constructor(
 
             val response = apiService.sendChatMessage(request)
 
-            // 3. 봇의 첫 응답(인사말) 반환
             val chatTurn = ChatTurn(
                 assistantMessage = ChatMessage.GuideMessage(response.reply),
                 isSessionEnded = response.isEnded,
@@ -90,33 +89,31 @@ class ActualChatRepository @Inject constructor(
             Result.success(chatTurn)
 
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.failure(e)
         }
     }
 
-    // 중복 제거 및 initializeSession 재사용
     override suspend fun startNewGeneralSession(): String {
         val userId = deviceIdManager.getDeviceId()
-
-        // 이미 만들어둔 헬퍼 함수를 재사용하여 코드를 깔끔하게 유지 (DRY 원칙)
+        // 여기는 initializeSession 내부에서 호출되므로 별도 처리 안 해도 됨 (혹은 initializeSession 안에서 검사해도 됨)
         val initRes = initializeSession(userId, forceNew = true)
-
         return initRes.displayMessage
     }
 
-    // 현재 세션 타입 조회
     override fun getCurrentSessionType(): String {
         return sessionManager.currentSessionType
     }
 
-    // 현재 진행 중인 threadId 조회용 (없으면 null)
     override fun getCurrentThreadId(): String? {
         return sessionManager.currentThreadId
     }
 
-    // ViewModel에서 호출할 과거 기록 가져오기 함수
     suspend fun getHistoryList(): Result<List<SessionSummary>> {
         val userId = deviceIdManager.getDeviceId()
+        // ✅ [선택] 목록 가져오기 실패 방지
+        if (userId.isBlank()) return Result.failure(IllegalStateException("No User ID"))
+
         return try {
             val list = apiService.getSessions(userId)
             Result.success(list)
@@ -126,18 +123,17 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-    // 서랍 상세 조회
     suspend fun getSessionHistory(threadId: String): Result<List<ChatMessage>> {
         val userId = deviceIdManager.getDeviceId()
+        if (userId.isBlank()) return Result.failure(IllegalStateException("No User ID"))
+
         return try {
             val responseList = apiService.getSessionHistory(userId, threadId)
-
-            // DTO -> Domain Model(ChatMessage) 변환
             val chatMessages = responseList.map { item ->
                 when (item.role.lowercase()) {
                     "user", "human" -> ChatMessage.UserResponse(item.text)
                     "ai", "assistant", "bot" -> ChatMessage.GuideMessage(item.text)
-                    else -> ChatMessage.GuideMessage(item.text) // 알 수 없는 값은 봇 메시지 처리
+                    else -> ChatMessage.GuideMessage(item.text)
                 }
             }
             Result.success(chatMessages)
@@ -147,22 +143,20 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-    // 내부 헬퍼 함수: /session/init 호출 및 매니저 업데이트
-    // (private으로 숨김)
     private suspend fun initializeSession(userId: String, forceNew: Boolean): InitSessionResponse {
         val request = InitSessionRequest(userId = userId, forceNew = forceNew)
         val response = apiService.initSession(request)
-
-        // 받아온 방 번호와 타입을 메모리에 저장
         sessionManager.updateSession(response.threadId, response.sessionType)
-
         return response
     }
 
-
-    // 서버에게 현재 스레드 결정 맡기기
     suspend fun initOrRestoreSession(forceNew: Boolean = false): Result<InitSessionResponse> {
         val userId = deviceIdManager.getDeviceId()
+
+        // ✅ [추천] 앱 켜자마자 실행되는 함수라 여기도 필수
+        if (userId.isBlank()){
+            return Result.failure(IllegalStateException("유저 ID가 생성되지 않았습니다."))
+        }
 
         return try {
             val req = InitSessionRequest(
@@ -170,13 +164,10 @@ class ActualChatRepository @Inject constructor(
                 forceNew = forceNew
             )
             val res = apiService.initSession(req)
-
-            // 서버가 정한 thread_id / session_type을 로컬에 저장
             sessionManager.updateSession(
                 res.threadId,
                 res.sessionType
             )
-
             Result.success(res)
         } catch (e: Exception) {
             e.printStackTrace()
