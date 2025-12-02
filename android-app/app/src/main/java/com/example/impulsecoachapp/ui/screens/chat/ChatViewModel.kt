@@ -167,7 +167,7 @@ class ChatViewModel @Inject constructor(
 
             // 1. 화면 비우기
             _messages.value = emptyList()
-            _sessionTitle.value = "새로운 상담"
+            _sessionTitle.value = "새 FAQ"
 
             // 2. 강제 새 방 배정 (forceNew=true)
             // 내부적으로 repository.startSession(true) 호출
