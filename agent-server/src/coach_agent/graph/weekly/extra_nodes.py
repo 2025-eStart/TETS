@@ -55,21 +55,22 @@ def should_end_session(state: State) -> Dict[str, Any]:
         turn_count = 0
 
     constraints: Dict[str, Any] = dict(state.constraints or {})
-    min_turns = constraints.get("min_turns", 3)
+    # min_turns = constraints.get("min_turns", 3)
     max_turns = constraints.get("max_turns", 12)
 
     exit_policy_raw = constraints.get("exit_policy")
     exit_policy: Dict[str, Any] = dict(exit_policy_raw or {})
 
     require_all_criteria = exit_policy.get("require_all_criteria", True)
-    require_min_turns = exit_policy.get("require_min_turns", True)
+    # require_min_turns = exit_policy.get("require_min_turns", True)
     require_llm_confirmation = exit_policy.get("require_llm_confirmation", False)
 
     print(f"[should_end_session] turn_count={turn_count}, "
-          f"min_turns={min_turns}, max_turns={max_turns}")
+          # f"min_turns={min_turns}, max_turns={max_turns}"
+          )
     print(f"[should_end_session] exit_policy="
           f"(require_all_criteria={require_all_criteria}, "
-          f"require_min_turns={require_min_turns}, "
+          # f"require_min_turns={require_min_turns}, "
           f"require_llm_confirmation={require_llm_confirmation})")
 
     # ---- 2. Max 턴 초과 시: 강제 종료 ----
@@ -108,11 +109,12 @@ def should_end_session(state: State) -> Dict[str, Any]:
     print(f"[should_end_session] criteria_ok={criteria_ok}, "
           f"all_required_met={all_required_met}, any_required_met={any_required_met}")
 
+    '''
     # ---- 4. min_turns 조건 ----
     if require_min_turns and turn_count < min_turns:
         print("[should_end_session] min_turns 미달 → 종료 보류, phase 그대로(COUNSEL)")
         return {}
-
+    '''
     # ---- 5. (옵션) LLM 확인 조건 ----
     if require_llm_confirmation:
         llm_suggest = getattr(state, "llm_suggest_end_session", False)

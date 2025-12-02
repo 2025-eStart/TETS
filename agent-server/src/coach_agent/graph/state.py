@@ -75,7 +75,7 @@ class State(BaseModel):
     constraints: Dict[str, Any] = Field(
         default_factory=dict,
         description=(
-            "세션 제약 조건. 예: {'max_turns': 12, 'min_turns': 4, "
+            "세션 제약 조건. 예: {'min_turns': 4, "
             "'exit_policy': {...}} 등."
         ),
     )

@@ -12,6 +12,8 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 from pinecone import Pinecone, ServerlessSpec
 
+# RAG 필요성 판단을 위해 RAG 검색 on/off 위한 플래그
+RAG_ENABLED = os.getenv("ENABLE_RAG", "false").lower() == "true"
 
 # ---- 내부 헬퍼: 임베딩 & 벡터스토어 초기화 ----
 
