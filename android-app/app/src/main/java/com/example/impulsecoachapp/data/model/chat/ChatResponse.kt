@@ -14,10 +14,10 @@ data class InitSessionResponse(
 // 2. [응답] 채팅 응답 결과
 data class ChatResponse(
     @SerializedName("reply") val reply: String,
-    @SerializedName("is_ended") val isEnded: Boolean,
-    @SerializedName("current_week") val currentWeek: Int,
-    @SerializedName("week_title") val weekTitle: String,
-    @SerializedName("week_goals") val weekGoals: List<String>
+    @SerializedName("is_ended") val isEnded: Boolean = false,
+    @SerializedName("current_week") val currentWeek: Int = 1,
+    @SerializedName("week_title") val weekTitle: String? = null,
+    @SerializedName("week_goals") val weekGoals: List<String>? = emptyList()
 )
 
 // 3. 서랍 목록용 데이터 모델

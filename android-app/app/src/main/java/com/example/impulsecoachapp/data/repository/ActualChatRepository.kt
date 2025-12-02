@@ -45,7 +45,7 @@ class ActualChatRepository @Inject constructor(
                 isSessionEnded = response.isEnded,
                 currentWeek = response.currentWeek,
                 weekTitle = response.weekTitle,
-                weekGoals = response.weekGoals
+                weekGoals = response.weekGoals ?: emptyList(),
             )
 
             Result.success(chatTurn)
@@ -85,7 +85,7 @@ class ActualChatRepository @Inject constructor(
                 isSessionEnded = response.isEnded,
                 currentWeek = response.currentWeek,
                 weekTitle = response.weekTitle,
-                weekGoals = response.weekGoals
+                weekGoals = response.weekGoals ?: emptyList()
             )
             Result.success(chatTurn)
 
@@ -157,5 +157,30 @@ class ActualChatRepository @Inject constructor(
         sessionManager.updateSession(response.threadId, response.sessionType)
 
         return response
+    }
+
+
+    // 서버에게 현재 스레드 결정 맡기기
+    suspend fun initOrRestoreSession(forceNew: Boolean = false): Result<InitSessionResponse> {
+        val userId = deviceIdManager.getDeviceId()
+
+        return try {
+            val req = InitSessionRequest(
+                userId = userId,
+                forceNew = forceNew
+            )
+            val res = apiService.initSession(req)
+
+            // 서버가 정한 thread_id / session_type을 로컬에 저장
+            sessionManager.updateSession(
+                res.threadId,
+                res.sessionType
+            )
+
+            Result.success(res)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
     }
 }

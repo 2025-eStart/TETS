@@ -1,6 +1,7 @@
 // ui.screens.ChatViewModel.kt
 package com.example.impulsecoachapp.ui.screens.chat
 
+import android.media.Image
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.impulsecoachapp.data.model.chat.SessionSummary
@@ -14,6 +15,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.collections.plus
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.impulsecoachapp.R
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -62,39 +76,66 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
 
-            // 1) 현재 진행 중인 threadId가 있는지 확인
-            val threadId = repository.getCurrentThreadId()
+            // 1) 서버에게 현재 세션/스레드 상태 물어보기
+            val initResult = repository.initOrRestoreSession(forceNew = false)
 
-            if (threadId != null) {
-                // ✅ 이전에 진행 중이던 세션이 있다 → 서버에서 해당 스레드의 전체 로그를 가져온다
-                val historyResult = repository.getSessionHistory(threadId)
+            initResult.onSuccess { initRes ->
+                val threadId = initRes.threadId
 
-                historyResult.onSuccess { list ->
-                    // 전체 대화를 그대로 복원
-                    _messages.value = list
-
-                    // (옵션) 세션 메타데이터도 같이 복원하고 싶다면:
-                    // - /sessions API에서 threadId 매칭해서 제목/주차/목표를 찾거나
-                    // - getSessionHistory 응답에 메타데이터를 추가해서 받아오면 됨
-                    // 여기서는 우선 메시지 복원만 처리
-
-                }.onFailure { e ->
-                    // 복원 실패 시: 안내 메시지 + 새 세션 시작으로 폴백
-                    _messages.value = listOf(
-                        ChatMessage.GuideMessage("이전 상담 내역을 불러오지 못했어요. 새로운 상담을 시작할게요.")
-                    )
-                    // 🔁 강제 새 세션 시작
-                    processSessionStart(isReset = true)
+                // (선택) 상단 타이틀 업데이트
+                _currentWeek.value = initRes.currentWeek
+                _sessionTitle.value = when (initRes.sessionType) {
+                    "WEEKLY" -> "${initRes.currentWeek}주차 상담"
+                    else -> "일반 상담"
                 }
 
-            } else {
-                // ✅ 진행 중인 스레드가 없음 → 기존 로직대로 새 세션(or 기존 서버 세션) 시작
-                processSessionStart(isReset = false)
+                // 2) 해당 스레드의 과거 메시지 전체 가져오기
+                val historyResult = repository.getSessionHistory(threadId)
+
+                historyResult.onSuccess { history ->
+                    if (history.isNotEmpty()) {
+                        // ✅ [핵심] 과거 대화가 존재하는 경우:
+                        //    → 그 대화만 화면에 복원하고, __init__ 안 보냄
+                        _messages.value = history
+
+                        // 여기서는 “AI가 이미 질문을 던졌고, 사용자가 아직 답 안 한 상태”를
+                        // 포함해서, 어떤 경우든 "대화는 이미 시작된 상태"라고 보고
+                        // 추가 init 호출 없이 사용자가 바로 이어서 입력하게 둔다.
+
+                    } else {
+                        // ✅ 완전히 새로운 세션(히스토리 없음) → 기존처럼 첫 인사 받기
+                        val firstTurnResult = repository.startSession(forceNew = false)
+
+                        firstTurnResult.onSuccess { turn ->
+                            applyChatTurn(turn)
+                        }.onFailure {
+                            _messages.value = listOf(
+                                ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
+                            )
+                        }
+                    }
+                }.onFailure {
+                    // 히스토리 로드 실패 시에도 최소한 첫 턴은 띄워주기
+                    val firstTurnResult = repository.startSession(forceNew = false)
+
+                    firstTurnResult.onSuccess { turn ->
+                        applyChatTurn(turn)
+                    }.onFailure {
+                        _messages.value = listOf(
+                            ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
+                        )
+                    }
+                }
+            }.onFailure {
+                _messages.value = listOf(
+                    ChatMessage.GuideMessage("세션 정보를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.")
+                )
             }
 
             _isLoading.value = false
         }
     }
+
 
     /* 과거 이어하기 함수
     private fun resumeSession() {
@@ -198,5 +239,47 @@ class ChatViewModel @Inject constructor(
     // Toast 메시지 보여준 후 닫기용
     fun clearToastMessage() {
         _toastMessage.value = null
+    }
+}
+
+// ChatScreen.kt 파일 하단이나 ChatBubble 근처에 추가
+
+@Composable
+fun GeneratingBubble() {
+    val infiniteTransition = rememberInfiniteTransition(label = "loading")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        // 봇 아이콘 (기존 ChatBubble과 일관성 유지)
+        Image(
+            painter = painterResource(id = R.drawable.ic_chatbot),
+            contentDescription = "Generating",
+            modifier = Modifier
+                .size(28.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // 텍스트
+        Text(
+            text = "루시가 여행자님을 위해서 열심히 고민하는 중이에요! 조금만 기다려 주세요🦊",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .alpha(alpha) // 글자 투명도 애니메이션 적용
+        )
     }
 }
