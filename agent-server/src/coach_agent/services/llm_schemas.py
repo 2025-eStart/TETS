@@ -29,6 +29,14 @@ class ProgressUpdate(BaseModel):
         description="내담자 프로필에 추가할 새로운 키워드."
     )
 
+class CriterionEvaluation(BaseModel):
+    criterion_id: str = Field(..., description="기준 ID (예: 'min_turns', 'insight_sufficient')")
+    met: bool = Field(..., description="이번 턴까지 이 기준을 충족했는지 여부")
+    reason: Optional[str] = Field(
+        default=None,
+        description="선택 사항: True/False 판단 근거"
+    )
+
 class CounselorTurn(BaseModel):
     response_text: str = Field(
         description="사용자에게 전달할 실제 상담 메시지."
@@ -48,10 +56,13 @@ class CounselorTurn(BaseModel):
         description="이번 턴으로 인해 session_progress에 반영해야 할 변화 정보."
     )
     
-    criteria_evaluations: Optional[List[dict]] = Field(
-        default=[],
-        description="성공 기준 달성 여부 평가 (필요 시 구체적 모델로 변경 권장)"
-    )
+    criteria_evaluations: List[CriterionEvaluation] = Field(
+        default_factory=list,
+        description=(
+            "이번 턴까지의 success_criteria 달성 여부 평가."
+            "각 항목의 criterion_id는 state.success_criteria에 정의된 id 중 하나여야 한다."
+        )       
+    )    
 
     suggest_end_session: bool = Field(
         default=False,
@@ -62,6 +73,8 @@ class CounselorTurn(BaseModel):
         default=False,
         description="세션 목표가 달성되었는지 여부"
     )
+
+
 
 
 class TechniqueSelection(BaseModel):

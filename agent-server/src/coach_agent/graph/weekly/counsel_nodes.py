@@ -439,8 +439,26 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
         print("[applier] selected_technique_id가 없습니다. → 스킵")
         return {}
 
-    # 1) 최근 메시지 직렬화
+    # 1-1) 최근 메시지 직렬화
     recent_messages = _serialize_recent_messages(state.messages)
+    # 1-2) llm friendly하게 기준 가공
+    success_criteria = state.success_criteria or []
+    criteria_status = dict(state.criteria_status or {})
+
+    criteria_for_prompt = []
+    for c in success_criteria:
+        cid = c.get("id")
+        if not cid:
+            continue
+        criteria_for_prompt.append(
+            {
+                "criterion_id": cid,                     # id → criterion_id 로 정규화
+                "required": bool(c.get("required", False)),
+                "description": c.get("description", ""),
+                "current_met": bool(criteria_status.get(cid, False)),  # ★ 여기가 추가 포인트
+            }
+        )
+
 
     # 2) System + Human 메시지 구성
     system_content = (
@@ -459,7 +477,23 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
         f"- 이번 턴의 micro_goal: {state.micro_goal}\n"
         f"- 지금까지의 상담 요약(summary): {state.summary}\n"
         f"- 최근 대화 요약(recent_messages):\n{recent_messages}\n"
+        f"- 성공 기준 정의 목록(success_criteria): {criteria_for_prompt}\n"
+        "각 success_criterion 은 다음 필드를 가진다:\n"
+        "  - criterion_id: 기준 ID (예: 'understood_CBT_model')\n"
+        "  - required: 이 기준이 이번 주차에서 필수인지 여부\n"
+        "  - description: 이 기준이 의미하는 바에 대한 설명\n"
+        "  - current_met: 지금까지의 대화를 기준으로 이미 충족된 것으로 간주되는지 여부\n\n"
+        "너의 작업:\n"
+        "1) response_text: 이번 턴에 사용자에게 전달할 실제 상담 메시지를 작성한다.\n"
+        "2) criteria_evaluations: 위 success_criteria 목록에 있는 각 기준에 대해,\n"
+        "   이번 턴까지의 대화를 모두 고려했을 때 met(True/False)을 판단해 리스트로 채운다.\n"
+        "   - criterion_id는 success_criteria 안의 criterion_id 중 하나여야 한다.\n"
+        "   - 이미 current_met=True 였다면, 특별한 역행이 없다면 True 유지.\n"
+        "   - 이번 턴에서 새로 충족했다고 판단되면 met=True로 설정.\n"
+        "   - 아직 충족되지 않았다면 met=False로 설정.\n"
+        "   - reason 필드는 선택 사항이지만 가능하면 간단히 작성.\n"
     )
+        
 
     last_user_input = ""
     if state.messages:

@@ -44,11 +44,14 @@ def build_main_graph(weekly_app, general_app, checkpointer=None):
             "GENERAL": "GeneralSubGraph",
         }
     )
-    builder.add_edge("WeeklySubGraph", "PersistTurn")
-    builder.add_edge("GeneralSubGraph", "PersistTurn")
+    builder.add_edge("WeeklySubGraph", "UpdateProgress")
+    builder.add_edge("GeneralSubGraph", "UpdateProgress")
+    # persistTurn node 삭제 -> 저장은 FastAPI 서버에서
     # SubGraph 실행 후 바로 END
-    builder.add_edge("PersistTurn","UpdateProgress")
     builder.add_edge("UpdateProgress", END)
 
+    # langgraph API (langgraph dev servver)로 테스트 시 사용자정의 checkpointer 사용 금지
+    # app = builder.compile() 
     app = builder.compile(checkpointer=firestore_checkpointer)
+    
     return app

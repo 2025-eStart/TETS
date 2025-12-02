@@ -21,6 +21,7 @@ def persist_turn_node(state: State) -> Dict[str, Any]:
         return {}
 
     try:
+        print(f"[persist_turn_node] 저장 메시지:\n{state.messages}\n")
         persist_turn(
             user_id=state.user_id,
             week=state.current_week,

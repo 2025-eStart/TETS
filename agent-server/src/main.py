@@ -213,11 +213,35 @@ async def chat_endpoint(req: ChatRequest):
         # 만약 메시지가 비어있다면 디버깅용 메시지
         if not last_ai_msg:
             last_ai_msg = "(응답 없음)"
-        
-        # week_title: 프로토콜의 agenda 사용
-        week_title = getattr(final_state, "agenda", None) or "상담"
+            
+        # ---- ✅ 여기서부터: 그래프가 "정상 종료된 경우"에만 DB에 저장 ----
+        # current_week은 그래프가 결정한 값을 쓰는 게 제일 정확함
+        current_week = getattr(final_state, "current_week", 1)
 
-        # week_goals: success_criteria에서 description(or title)만 뽑아서 리스트로
+        # __init__ message는 저장하지 않기
+        # 4-1. user 메시지 저장
+        user_text = req.message or ""
+        if user_text.strip() != "__init__":
+            REPO.save_message(
+                user_id=req.user_id,
+                session_type=req.session_type,
+                week=current_week,
+                role="user",
+                text=user_text,
+            )
+
+        # 4-2. AI 메시지 저장
+        # "(응답 없음)" 같은 디버그 문구는 안 남기고 싶으면 조건 걸기
+        if last_ai_msg and last_ai_msg != "(응답 없음)":
+            REPO.save_message(
+                user_id=req.user_id,
+                session_type=req.session_type,
+                week=current_week,
+                role="assistant",
+                text=last_ai_msg,
+            )
+
+        week_title = getattr(final_state, "agenda", None) or "상담"
         raw_criteria = getattr(final_state, "success_criteria", []) or []
         week_goals = [
             c.get("description") or c.get("label") or c.get("id", "")
@@ -228,10 +252,19 @@ async def chat_endpoint(req: ChatRequest):
         return ChatResponse(
             reply=last_ai_msg,
             is_ended=getattr(final_state, "exit", False),
-            current_week=getattr(final_state, "current_week", 1),
+            current_week=current_week,
             week_title=week_title,
-            week_goals=week_goals
+            week_goals=week_goals,
         )
+
+    except Exception as e:
+        print(f"ERROR executing graph: {e}")
+        import traceback
+        traceback.print_exc()
+        # ❗ 여기서는 save_message를 전혀 호출하지 않았으므로
+        #    이번 턴의 user/assistant 아무것도 DB에 남지 않음.
+        raise HTTPException(status_code=500, detail=str(e))
+            
 
     except Exception as e:
         print(f"ERROR executing graph: {e}")
