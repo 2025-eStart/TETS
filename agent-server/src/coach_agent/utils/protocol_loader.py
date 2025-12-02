@@ -87,12 +87,12 @@ def load_protocol_spec(week: int) -> Dict[str, Any]:
     # 5) 제약 조건
     constraints_raw = _safe_dict(raw.get("constraints"))
     # 기본값 보정
-    min_turns = constraints_raw.get("min_turns", 3)
+    # min_turns = constraints_raw.get("min_turns", 3)
     max_turns = constraints_raw.get("max_turns", 12)
     exit_policy = _safe_dict(constraints_raw.get("exit_policy"))
 
     constraints: Dict[str, Any] = {
-        "min_turns": min_turns,
+        # "min_turns": min_turns,
         "max_turns": max_turns,
         "exit_policy": exit_policy,
     }
