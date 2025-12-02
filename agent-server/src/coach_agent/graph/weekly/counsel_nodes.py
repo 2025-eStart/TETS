@@ -7,9 +7,27 @@ from coach_agent.graph.state import State
 from coach_agent.prompts.identity import PERSONA
 from coach_agent.services.llm import TECHNIQUE_SELECTOR, LLM_CHAIN, CHAT_LLM
 from coach_agent.utils.protocol_loader import load_techniques_catalog
-from coach_agent.rag.search import search_cbt_corpus  # ← 네 RAG 모듈에 맞게 import 수정
+from coach_agent.rag.search import search_cbt_corpus
+import time
+import functools
 
-# === summarizing helpers ===
+# === 응답 시간 측정 helper ===
+def measure_time(func):
+    """함수 실행 시간을 측정하여 출력하는 데코레이터"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        print(f"\n⏱️ [Start] Node: {func.__name__}")
+        try:
+            result = func(*args, **kwargs)
+            return result
+        finally:
+            end_time = time.time()
+            duration = end_time - start_time
+            print(f"⏱️ [End] Node: {func.__name__} took {duration:.4f} seconds\n")
+    return wrapper
+
+# === summarizing helper ===
 def _serialize_recent_messages(
     messages: List[BaseMessage],
     max_turns: int = 6,
@@ -48,84 +66,9 @@ def _serialize_recent_messages(
 
     return "\n".join(lines)
 
-def _summarize_conversation(state: State, new_ai_message: AIMessage) -> str:
-    """
-    지금까지의 상담 흐름을 bullet 포인트 요약으로 업데이트한다.
-
-    - 기존 state.summary(있으면)를 기반으로 “업데이트”하는 형태
-    - 새로 추가된 최근 대화 + 이번 턴 AI 메시지를 참고해서 3~6개의 bullet로 요약
-    - state.messages는 절대 삭제/수정하지 않는다. (trim only in prompt)
-    """
-    existing_summary = (state.summary or "").strip()
-
-    # 요약에 참고할 최근 히스토리 + 이번 턴 AI 메시지
-    history_msgs: List[BaseMessage] = list(state.messages[-6:])
-    history_msgs.append(new_ai_message)
-
-    history_lines: List[str] = []
-    for msg in history_msgs:
-        role = getattr(msg, "type", "")
-        if role == "human":
-            r = "사용자"
-        elif role == "ai":
-            r = "상담가"
-        else:
-            r = role or "기타"
-
-        content = msg.content
-        if isinstance(content, list):
-            text_parts = []
-            for item in content:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    text_parts.append(item.get("text", ""))
-            content = "\n".join(text_parts)
-
-        history_lines.append(f"{r}: {content}")
-
-    history_text = "\n".join(history_lines)
-
-    if existing_summary:
-        human_prompt = (
-            "다음은 지금까지의 상담 요약이에요:\n"
-            f"{existing_summary}\n\n"
-            "그리고 아래는 이번 턴 포함 최근 대화 일부예요:\n"
-            f"{history_text}\n\n"
-            "위 정보를 모두 반영해서, 상담 전체 흐름을 3~6개의 bullet 포인트로 한국어로 업데이트해줘.\n"
-            "각 bullet은 '- '로 시작하는 한 줄 문장으로 써줘.\n"
-            "- 내담자의 핵심 고민\n"
-            "- 이번 주차 목표와 현재까지의 진행 상황\n"
-            "- 지금까지 사용한 CBT 기법/전략\n"
-            "- 내담자가 얻은 인사이트 또는 행동 계획\n"
-            "이 네 가지 축이 드러나도록 요약해줘."
-        )
-    else:
-        human_prompt = (
-            "아래 상담 대화를 보고, 상담 흐름의 핵심을 3~6개의 bullet 포인트로 한국어로 요약해줘.\n"
-            "각 bullet은 '- '로 시작하는 한 줄 문장으로 써줘.\n"
-            "- 내담자의 핵심 고민\n"
-            "- 이번 주차에서 다룬 내용\n"
-            "- 사용한 CBT 기법/전략\n"
-            "- 앞으로의 행동/과제 방향\n"
-            "이 네 가지 축이 드러나도록 정리해줘.\n\n"
-            f"[대화]\n{history_text}"
-        )
-
-    messages_for_llm: List[BaseMessage] = [
-        SystemMessage(
-            content=(
-                "너는 CBT 기반 상담 세션의 내용을 요약하는 어시스턴트다.\n"
-                "사용자와 상담가의 대화를 보고, 상담 흐름을 이해하기 쉬운 bullet 포인트로 정리한다."
-            )
-        ),
-        HumanMessage(content=human_prompt),
-    ]
-
-    summary_ai = CHAT_LLM.invoke(messages_for_llm)
-    # 여기서도 summary_ai.content가 list일 가능성은 거의 없지만, 방어적으로 처리해도 됨
-    return summary_ai.content if isinstance(summary_ai.content, str) else str(summary_ai.content)
-
 # === counsel_prepare ===
 #helper
+@measure_time
 def _select_candidate_techniques(state: State) -> List[str]:
     """
     이번 턴에서 LLM이 선택할 수 있는 technique 후보 리스트 생성.
@@ -155,6 +98,7 @@ def _select_candidate_techniques(state: State) -> List[str]:
     return candidates
 
 #helper
+@measure_time
 def _build_rag_queries(state: State) -> List[str]:
     """
     CBT/CBD RAG 검색을 위한 쿼리 문자열을 구성.
@@ -186,6 +130,7 @@ def _build_rag_queries(state: State) -> List[str]:
     return queries
 
 #helper
+@measure_time
 def _retrieve_rag_snippets(queries: List[str], top_k_per_query: int = 4, max_snippets: int = 12) -> List[str]:
     """
     Pinecone 기반 CBT/CBD RAG를 실제로 호출해서 텍스트 스니펫을 가져온다.
@@ -228,6 +173,7 @@ def _retrieve_rag_snippets(queries: List[str], top_k_per_query: int = 4, max_sni
     return snippets[:max_snippets]
 
 #node
+@measure_time
 def counsel_prepare(state: State) -> Dict[str, Any]:
     """
     Dynamic COUNSEL 루프에서 매 턴 시작 직전에 실행되는 준비 노드.
@@ -298,6 +244,7 @@ def _serialize_recent_messages(messages: List[BaseMessage], max_turns: int = 6) 
     return recent
 
 #node
+@measure_time
 def llm_technique_selector(state: State) -> Dict[str, Any]:
     print("\n=== [DEBUG] select_technique_llm Node Started ===")
 
@@ -480,6 +427,7 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
 
 # ===== applier ======
 #node
+@measure_time
 def llm_technique_applier(state: State) -> Dict[str, Any]:
     print("\n=== [DEBUG] llm_technique_applier Node Started ===")
 
@@ -609,11 +557,31 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
     }
     
 # ===== summarizer ======
+@measure_time
 def summarize_and_filter_message(state: State) -> Dict[str, Any]:
     """
     [노드] 대화 내역이 길어지면 요약하고 State에서 메시지를 삭제하여 컨텍스트 윈도우를 관리함.
+    (3턴마다 실행)
     """
     print("\n=== [DEBUG] SummarizeAndPrune Node Started ===")
+    
+    # === [추가된 로직] 3턴 주기가 아니면 바로 종료 ===
+    # session_progress에서 turn_count 가져오기
+    progress = state.session_progress or {}
+    turn_count = progress.get("turn_count", 0)
+    
+    # 안전하게 정수 변환
+    try:
+        turn_count = int(turn_count)
+    except (ValueError, TypeError):
+        turn_count = 0
+
+    # 3으로 나누어 떨어지지 않으면 스킵 (예: 1, 2, 4, 5턴은 스킵 / 3, 6, 9턴에 실행)
+    # 단, 0턴(시작 시점)도 스킵하고 싶으면 turn_count > 0 조건 추가
+    if turn_count == 0 or turn_count % 3 != 0:
+        print(f"[Prune] 요약 주기가 아닙니다. (현재 Turn: {turn_count}) → 스킵")
+        return {}
+    # ============================================
     
     # 1. 설정: 유지할 메시지 개수 (최근 대화 N개는 살려둠)
     KEEP_LAST_N = 6 
