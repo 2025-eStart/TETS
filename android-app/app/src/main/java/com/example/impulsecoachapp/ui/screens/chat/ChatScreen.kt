@@ -135,11 +135,12 @@ fun ChatScreenContent(
                 WindowInsets.ime.union(WindowInsets(bottom = innerPadding.calculateBottomPadding()))
             )
     ) {
-        // [수정 4] 상단 바에 메뉴 클릭 이벤트 전달
+        // 상단 바에 메뉴 클릭 이벤트 전달
         TopSessionBar(title = sessionTitle, onMenuClick = onMenuClick)
 
         MessageList(
             messages = messages,
+            isLoading = isLoading,
             modifier = Modifier.weight(1f)
         )
         UserInput(
@@ -271,15 +272,21 @@ fun UserInput(
 @Composable
 fun MessageList(
     messages: List<ChatMessage>,
+    isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
+    // [수정] messages.size 뿐만 아니라 isLoading이 변할 때도 트리거
+    LaunchedEffect(messages.size, isLoading) {
+        if (messages.isNotEmpty() || isLoading) {
             coroutineScope.launch {
-                listState.animateScrollToItem(messages.size - 1)
+                // 로딩바가 생기면 아이템 개수가 1개 더 많다고 가정하고 스크롤
+                val targetIndex = if (isLoading) messages.size else messages.size - 1
+                if (targetIndex >= 0) {
+                    listState.animateScrollToItem(targetIndex)
+                }
             }
         }
     }
@@ -290,9 +297,18 @@ fun MessageList(
             .fillMaxWidth()
             .padding(12.dp)
     ) {
+        // 1. 기존 메시지 리스트
         items(messages) { msg ->
             ChatBubble(message = msg)
             Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // 2.  로딩 중일 때만 보여주는 가짜 메시지(애니메이션)
+        if (isLoading) {
+            item {
+                GeneratingBubble()
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }

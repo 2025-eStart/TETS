@@ -13,7 +13,6 @@ package com.example.impulsecoachapp.domain.model
 data class ChatTurn(
     val assistantMessage: ChatMessage,
     val isSessionEnded: Boolean,
-
     val currentWeek: Int = 1,
     val weekTitle: String? = null,
     val weekGoals: List<String> = emptyList()

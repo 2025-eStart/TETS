@@ -16,9 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +31,6 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.example.impulsecoachapp.ui.screens.chat.MessageList
@@ -148,6 +145,7 @@ fun HistoryDetailScreen(
                         // ✅ ChatScreen과 동일한 MessageList 재사용
                         MessageList(
                             messages = messages,
+                            isLoading = isLoading,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
