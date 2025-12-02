@@ -44,7 +44,6 @@ success_criteria:
 # 3) Allowed Techniques
 # ===========================
 allowed_techniques:
-  - "emotion_chart"
   - "socratic_questioning"
   - "effect_of_belief"
   - "behavior_consequence_inquiry"
