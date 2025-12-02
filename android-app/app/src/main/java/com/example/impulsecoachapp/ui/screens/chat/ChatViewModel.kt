@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.impulsecoachapp.R
 
+import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
+
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ActualChatRepository
@@ -64,6 +66,16 @@ class ChatViewModel @Inject constructor(
     // 7. 서랍에 들어갈 과거 기록 목록
     private val _historyList = MutableStateFlow<List<SessionSummary>>(emptyList())
     val historyList: StateFlow<List<SessionSummary>> = _historyList.asStateFlow()
+
+    // 8. 로딩 스테이지 (메시지 기다릴 때)
+    enum class LoadingStage {
+        THINKING,      // 입력을 읽는 중
+        SELECTING,     // 기법을 고르는 중
+        APPLYING       // 기법을 적용해서 답변 조합 중
+    }
+    private val _loadingStage = MutableStateFlow<LoadingStage?>(null)
+    val loadingStage: StateFlow<LoadingStage?> = _loadingStage.asStateFlow()
+
 
     init {
         // 앱 켜질 때 1. 현재 방 접속, 2. 과거 기록 가져오기 둘 다 수행
@@ -181,14 +193,36 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // 로딩 스테이지 표시용 타이머
+    private fun startLoadingStageTimer() {
+        _loadingStage.value = LoadingStage.THINKING
+
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(6000)
+            if (_isLoading.value) _loadingStage.value = LoadingStage.SELECTING
+
+            kotlinx.coroutines.delay(23000)
+            if (_isLoading.value) _loadingStage.value = LoadingStage.APPLYING
+        }
+    }
+
+
     // 사용자가 메시지 전송 시
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
 
-        // UI 즉시 반영 (낙관적 업데이트)
-        val userMessage = ChatMessage.UserResponse(text)
-        _messages.value = _messages.value + userMessage
+        // ✅ "__init__"일 때는 UI에 유저 버블 추가하지 않기
+        val isInitCommand = text.trim() == "__init__"
+
+        if (!isInitCommand) {
+            // UI 즉시 반영 (낙관적 업데이트)
+            val userMessage = ChatMessage.UserResponse(text)
+            _messages.value = _messages.value + userMessage
+        }
+
         _isLoading.value = true
+        // 💡 로딩 단계 타이머 시작
+        startLoadingStageTimer()
 
         viewModelScope.launch {
             val result = repository.sendChatMessage(text = text)
@@ -200,6 +234,7 @@ class ChatViewModel @Inject constructor(
                 _messages.value = _messages.value + ChatMessage.GuideMessage("오류: ${error.message}")
             }
             _isLoading.value = false
+            _loadingStage.value = null // 끝나면 스테이지 리셋
         }
     }
 
@@ -245,7 +280,7 @@ class ChatViewModel @Inject constructor(
 // ChatScreen.kt 파일 하단이나 ChatBubble 근처에 추가
 
 @Composable
-fun GeneratingBubble() {
+fun GeneratingBubble(loadingStage: LoadingStage?) {
     val infiniteTransition = rememberInfiniteTransition(label = "loading")
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -256,6 +291,17 @@ fun GeneratingBubble() {
         ),
         label = "alpha"
     )
+
+    val text = when (loadingStage) {
+        LoadingStage.THINKING ->
+            "루시가 여행자님의 말을 곰곰이 되새기고 있어요…🦊"
+        LoadingStage.SELECTING ->
+            "어떤 기법이 지금 가장 도움이 될지 고르는 중이에요…"
+        LoadingStage.APPLYING ->
+            "선택한 기법으로 답변을 정리하고 있어요…"
+        null ->
+            "루시가 여행자님을 위해서 열심히 고민하는 중이에요! 조금만 기다려 주세요🦊"
+    }
 
     Row(
         modifier = Modifier
@@ -274,7 +320,7 @@ fun GeneratingBubble() {
 
         // 텍스트
         Text(
-            text = "루시가 여행자님을 위해서 열심히 고민하는 중이에요! 조금만 기다려 주세요🦊",
+            text = text,
             fontSize = 14.sp,
             color = Color.Gray,
             modifier = Modifier
