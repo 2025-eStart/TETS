@@ -101,10 +101,18 @@ async def init_session(req: InitSessionRequest):
     
     days_seen = _days_since(last_seen, now)
     days_completed = _days_since(last_completed, now)
+    
+    # -------------------------------------------------------
+    # [수정] 결과를 리턴하기 직전에 DB에 미리 '세션 메타데이터'를 생성합니다.
+    # 이렇게 해야 chat API에서 앱이 타입을 잘못 보내도 DB에 있는 타입을 믿을 수 있습니다.
+    # -------------------------------------------------------
+    
+    response_data = None # 리턴할 데이터 임시 저장
+
 
     # 2. [요구사항 7] 강제 새 세션 (GENERAL)
     if req.force_new:
-        return InitSessionResponse(
+        response_data = InitSessionResponse(
             thread_id=str(uuid.uuid4()), # 새 방
             session_type="GENERAL",
             display_message="새로운 일반 상담을 시작합니다.",
@@ -112,11 +120,11 @@ async def init_session(req: InitSessionRequest):
         )
 
     # 3. [요구사항 6] 21일 이상 미접속 -> 롤백
-    if days_seen >= 21:
+    elif days_seen >= 21:
         # DB 롤백 처리 (REPO 함수 재사용)
         REPO.rollback_user_to_week_1(user_id)
         # 롤백 후 1주차로 설정
-        return InitSessionResponse(
+        response_data = InitSessionResponse(
             thread_id=str(uuid.uuid4()), # 새 방
             session_type="WEEKLY",
             display_message="오랜만에 오셨네요! 1주차부터 다시 시작합니다.",
@@ -124,54 +132,89 @@ async def init_session(req: InitSessionRequest):
         )
 
     # 4. [요구사항 2, 3] 진행 중인 세션 확인
-    active_thread_id = _get_active_thread_id(user_id, current_week)
+    else:
+        active_thread_id = _get_active_thread_id(user_id, current_week)
     
-    if active_thread_id:
-        # 진행 중인 세션이 있음
-        if days_seen < 1:
-            # [요구사항 2] 24시간 이내 -> 기존 스레드 유지
-            return InitSessionResponse(
-                thread_id=active_thread_id,
-                session_type="WEEKLY",
+        if active_thread_id:
+            # 진행 중인 세션이 있음
+            if days_seen < 1:
+                # [요구사항 2] 24시간 이내 -> 기존 스레드 유지
+                response_data = InitSessionResponse(
+                    thread_id=active_thread_id,
+                    session_type="WEEKLY",
+                    current_week=current_week
+                )
+            else:
+                # [요구사항 3] 24시간 경과 -> 재시작 (새 방)
+                REPO.restart_current_week_session(user_id, current_week)
+                response_data = InitSessionResponse(
+                    thread_id=str(uuid.uuid4()), # 새 스레드(채팅방)
+                    session_type="WEEKLY",
+                    display_message="지난 상담이 오래되어 이번 주차를 처음부터 다시 시작합니다.",
+                    current_week=current_week
+                )
+
+        # 5. [요구사항 1, 4, 5] 진행 중인 세션 없음
+        elif last_completed and days_completed < 7:
+            # [요구사항 1, 4] 쿨다운 기간 -> GENERAL
+            response_data = InitSessionResponse(
+                thread_id=str(uuid.uuid4()),
+                session_type="GENERAL",
+                display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
                 current_week=current_week
             )
-        else:
-            # [요구사항 3] 24시간 경과 -> 재시작 (새 방)
-            REPO.restart_current_week_session(user_id, current_week)
-            return InitSessionResponse(
-                thread_id=str(uuid.uuid4()), # 새 스레드(채팅방)
+    
+        # [요구사항 5] 7일 지남 or 첫 시작 -> WEEKLY
+        # (주차 진급은 채팅 시작 시 load_state나 route_session에서 처리되거나,
+        #  여기서 미리 advance_to_next_week를 호출할 수도 있음.
+        #  안전하게는 그래프 내부 로직에 맡기고 여기서는 안내만 함)
+        
+        # 만약 이미 완료된 주차라면 다음 주차로 진급시켜서 안내
+        if last_completed:
+            # (주의: advance_to_next_week는 DB를 업데이트하므로 신중하게 호출)
+            # 여기서는 단순히 "다음 주차 상담 가능" 상태로 보고 WEEKLY 리턴
+            response_data = InitSessionResponse(
+                thread_id=str(uuid.uuid4()),
                 session_type="WEEKLY",
-                display_message="지난 상담이 오래되어 이번 주차를 처음부터 다시 시작합니다.",
+                display_message=f"{current_week}주차 상담을 시작합니다!",
                 current_week=current_week
             )
 
-    # 5. [요구사항 1, 4, 5] 진행 중인 세션 없음
-    if last_completed and days_completed < 7:
-        # [요구사항 1, 4] 쿨다운 기간 -> GENERAL
-        return InitSessionResponse(
-            thread_id=str(uuid.uuid4()),
-            session_type="GENERAL",
-            display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
-            current_week=current_week
-        )
-    
-    # [요구사항 5] 7일 지남 or 첫 시작 -> WEEKLY
-    # (주차 진급은 채팅 시작 시 load_state나 route_session에서 처리되거나,
-    #  여기서 미리 advance_to_next_week를 호출할 수도 있음.
-    #  안전하게는 그래프 내부 로직에 맡기고 여기서는 안내만 함)
-    
-    # 만약 이미 완료된 주차라면 다음 주차로 진급시켜서 안내
-    if last_completed:
-        # (주의: advance_to_next_week는 DB를 업데이트하므로 신중하게 호출)
-        # 여기서는 단순히 "다음 주차 상담 가능" 상태로 보고 WEEKLY 리턴
-        pass
+    # -------------------------------------------------------
+    # [BUG FIX] 세션 DB 사전 등록 (박제)
+    # 앱이 나중에 타입을 잘못 보내도, 여기서 미리 저장해두면 DB는 진실을 알게 됨.
+    # -------------------------------------------------------
+    if response_data:
+        # WEEKLY 세션인데 새로 만든 경우 (active_thread_id를 재활용하는 경우가 아닐 때)
+        # 혹은 안전하게 모든 WEEKLY 세션에 대해 타입을 갱신/확인
+        
+        # 참고: 기존 세션(active_thread_id)을 쓰는 경우는 이미 DB에 저장되어 있겠지만,
+        # 새로 발급된 ID(uuid)인 경우는 반드시 저장이 필요함.
+        
+        should_save = False
+        if response_data.session_type == "WEEKLY":
+            # 기존 ID를 재활용한 게 아니라면(=새로운 UUID라면) 저장 필수
+            # 로직을 단순화하여 "모든 WEEKLY 응답에 대해 초기화 메시지 저장 시도"
+            # (단, REPO 구현에 따라 중복 저장이 문제없는지 확인 필요. 보통 덮어쓰거나 무시됨)
+            should_save = True
 
-    return InitSessionResponse(
-        thread_id=str(uuid.uuid4()),
-        session_type="WEEKLY",
-        display_message=f"{current_week}주차 상담을 시작합니다!",
-        current_week=current_week
-    )
+        if should_save:
+            try:
+                # __init__ 시스템 메시지를 저장하여 세션 메타데이터 생성 효과를 냄
+                REPO.save_message(
+                    user_id=user_id,
+                    thread_id=response_data.thread_id, # [중요] 스레드 ID 명시
+                    session_type="WEEKLY",             # [중요] 타입 강제 지정
+                    week=response_data.current_week,
+                    role="system",
+                    text="__init__" # 화면엔 안 보이는 초기화 마커
+                )
+            except Exception as e:
+                print(f"Warning: Failed to pre-save session: {e}")
+                # 여기서 에러가 나도 클라이언트에게는 일단 응답을 보내줌
+                pass
+
+    return response_data
 
 # --- API 2: 채팅 (그래프 실행) ---
 @server.post("/chat", response_model=ChatResponse)
