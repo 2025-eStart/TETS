@@ -1,15 +1,9 @@
-# coach_agent/graph/main/nodes.py
+# coach_agent/graph/main/edge.py
 # main graph의 엣지 라우터 함수들
 
 from __future__ import annotations
 from typing import Literal
 from coach_agent.graph.state import State
-
-# ---- 라우팅 전 임시 node ----
-
-
-# ----- edge routers -----
-# coach_agent/graph/route_session.py
 
 SessionType = Literal["WEEKLY", "GENERAL"]
 
