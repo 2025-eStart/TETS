@@ -196,17 +196,16 @@ class FirestoreRepo(Repo):
     # --- [4] 24시간 <= 미접속 기간 < 21일 && 이번주 상담 미완료(마지막 상담 완료 날짜+7일 이후): 현재 주차 세션 재시작 ---
     def restart_current_week_session(self, user_id: str, week: int) -> None:
         """
-        active/paused 세션을 다시 시작.
-        CHECKPOINT/STATE도 초기화.
+        기존에 Active였던 세션을 종료 처리함 (시간 초과 등).
         """
-        s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
-        _sessions_col(user_id).document(s["id"]).set({
-            "status": "active",
-            "last_activity_at": firestore.SERVER_TIMESTAMP,
-            "checkpoint": {"step_index": 0},    # 1. 진행 단계 초기화
-            "state": {},                        # 2. 세션 상태 초기화
-            "summary": firestore.DELETE_FIELD   # 3. 요약본 삭제
-        }, merge=True)
+        s = self.get_active_weekly_session(user_id, week)
+        if s:
+            # 기존 세션을 종료 상태로 변경 (더 이상 active로 조회되지 않음)
+            _sessions_col(user_id).document(s["id"]).update({
+                "status": "ended", 
+                "ended_at": firestore.SERVER_TIMESTAMP
+            })
+            print(f"Session {s['id']} has been closed due to inactivity.")
 
     def last_seen_touch(self, user_id: str) -> None:
         self.upsert_user(user_id, {"last_seen_at": datetime.now(timezone.utc)})
