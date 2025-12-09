@@ -1,4 +1,4 @@
-# coach_agent/graph/general/build.py
+# coach_agent/graph/general/builder.py
 
 from langgraph.graph import StateGraph, START, END
 
@@ -9,7 +9,7 @@ from coach_agent.graph.general.nodes import (
     prepare_general_answer,
     run_general_llm,
 )
-from coach_agent.graph.general.router import route_general
+from coach_agent.graph.general.edge import route_general
 
 
 def build_general_subgraph():
