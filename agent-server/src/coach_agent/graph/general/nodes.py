@@ -19,9 +19,9 @@ def init_general_state(state: State) -> Dict[str, Any]:
 
     updates: Dict[str, Any] = {}
 
-    # phase 설정
-    if getattr(state, "phase", None) != "GENERAL":
-        updates["phase"] = "GENERAL"
+    # session_type 설정 # 여기가 general 채팅 불러오기 버그 원인
+    if getattr(state, "session_type", None) != "GENERAL":
+        updates["session_type"] = "GENERAL"
 
     # 안내 멘트 발송 여부 플래그
     if getattr(state, "general_has_greeted", None) is None:

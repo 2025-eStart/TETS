@@ -1,4 +1,4 @@
-# coach_agent/graph/main/build.py
+# coach_agent/graph/main/builder.py
 
 from langgraph.graph import StateGraph, START, END
 from coach_agent.graph.state import State
