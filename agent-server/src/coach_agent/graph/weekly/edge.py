@@ -1,4 +1,4 @@
-# coach_agent/graph/weekly/router.py
+# coach_agent/graph/weekly/edge.py
 from langgraph.graph import END
 from coach_agent.graph.state import State
 

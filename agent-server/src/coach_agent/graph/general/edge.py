@@ -1,4 +1,4 @@
-# coach_agent/graph/general/router.py
+# coach_agent/graph/general/edge.py
 
 from typing import Literal
 from coach_agent.graph.state import State
