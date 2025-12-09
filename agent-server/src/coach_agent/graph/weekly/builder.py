@@ -6,7 +6,7 @@ from coach_agent.graph.weekly.greeting_nodes import greeting
 from coach_agent.graph.weekly.counsel_nodes import llm_technique_selector, llm_technique_applier, counsel_prepare, summarize_and_filter_message
 from coach_agent.graph.weekly.exit_nodes import exit_node
 from coach_agent.graph.weekly.extra_nodes import should_end_session, init_weekly_state, route_phase_node
-from coach_agent.graph.weekly.router import route_phase, route_exit, after_offtopic_router
+from coach_agent.graph.weekly.edge import route_phase, route_exit, after_offtopic_router
 
 def build_weekly_subgraph():
     builder = StateGraph(State)
