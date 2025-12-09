@@ -57,6 +57,7 @@ class FirestoreRepo(Repo):
             "last_activity_at": firestore.SERVER_TIMESTAMP,
             "checkpoint": {"step_index": 0},
             "state": {},
+            "session_type": "WEEKLY",
         }
         ref.set(body)
         body["id"] = ref.id
