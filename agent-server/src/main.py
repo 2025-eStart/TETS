@@ -267,6 +267,7 @@ async def chat_endpoint(req: ChatRequest):
         if user_text.strip() != "__init__":
             REPO.save_message(
                 user_id=req.user_id,
+                thread_id=req.thread_id,
                 session_type=req.session_type,
                 week=current_week,
                 role="user",
@@ -278,6 +279,7 @@ async def chat_endpoint(req: ChatRequest):
         if last_ai_msg and last_ai_msg != "(응답 없음)":
             REPO.save_message(
                 user_id=req.user_id,
+                thread_id=req.thread_id,
                 session_type=req.session_type,
                 week=current_week,
                 role="assistant",
