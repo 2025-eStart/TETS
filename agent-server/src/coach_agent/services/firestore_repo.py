@@ -63,7 +63,53 @@ class FirestoreRepo(Repo):
         body["id"] = ref.id
         return body
 
-    def save_message(self, user_id: str, session_type: str, week: int, role: str, text: str) -> None:
+
+    def save_message(self, user_id: str, thread_id: str, session_type: str, week: int, role: str, text: str) -> None:
+        """
+        특정 thread_id(문서 ID)에 메시지를 저장
+        문서가 없으면 해당 ID로 새로 생성
+        """
+        
+        # 1. 저장할 세션 문서 참조(Reference) 확보
+        session_ref = _sessions_col(user_id).document(thread_id)
+        
+        # 2. 세션 문서가 존재하는지 확인 (없으면 생성해야 함)
+        # [부모 세션 처리] "일단 업데이트 시도 -> 없으면 생성"
+        try:
+            # (A) 이미 있는 방이라고 가정하고 '최근 활동 시간'만 갱신
+            session_ref.update({
+                "last_activity_at": firestore.SERVER_TIMESTAMP,
+                "status": "active" # 혹시 ended된 세션에 메시지를 쓰면 다시 active로 살림
+            })
+        except NotFound:
+            # (B) 방이 없다는 에러가 나면 -> 그때 비로소 '새 방' 생성 (필수 필드 완비)
+            #     이때는 created_at을 포함해서 제대로 만듦
+            session_ref.set({
+                "id": thread_id,
+                "user_id": user_id,
+                "week": int(week),
+                "session_type": session_type,
+                "status": "active",
+                "created_at": firestore.SERVER_TIMESTAMP,     # 생성일 (변하지 않음)
+                "started_at": firestore.SERVER_TIMESTAMP,
+                "last_activity_at": firestore.SERVER_TIMESTAMP,
+                "checkpoint": {"step_index": 0},
+                "state": {},
+            })
+            
+
+        # 3. 메시지 서브 컬렉션에 추가
+        session_ref.collection("messages").add({
+            "user_id": user_id,
+            "session_type": session_type,
+            "week": week,
+            "role": role,
+            "text": text,
+            "created_at": firestore.SERVER_TIMESTAMP,
+        })
+        
+        '''
+        # 과거 함수: 같은 세션 채팅방이 서랍에서 분리되어 보이는 현상 발생
         s = self.get_active_weekly_session(user_id, week) or self.create_weekly_session(user_id, week)
         _sessions_col(user_id).document(s["id"]).collection("messages").add({
             "user_id": user_id, # Collection Group Query를 위해 user_id 추가
@@ -73,6 +119,7 @@ class FirestoreRepo(Repo):
             "text": text,
             "created_at": firestore.SERVER_TIMESTAMP,
         })
+        '''
 
     def update_progress(self, user_id: str, week: int, exit_hit: bool) -> None:
         """
