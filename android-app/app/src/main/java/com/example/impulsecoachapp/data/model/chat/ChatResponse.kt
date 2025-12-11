@@ -25,5 +25,6 @@ data class ChatResponse(
 data class SessionSummary(
     @SerializedName("session_id") val sessionId: String,
     @SerializedName("title") val title: String,
-    @SerializedName("date") val date: String
+    @SerializedName("date") val date: String,
+    @SerializedName("session_type") val sessionType: String = "GENERAL"
 )

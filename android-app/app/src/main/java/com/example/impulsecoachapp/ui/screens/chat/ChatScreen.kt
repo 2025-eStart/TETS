@@ -36,10 +36,12 @@ import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
 
 @Composable
 fun ChatScreen(
+    targetThreadId: String?,
     selectedTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit,
     onBackPressed: () -> Unit,
     onOpenHistory: (String) -> Unit,          // 과거 채팅 threadId 넘겨줄 콜백
+    onOpenChat: (String) -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -57,6 +59,14 @@ fun ChatScreen(
 
     val context = LocalContext.current // Toast 띄우기 위한 Context
 
+    // 네비게이션에서 넘어온 인자가 변경되면 ViewModel 데이터를 다시 로드해야 할 수도 있음
+    // (하지만 ViewModel init에서 처리하므로, ChatScreen이 완전히 새로 그려질 땐 괜찮음.
+    //  만약 이미 ChatScreen이 떠있는 상태에서 인자만 바뀌면 LaunchedEffect 필요)
+    LaunchedEffect(targetThreadId) {
+        if (targetThreadId != null) {
+            viewModel.loadSpecificSession(targetThreadId)
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState, // 상태 연결 필수
@@ -67,7 +77,7 @@ fun ChatScreen(
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
-                HorizontalDivider() // Material3에서는 Divider 대신 HorizontalDivider 권장
+                HorizontalDivider()
 
                 // [NEW CHAT 버튼]
                 NavigationDrawerItem(
@@ -100,7 +110,13 @@ fun ChatScreen(
                             badge = { Text(session.date) },
                             selected = false,
                             onClick = {
-                                onOpenHistory(session.sessionId) //historydetailscreen으로 이동
+                                if (session.sessionType == "GENERAL") {
+                                    // General -> 채팅방 열어서 이어하기
+                                    onOpenChat(session.sessionId)
+                                } else {
+                                    // Weekly -> 읽기 전용 히스토리 화면
+                                    onOpenHistory(session.sessionId)
+                                }
                                 scope.launch { drawerState.close() }
                             }
                         )
