@@ -68,13 +68,19 @@ class ChatViewModel @Inject constructor(
     val historyList: StateFlow<List<SessionSummary>> = _historyList.asStateFlow()
 
     // 8. 로딩 스테이지 (메시지 기다릴 때)
+    private val _loadingStage = MutableStateFlow<LoadingStage?>(null)
+    val loadingStage: StateFlow<LoadingStage?> = _loadingStage.asStateFlow()
+
+    // 9. 주간 상담 진행 중 여부 (버튼 잠금용)
+    private val _isWeeklyModeLocked = MutableStateFlow(false)
+    val isWeeklyModeLocked: StateFlow<Boolean> = _isWeeklyModeLocked.asStateFlow()
+
+    // LoadingStage Enum
     enum class LoadingStage {
         THINKING,      // 입력을 읽는 중
         SELECTING,     // 기법을 고르는 중
         APPLYING       // 기법을 적용해서 답변 조합 중
     }
-    private val _loadingStage = MutableStateFlow<LoadingStage?>(null)
-    val loadingStage: StateFlow<LoadingStage?> = _loadingStage.asStateFlow()
 
 
     init {
@@ -94,6 +100,9 @@ class ChatViewModel @Inject constructor(
             initResult.onSuccess { initRes ->
                 val threadId = initRes.threadId
 
+                // 서버에서 "주간 상담 진행 중"이라고 했는지 확인하여 세션 생성 버튼 잠금 설정
+                _isWeeklyModeLocked.value = initRes.isWeeklyInProgress
+
                 // (선택) 상단 타이틀 업데이트
                 _currentWeek.value = initRes.currentWeek
                 _sessionTitle.value = when (initRes.sessionType) {
@@ -106,16 +115,13 @@ class ChatViewModel @Inject constructor(
 
                 historyResult.onSuccess { history ->
                     if (history.isNotEmpty()) {
-                        // ✅ [핵심] 과거 대화가 존재하는 경우:
-                        //    → 그 대화만 화면에 복원하고, __init__ 안 보냄
-                        _messages.value = history
-
+                        // 과거 대화가 존재하는 경우: 그 대화만 화면에 복원하고, __init__ 안 보냄
                         // 여기서는 “AI가 이미 질문을 던졌고, 사용자가 아직 답 안 한 상태”를
                         // 포함해서, 어떤 경우든 "대화는 이미 시작된 상태"라고 보고
                         // 추가 init 호출 없이 사용자가 바로 이어서 입력하게 둔다.
-
+                        _messages.value = history
                     } else {
-                        // ✅ 완전히 새로운 세션(히스토리 없음) → 기존처럼 첫 인사 받기
+                        // 완전히 새로운 세션(히스토리 없음) → 첫 인사 받기
                         val firstTurnResult = repository.startSession(forceNew = false)
 
                         firstTurnResult.onSuccess { turn ->
@@ -149,17 +155,6 @@ class ChatViewModel @Inject constructor(
     }
 
 
-    /* 과거 이어하기 함수
-    private fun resumeSession() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            // forceNew = false : 기존 방 유지
-            processSessionStart(isReset = false)
-            _isLoading.value = false
-        }
-    }
-    */
-
     // 상황 2: 버튼 눌렀을 때 (새로하기)
     fun onNewSessionClick() {
         viewModelScope.launch {
@@ -169,28 +164,25 @@ class ChatViewModel @Inject constructor(
             _messages.value = emptyList()
             _sessionTitle.value = "새 FAQ"
 
+            // FAQ 모드는 새 세션 생성 버튼 잠금이 필요 없으므로 false 설정
+            _isWeeklyModeLocked.value = false
+
             // 2. 강제 새 방 배정 (forceNew=true)
             // 내부적으로 repository.startSession(true) 호출
             processSessionStart(isReset = true)
 
-            // 3. ★ [핵심] 서랍 목록 새로고침!
-            // (방금 끝난 대화가 서랍으로 들어가야 하니까)
+            // 3. 서랍 목록 새로고침 (방금 끝난 대화가 서랍으로 들어가야 함)
             loadHistoryList()
-
             _isLoading.value = false
         }
     }
 
     // ★ 공통 로직 (Private Helper): 실제로 서버를 찌르는 역할
     private suspend fun processSessionStart(isReset: Boolean) {
-        // Repository 하나만 호출하면 됨 (로직 중복 제거)
         val result = repository.startSession(forceNew = isReset)
 
-        result.onSuccess { turn ->
-            applyChatTurn(turn)
-        }.onFailure {
-            _messages.value = listOf(ChatMessage.GuideMessage("연결 실패"))
-        }
+        result.onSuccess { turn -> applyChatTurn(turn) }
+            .onFailure { _messages.value = listOf(ChatMessage.GuideMessage("연결 실패"))}
     }
 
     // 로딩 스테이지 표시용 타이머
@@ -205,7 +197,6 @@ class ChatViewModel @Inject constructor(
             if (_isLoading.value) _loadingStage.value = LoadingStage.APPLYING
         }
     }
-
 
     // 사용자가 메시지 전송 시
     fun sendMessage(text: String) {
@@ -243,20 +234,16 @@ class ChatViewModel @Inject constructor(
         // 1. 메시지 추가
         _messages.value = _messages.value + chatTurn.assistantMessage
 
-        // 2. 주차 업데이트 (null -> 숫자)
+        // 2-1. 주차 업데이트 (null -> 숫자)
         _currentWeek.value = chatTurn.currentWeek
+        // 2-2. 주차 업데이트 (값이 있을 때만)
+        if (!chatTurn.weekTitle.isNullOrBlank()) {_sessionTitle.value = "${chatTurn.currentWeek}주차 상담"}
+        if (chatTurn.weekGoals.isNotEmpty()) { _sessionGoals.value = chatTurn.weekGoals}
 
-        // 3. 주차 업데이트 (값이 있을 때만)
-        if (!chatTurn.weekTitle.isNullOrBlank()) {
-            _sessionTitle.value = "${chatTurn.currentWeek}주차 상담"
-        }
-        if (chatTurn.weekGoals.isNotEmpty()) {
-            _sessionGoals.value = chatTurn.weekGoals
-        }
-
-        // 4. 종료 여부
+        // 3. 종료 여부 확인 및 버튼 잠금 해제 로직
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
+            _isWeeklyModeLocked.value = false // 상담이 끝났으므로 "새 세션 만들기" 버튼 잠금 해제
         }
     }
 
@@ -276,8 +263,6 @@ class ChatViewModel @Inject constructor(
         _toastMessage.value = null
     }
 }
-
-// ChatScreen.kt 파일 하단이나 ChatBubble 근처에 추가
 
 @Composable
 fun GeneratingBubble(loadingStage: LoadingStage?) {

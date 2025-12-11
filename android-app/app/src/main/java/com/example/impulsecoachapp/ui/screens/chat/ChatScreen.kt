@@ -1,6 +1,7 @@
 //ui.screens.ChatScreen.kt
 package com.example.impulsecoachapp.ui.screens.chat
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +39,7 @@ fun ChatScreen(
     selectedTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit,
     onBackPressed: () -> Unit,
-    onOpenHistory: (String) -> Unit,          // ✅ 추가: 과거 채팅 threadId 넘겨줄 콜백
+    onOpenHistory: (String) -> Unit,          // 과거 채팅 threadId 넘겨줄 콜백
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -46,11 +48,15 @@ fun ChatScreen(
     val sessionTitle by viewModel.sessionTitle.collectAsState()
     val sessionGoals by viewModel.sessionGoals.collectAsState()
     val historyList by viewModel.historyList.collectAsState()
-    // 서랍 상태 관리 변수
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val loadingStage by viewModel.loadingStage.collectAsState() // 로딩 문구
+
+    val isWeeklyModeLocked by viewModel.isWeeklyModeLocked.collectAsState()  // 새 세션 생성 버튼 잠금 상태 구독
+
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // 서랍 상태 관리 변수
     val scope = rememberCoroutineScope()
-    // 로딩 문구
-    val loadingStage by viewModel.loadingStage.collectAsState()
+
+    val context = LocalContext.current // Toast 띄우기 위한 Context
+
 
     ModalNavigationDrawer(
         drawerState = drawerState, // 상태 연결 필수
@@ -65,11 +71,22 @@ fun ChatScreen(
 
                 // [NEW CHAT 버튼]
                 NavigationDrawerItem(
-                    label = { Text("✨ 새 FAQ 시작하기") },
+                    label = { Text(
+                        text = if (isWeeklyModeLocked) "✨ 새 FAQ 시작하기 (🔒)" else "✨ 새 FAQ 시작하기",
+                        // 잠겨있으면 회색, 아니면 기본색
+                        color = if (isWeeklyModeLocked) Color.Gray else MaterialTheme.colorScheme.onSurface
+                        )
+                    },
                     selected = false,
                     onClick = {
-                        viewModel.onNewSessionClick()
-                        scope.launch { drawerState.close() } // 클릭 후 서랍 닫기
+                        // 세션 생성 버튼 잠금 상태 체크
+                        if (isWeeklyModeLocked) {
+                            Toast.makeText(context, "현재 진행 중인 주간 상담을 먼저 마무리해 주세요!", Toast.LENGTH_SHORT)
+                                .show()
+                        }else {
+                            viewModel.onNewSessionClick()
+                            scope.launch { drawerState.close() } // 클릭 후 서랍 닫기
+                        }
                     }
                 )
 

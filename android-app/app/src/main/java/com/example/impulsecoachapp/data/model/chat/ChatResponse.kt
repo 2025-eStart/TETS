@@ -8,7 +8,8 @@ data class InitSessionResponse(
     @SerializedName("thread_id") val threadId: String,
     @SerializedName("session_type") val sessionType: String, // "WEEKLY" or "GENERAL"
     @SerializedName("display_message") val displayMessage: String = "",
-    @SerializedName("current_week") val currentWeek: Int = 1
+    @SerializedName("current_week") val currentWeek: Int = 1,
+    @SerializedName("is_weekly_in_progress") val isWeeklyInProgress: Boolean  = false
 )
 
 // 2. [응답] 채팅 응답 결과
