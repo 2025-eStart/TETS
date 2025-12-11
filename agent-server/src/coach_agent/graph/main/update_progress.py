@@ -125,7 +125,7 @@ def update_progress(state: State) -> Dict[str, Any]:
                         f"[update_progress] REPO.save_session_summary 호출 중 오류: {e}"
                     )
 
-                # 2) 세션 완료 + 주차 진급 + last_weekly_session_completed_at
+                # 2) 세션 완료 + 주차 진급 <- last_weekly_session_completed_at 를 통해 수행
                 try:
                     if hasattr(REPO, "mark_session_as_completed"):
                         REPO.mark_session_as_completed(
