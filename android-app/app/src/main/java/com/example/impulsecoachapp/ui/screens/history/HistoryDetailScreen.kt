@@ -1,5 +1,6 @@
 package com.example.impulsecoachapp.ui.screens.history
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +32,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.example.impulsecoachapp.ui.screens.chat.MessageList
 
@@ -40,16 +43,27 @@ fun HistoryDetailScreen(
     threadId: String,
     onBackPressed: () -> Unit,
     onOpenHistory: (String) -> Unit,
+    onNavigateToChat: () -> Unit,
     viewModel: HistoryDetailViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val historyList by viewModel.historyList.collectAsState()
+    val isWeeklyModeLocked by viewModel.isWeeklyModeLocked.collectAsState() // 잠금 상태 구독
+    val context = LocalContext.current // Toast 띄우기 위한 Context
+    val currentSessionTitle = remember(historyList, threadId) { // 현재 threadId에 해당하는 제목 찾기
+        historyList.find { it.sessionId == threadId }?.title ?: "상담 기록" // historyList가 아직 로드되지 않았거나 못 찾으면 기본값 "상담 기록" 표시
+    }
 
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // 서랍
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) { // 새로운 세션 생성 시 chatscreen으로 이동하도록 뷰모델에서 신호가 오면 실행
+        viewModel.navigateToChatEvent.collect {
+            onNavigateToChat()
+        }
+    }
     LaunchedEffect(threadId) {
         viewModel.loadHistory(threadId)
         viewModel.loadHistoryList() // 필요한 경우
@@ -60,7 +74,7 @@ fun HistoryDetailScreen(
         drawerContent = {
             ModalDrawerSheet {
                 Text(
-                    text = "지난 대화 & 새 채팅",
+                    text = "currentSessionTitle",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -68,11 +82,22 @@ fun HistoryDetailScreen(
 
                 // [NEW CHAT 버튼]
                 NavigationDrawerItem(
-                    label = { Text("✨ 새 FAQ 시작하기") },
+                    label = {
+                        Text(
+                            text = if (isWeeklyModeLocked) "✨ 새 FAQ 시작하기 (🔒)" else "✨ 새 FAQ 시작하기",
+                            color = if (isWeeklyModeLocked) Color.Gray else MaterialTheme.colorScheme.onSurface
+                        )
+                    },
                     selected = false,
                     onClick = {
-                        viewModel.onNewSessionClick()
-                        scope.launch { drawerState.close() } // 클릭 후 서랍 닫기
+                        if (isWeeklyModeLocked) {
+                            Toast.makeText(context, "현재 진행 중인 주간 상담을 먼저 마무리해 주세요!", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                        else{
+                            viewModel.onNewSessionClick()
+                            scope.launch { drawerState.close() } // 클릭 후 서랍 닫기
+                        }
                     }
                 )
 

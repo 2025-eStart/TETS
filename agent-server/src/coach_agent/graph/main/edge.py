@@ -16,4 +16,5 @@ def route_session(state: State) -> str:
     if session_type not in ("WEEKLY", "GENERAL"): session_type = "GENERAL"
 
     # session_type에 따라 라우팅
+    print(f"   [Maingraph Edge: RouteSession] 결정된 경로: {session_type}") # [DEBUG]
     return session_type

@@ -29,7 +29,7 @@ fun AppNavHost(
                 // 메인 화면에서는 뒤로가기를 눌러도 특별한 동작이 없거나 앱 종료(시스템 처리)
                 onBackPressed = { },
 
-                // ✅ [수정 1] 누락되었던 onOpenHistory 파라미터 전달
+                //  onOpenHistory 파라미터 전달
                 onOpenHistory = { threadId ->
                     // 히스토리 상세 화면으로 이동 (인자 전달)
                     navController.navigate("history_detail/$threadId")
@@ -50,10 +50,19 @@ fun AppNavHost(
                 threadId = threadId,
                 onBackPressed = { navController.popBackStack() }, // 뒤로가기 시 스택에서 제거
                 onOpenHistory = { newId ->
-                    // 히스토리 화면에서 또 다른 히스토리를 누른 경우
-                    navController.navigate("history_detail/$newId") {
-                        // (선택사항) 기존 히스토리를 스택에서 지우고 싶다면 설정 추가 가능
-                        popUpTo(BottomTab.Chat.name) { saveState = true }
+                    navController.navigate("history_detail/$newId")
+                },
+
+                // 과거 채팅 내역 조회 화면에서 새로운 세션 열었을 때 채팅 화면으로 이동하는 로직 연결
+                onNavigateToChat = {
+                    // 1. 채팅 탭(홈)으로 이동
+                    navController.navigate(BottomTab.Chat.name) {
+                        // 2. 백스택 정리 (뒤로가기 눌렀을 때 다시 히스토리 화면이 나오지 않도록 'startDestination'(채팅화면)까지의 쌓인 화면들을 모두 clear)
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = false // 채팅 화면 자체는 남겨둠
+                        }
+                        // 3. 이미 채팅 화면이 최상단에 있다면 새로 만들지 않음
+                        launchSingleTop = true
                     }
                 }
             )

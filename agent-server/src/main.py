@@ -50,6 +50,7 @@ class InitSessionResponse(BaseModel):
     session_type: str        # "WEEKLY" | "GENERAL"
     display_message: str = "" # 화면에 띄울 안내 메시지
     current_week: int = 1    # 현재 주차 정보 추가
+    is_weekly_in_progress: bool = False # 주간 상담이 진행 중인지 여부; 새로운 세션 생성 버튼 비활성화 여부 결정
 
 class ChatRequest(BaseModel):
     user_id: str
@@ -90,6 +91,15 @@ def _get_active_thread_id(user_id: str, week: int) -> Optional[str]:
 # --- API 1: 세션 초기화 (교통정리) ---
 @server.post("/session/init", response_model=InitSessionResponse)
 async def init_session(req: InitSessionRequest):
+    '''
+    역할: 클라이언트가 앱을 켤 때마다(혹은 채팅방에 들어갈 때마다) 가장 먼저 호출하는 "안내 데스크"
+    1. "방 번호 안내" (라우팅): 유저의 상태(마지막 접속일, 주차 등)를 보고 thread_id(방 번호)와 session_type(상담 종류)을 결정해 반환한다.
+    2. "방 명패 달기" (세션 타입 박제): 만약 새 방을 배정해줬다면, DB에 미리 "이 방은 WEEKLY 방입니다"라고 기록(save_session_info)해둔다.
+    '''
+    
+    # 디버깅 출력--------------------------------
+    print(f"\n🚀 [API Debug] /session/init 요청 도착: User={req.user_id}, Force={req.force_new}")
+    # ----------------------------------------
     user_id = req.user_id
     now = datetime.now(timezone.utc)
     
@@ -102,6 +112,19 @@ async def init_session(req: InitSessionRequest):
     days_seen = _days_since(last_seen, now)
     days_completed = _days_since(last_completed, now)
     
+    # 디버깅 출력--------------------------------
+    print(f"   - [API Debug] User Info: Week={current_week}")
+    print(f"""   - [API Debug] Days Since Last Seen(days_seen): now - last_seen
+                                                    = '{now}' - '{last_seen}'
+                                                    = {days_seen}
+        """)
+    print(f"""   - [API Debug] Days Since Last Completed(days_completed): now - last_completed
+                                                                = '{now}' - '{last_completed}'
+                                                                = {days_completed}
+          """)
+    print(f"   - [API Debug] Force New Session 체크(force_new): {req.force_new}") # 디버깅
+    # ----------------------------------------
+    
     # -------------------------------------------------------
     # [수정] 결과를 리턴하기 직전에 DB에 미리 '세션 메타데이터'를 생성합니다.
     # 이렇게 해야 chat API에서 앱이 타입을 잘못 보내도 DB에 있는 타입을 믿을 수 있습니다.
@@ -112,6 +135,7 @@ async def init_session(req: InitSessionRequest):
 
     # 2. [요구사항 7] 강제 새 세션 (GENERAL)
     if req.force_new:
+        print("   - [API Debug] 강제 새 세션 요청 -> GENERAL 세션 생성") # 디버깅
         response_data = InitSessionResponse(
             thread_id=str(uuid.uuid4()), # 새 방
             session_type="GENERAL",
@@ -121,6 +145,7 @@ async def init_session(req: InitSessionRequest):
 
     # 3. [요구사항 6] 21일 이상 미접속 -> 롤백
     elif days_seen >= 21:
+        print("   - [API Debug] 21일 이상 미접속 -> 1주차로 롤백") # 디버깅
         # DB 롤백 처리 (REPO 함수 재사용)
         REPO.rollback_user_to_week_1(user_id)
         # 롤백 후 1주차로 설정
@@ -130,10 +155,24 @@ async def init_session(req: InitSessionRequest):
             display_message="오랜만에 오셨네요! 1주차부터 다시 시작합니다.",
             current_week=1
         )
-
+        
+    # [요구사항 1, 4] 쿨다운 기간 -> GENERAL
+    elif days_completed < 7:
+        print("   - [API Debug] 쿨다운 기간(7일 미만) -> GENERAL 세션 생성") # 디버깅
+        response_data = InitSessionResponse(
+            thread_id=str(uuid.uuid4()),
+            session_type="GENERAL",
+            display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
+            current_week=current_week
+        )
+        
     # 4. [요구사항 2, 3] 진행 중인 세션 확인
+    # 쿨다운 기간이 아니고, 강제 새 세션도 아니면
     else:
+        print("   - [API Debug] 쿨다운 기간 아님 -> 진행 중인 세션 확인...") # 디버깅
+        print("   - [API Debug] Active 세션 검색 시도...") # 디버깅
         active_thread_id = _get_active_thread_id(user_id, current_week)
+        print(f"   - [API Debug] 검색 결과 ID: {active_thread_id}") # 디버깅
     
         if active_thread_id:
             # 진행 중인 세션이 있음
@@ -144,81 +183,81 @@ async def init_session(req: InitSessionRequest):
                     session_type="WEEKLY",
                     current_week=current_week
                 )
+                print("   - [API Debug] 기존 세션 유지 선택") # 디버깅
             else:
                 # [요구사항 3] 24시간 경과 -> 재시작 (새 방)
                 REPO.restart_current_week_session(user_id, current_week)
+                new_id = str(uuid.uuid4())
+                print(f"   - [API Debug] 새로운 방에서 이번 주차 상담 재시작: {new_id}") # 디버깅
+                
                 response_data = InitSessionResponse(
-                    thread_id=str(uuid.uuid4()), # 새 스레드(채팅방)
+                    thread_id=new_id, # 새 스레드(채팅방)
                     session_type="WEEKLY",
                     display_message="지난 상담이 오래되어 이번 주차를 처음부터 다시 시작합니다.",
                     current_week=current_week
                 )
-
-        # 5. [요구사항 1, 4, 5] 진행 중인 세션 없음
-        elif last_completed and days_completed < 7:
-            # [요구사항 1, 4] 쿨다운 기간 -> GENERAL
-            response_data = InitSessionResponse(
-                thread_id=str(uuid.uuid4()),
-                session_type="GENERAL",
-                display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
-                current_week=current_week
-            )
     
-        # [요구사항 5] 7일 지남 or 첫 시작 -> WEEKLY
-        # (주차 진급은 채팅 시작 시 load_state나 route_session에서 처리되거나,
-        #  여기서 미리 advance_to_next_week를 호출할 수도 있음.
-        #  안전하게는 그래프 내부 로직에 맡기고 여기서는 안내만 함)
-        
-        # 만약 이미 완료된 주차라면 다음 주차로 진급시켜서 안내
-        if last_completed:
-            # (주의: advance_to_next_week는 DB를 업데이트하므로 신중하게 호출)
-            # 여기서는 단순히 "다음 주차 상담 가능" 상태로 보고 WEEKLY 리턴
-            response_data = InitSessionResponse(
-                thread_id=str(uuid.uuid4()),
-                session_type="WEEKLY",
-                display_message=f"{current_week}주차 상담을 시작합니다!",
-                current_week=current_week
-            )
+        # [요구사항 5] 7일 지남 or 첫 시작(신규사용자) -> WEEKLY
+        # 완료 표시 및 주차 진급은 상담 완료 후 메인 그래프의 update_progress 노드의 mark_session_as_completed 함수에서 처리
+        else:
+            if last_completed:
+                # [상황 A] 지난 주차를 완료하고 7일이 지난 유저
+                # (다음 주차 진급이 지난 주차 상담 완료 시 update_progress에서 처리되므로 여기서는 current_week가 이미 진급되어 있음)
+                # 여기서는 단순히 "다음 주차 상담 가능" 상태로 보고 WEEKLY 리턴
+                print("   - [API Debug] Active 세션 없음 -> 새로운 WEEKLY 세션 생성 결정")
+            
+                # [추가 디버깅] 왜 없다고 판단했는지 확인하기 위해 여기서 바로 만들어지는 ID 출력
+                new_id = str(uuid.uuid4())
+                print(f"   - [API Debug] 새로 발급된 ID: {new_id}")
+                
+                response_data = InitSessionResponse(
+                    thread_id=new_id,
+                    session_type="WEEKLY",
+                    # display_message=f"{current_week}주차 상담을 시작합니다!", #weekly graph의 greeting node에서 수행됨
+                    current_week=current_week
+                )
+            else:
+                # [상황 B] 신규 유저 (1주차)
+                response_data = InitSessionResponse(
+                    thread_id=str(uuid.uuid4()),
+                    session_type="WEEKLY",
+                    # display_message="충동 소비 상담소에 오신 것을 환영합니다! 1주차 상담을 시작할게요.", #weekly graph의 greeting node에서 수행됨
+                    current_week=1
+                )
 
     # -------------------------------------------------------
-    # [BUG FIX] 세션 DB 사전 등록 (박제)
-    # 앱이 나중에 타입을 잘못 보내도, 여기서 미리 저장해두면 DB는 진실을 알게 됨.
+    # 1. 주간상담 진행 시 '새 세션 생성' 버튼 비활성화하도록 플래그 설정
+    # 2. thread id가 발급되는 즉시 바로 DB에 세션 정보를 저장 -> 같은 세션이 다른 스레드로 분리되는 현상 방지
     # -------------------------------------------------------
     if response_data:
-        # WEEKLY 세션인데 새로 만든 경우 (active_thread_id를 재활용하는 경우가 아닐 때)
-        # 혹은 안전하게 모든 WEEKLY 세션에 대해 타입을 갱신/확인
-        
-        # 참고: 기존 세션(active_thread_id)을 쓰는 경우는 이미 DB에 저장되어 있겠지만,
-        # 새로 발급된 ID(uuid)인 경우는 반드시 저장이 필요함.
-        
-        should_save = False
+        # 1. 주간상담 진행 시 '새 세션 생성' 버튼 비활성화하도록 플래그 설정
+        # 세션 타입이 'WEEKLY'라면 -> 현재 주간 상담 진행 중 -> 버튼 비활성화(True)
         if response_data.session_type == "WEEKLY":
-            # 기존 ID를 재활용한 게 아니라면(=새로운 UUID라면) 저장 필수
-            # 로직을 단순화하여 "모든 WEEKLY 응답에 대해 초기화 메시지 저장 시도"
-            # (단, REPO 구현에 따라 중복 저장이 문제없는지 확인 필요. 보통 덮어쓰거나 무시됨)
-            should_save = True
-
-        if should_save:
-            try:
-                # __init__ 시스템 메시지를 저장하여 세션 메타데이터 생성 효과를 냄
-                REPO.save_message(
-                    user_id=user_id,
-                    thread_id=response_data.thread_id, # [중요] 스레드 ID 명시
-                    session_type="WEEKLY",             # [중요] 타입 강제 지정
-                    week=response_data.current_week,
-                    role="system",
-                    text="__init__" # 화면엔 안 보이는 초기화 마커
-                )
-            except Exception as e:
-                print(f"Warning: Failed to pre-save session: {e}")
-                # 여기서 에러가 나도 클라이언트에게는 일단 응답을 보내줌
-                pass
+            response_data.is_weekly_in_progress = True
+        else:
+            # 'GENERAL' 이라면 -> 자유 대화 기간 -> 버튼 활성화(False)
+            response_data.is_weekly_in_progress = False
+        
+        # 2. 새로 생성된 thread id라면, 바로 DB에 세션 정보 저장 / 아니라면 last_activity_at 갱신
+        try:
+            print(f"   - [API Debug] thread id 발급 직후 바로 DB에 저장: ID={response_data.thread_id}")
+            REPO.save_session_info(
+                user_id=user_id,
+                thread_id=response_data.thread_id, # [중요] 스레드 ID 명시
+                session_type=response_data.session_type,# [중요] 타입 강제 지정
+                week=response_data.current_week
+            )
+        except Exception as e:
+            print(f"Warning: Failed to save session info after create thread id: {e}")
+            # 여기서 에러가 나도 클라이언트에게는 일단 응답을 보내줌
+            pass
 
     return response_data
 
 # --- API 2: 채팅 (그래프 실행) ---
 @server.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
+    print(f"\n🔥 [Chat API Start] Thread={req.thread_id}, UserMsg='{req.message}', SessionType={req.session_type}") # 디버깅
     try:
         
         # 1. 그래프 입력값(Inputs) 준비
@@ -234,24 +273,41 @@ async def chat_endpoint(req: ChatRequest):
             }
         }
         
+        print(f"   -> [Graph Invoke] Config: {config['configurable']}") # 디버깅
+        
         # 3. ainvoke로 그래프 비동기 실행
         final_state = await graph_app.ainvoke(inputs, config=config)
+
+        # [디버깅] 그래프 실행 직후 상태 확인
+        print("   -> [Graph Finished] Final State Keys:", final_state.keys()) 
+        msgs = final_state.get("messages", [])
+        print(f"   -> [Graph Messages Count]: {len(msgs)}")
+        if msgs:
+            print(f"   -> [Last Message]: Type={msgs[-1].type}, Content='{msgs[-1].content}'")
 
         # 4. 결과 파싱
         messages = final_state.get("messages", [])
         last_ai_msg = ""
         
-        # 가장 마지막 AI 메시지 찾기 (역순 탐색)
+        # [수정] 역순 탐색하되, 시스템 메시지나 __init__은 무시
         for msg in reversed(messages):
             if msg.type == "ai":
                 # msg.content가 리스트일 수도 있고 문자열일 수도 있음 (방어 로직)
                 content = msg.content
+                # 리스트/문자열 처리
+                text_content = ""
                 if isinstance(content, list):
                     # 리스트라면 문자열로 합침 (중요!)
                     last_ai_msg = "\n\n".join([str(c) for c in content if isinstance(c, str)])
                 else:
                     last_ai_msg = str(content)
+                    # 내용이 유효하고 __init__이 아니면 채택
+                if text_content and text_content.strip() != "__init__":
+                    last_ai_msg = text_content
+                    break
                 break
+        
+        print(f"   -> [Parsed AI Reply]: '{last_ai_msg}'") # 디버깅
         
         # 만약 메시지가 비어있다면 디버깅용 메시지
         if not last_ai_msg:
@@ -335,6 +391,10 @@ async def get_user_sessions(user_id: str):
         sid = s.get("id") or s.get("session_id")
         if not sid: continue # ID가 없는 유령 데이터는 건너뜀
 
+        # --- [추가 로직] 미완료&&종료 세션 서랍에서 숨기기 ---
+        # 'result'가 'abandoned'인 세션은 서랍 목록에서 숨김(건너뛰기)
+        if s.get("result") == "abandoned": continue
+        
         # --- [로직 2] 날짜 예쁘게 변환하기 (YYYY-MM-DD) ---
         created_at = s.get("created_at")
         date_str = ""
@@ -381,6 +441,25 @@ async def get_user_sessions(user_id: str):
 async def get_session_history(user_id: str, thread_id: str):
     """
     특정 스레드(세션)의 모든 대화 내용을 시간순으로 반환
+    (단, 시스템 초기화 메시지 '__init__'은 제외하고 반환하여 클라이언트가 첫 시작임을 알게 함)
     """
     messages = REPO.get_session_messages(user_id, thread_id)
-    return messages
+    
+    # [수정] 필터링 로직 추가
+    filtered_messages = []
+    for msg in messages:
+        text = msg.get("text", "")
+        role = msg.get("role", "")
+        
+        # 1. 텍스트가 '__init__'인 경우 제외
+        # (DB 저장 시 양옆 공백이 들어갔을 수도 있으니 strip() 권장)
+        if text and text.strip() == "__init__":
+            continue
+            
+        # 2. role이 'system'인 경우 제외 (화면에 뿌릴 필요 없음)
+        if role == "system":
+            continue
+            
+        filtered_messages.append(msg)
+        
+    return filtered_messages
