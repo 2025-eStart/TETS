@@ -6,6 +6,8 @@ from langchain_core.runnables import RunnableConfig
 from coach_agent.graph.state import State
 
 def greeting(state: State) -> dict: # 첫 인사 (첫 턴)
+    print("   [WeeklyNode: Greeting] Greeting 노드 실행됨") # [DEBUG]
+    
     # 닉네임이 없으면 무조건 "여행자"
     name = state.user_nickname or "여행자"
     week = state.current_week
@@ -22,6 +24,7 @@ def greeting(state: State) -> dict: # 첫 인사 (첫 턴)
         f"'{goal_text}'에 한 걸음 다가가보는 시간을 가져볼게요."
     )
 
+    print(f"   [WeeklyNode: Greeting] 생성된 메시지: {content[:30]}...") # [DEBUG]
     ai_msg = AIMessage(content=content)
 
     return {

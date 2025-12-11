@@ -23,6 +23,7 @@ def _extract_last_user_message(messages: list) -> Optional[str]:
     return None
 
 def load_state(state: State, config: RunnableConfig) -> dict:
+    print("\n   [Nodes: LoadState] 시작") # [DEBUG]
     
     # 1. Config & 기본 정보 설정
     cfg = Configuration.from_runnable_config(config)
@@ -34,13 +35,15 @@ def load_state(state: State, config: RunnableConfig) -> dict:
     
     # 3. 마지막 사용자 메시지 추출
     raw_last_user_message = _extract_last_user_message(state.messages)
-    
+    print(f"   [Nodes: LoadState] Raw Last Human Message: '{raw_last_user_message}'") # [DEBUG]
 
     # 4. 닉네임 처리
     current_nickname = "여행자"
     # 입력받으려면 아래처럼
     # current_nickname = user_data.get("nickname")
     final_last_user_message = raw_last_user_message
+    if raw_last_user_message == "__init__":
+        print("   [Nodes: LoadState] last human message에서 '__init__' 메시지 감지됨. (필터링 로직 확인 필요)")
     
     # 닉네임 등록 로직
     ''' 
@@ -68,8 +71,9 @@ def load_state(state: State, config: RunnableConfig) -> dict:
     # 7. 세션 타입 결정
     if cfg.session_type_override:
         # /session/init 결정사항을 최우선으로 따른다
+        # (/session/init이 결정한 session type 따르기)
         final_session_type = cfg.session_type_override
-        print(f"👮‍♂️ [LoadState] API Override: {final_session_type}")
+        print(f"👮‍♂️ [Nods: LoadState] API Override 적용: {final_session_type}") # [DEBUG]
     else:
         # 테스트/백워드 컴패용 fallback
         final_session_type = (
@@ -77,7 +81,8 @@ def load_state(state: State, config: RunnableConfig) -> dict:
             or user_data.get("session_type")
             or "GENERAL"   # 기본은 GENERAL로 두는 게 덜 위험함
         )    
-    
+        print(f"   [Nodes: LoadState] DB/State 값 사용: {final_session_type}") # [DEBUG]
+        
     # 최종 상태 반환
     return {
         "user_id": user_id,
