@@ -22,20 +22,18 @@
 '''
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
 # LangChain / LangGraph
 from langchain_core.messages import HumanMessage
-from langchain_core.runnables import RunnableConfig
 
 # 내 프로젝트 모듈
 from coach_agent.graph import app as graph_app  # 컴파일된 그래프
 from coach_agent.services import REPO           # DB 접근용 (Firestore/Memory)
 from coach_agent.utils._days_since import _days_since
-from coach_agent.services.firestore_repo import _weekly_key # 주간 세션 키 생성용
 
 # --- 앱 초기화 ---
 server = FastAPI(title="CBT Coach Agent API")
@@ -396,19 +394,33 @@ async def get_user_sessions(user_id: str):
         # 'result'가 'abandoned'인 세션은 서랍 목록에서 숨김(건너뛰기)
         if s.get("result") == "abandoned": continue
         
-        # --- [로직 2] 날짜 예쁘게 변환하기 (YYYY-MM-DD) ---
+        # --- [로직 2] 날짜 예쁘게 변환하기 (YY-MM-DD HH:MM) ---
         created_at = s.get("created_at")
         date_str = ""
         
+        # 1. Firebase Timestamp 객체라면 datetime으로 변환
+        if hasattr(created_at, 'to_datetime'):
+            created_at = created_at.to_datetime()
+
+        # 2. datetime 객체인지 확인 후 포맷팅
         if isinstance(created_at, datetime):
-            # datetime 객체라면 strftime으로 깔끔하게 변환 (가장 추천)
-            date_str = created_at.strftime("%Y-%m-%d")
+            # Firebase에는 UTC로 저장되므로 한국 시간(KST)으로 변환
+            if created_at.tzinfo:
+                KST = timezone(timedelta(hours=9))
+                created_at = created_at.astimezone(KST)
+            
+            # 원하는 포맷: 25-12-11 16:44
+            date_str = created_at.strftime("%y-%m-%d %H:%M")
+
         elif created_at:
-            # 문자열이거나 다른 타입이면 문자열 변환 후 앞부분만 자름
-            date_str = str(created_at).split(" ")[0]
+            # 만약 문자열로 저장된 경우라면 (예외 처리)
+            # 단순히 잘라서 보여주거나, 위의 파싱 로직 사용
+            date_str = str(created_at)[:16] 
+
         else:
-            # 날짜 정보가 없으면 오늘 날짜 혹은 "날짜 미상" 처리
-            date_str = datetime.now().strftime("%Y-%m-%d")
+            # 날짜 정보가 없을 때: 현재 시간(KST) 기준
+            KST = timezone(timedelta(hours=9))
+            date_str = datetime.now(KST).strftime("%y-%m-%d %H:%M")
 
         # --- [로직 3] 제목(Title) 결정 로직 ---
         # 상담 세션: {week}주차 상담 ({날짜})
