@@ -75,6 +75,7 @@ class SessionSummary(BaseModel): # 서랍 기능
     session_id: str
     title: str       # 예: "1주차: 시작이 반이다" 또는 "일반 상담 (2025-11-24)"
     date: str        # 예: "2025-11-24"
+    session_type: str
 
 # --- 헬퍼 함수 ---
 def _get_active_thread_id(user_id: str, week: int) -> Optional[str]:
@@ -414,7 +415,7 @@ async def get_user_sessions(user_id: str):
         # 일반 세션: FAQ ({날짜})
         # 1순위: DB에 이미 저장된 구체적인 제목이 있으면 그걸 씀 (예: "불안 다루기")
         # 2순위: 없으면 주차정보나 타입으로 생성
-        s_type = s.get("session_type") 
+        s_type = s.get("session_type", "GENERAL") 
         week = s.get("week")
         if s_type and week and date_str:
             if s_type == "WEEKLY":
@@ -431,7 +432,8 @@ async def get_user_sessions(user_id: str):
         results.append(SessionSummary(
             session_id=sid,
             title=display_title,
-            date=date_str
+            date=date_str,
+            session_type=s_type
         ))
         
     return results

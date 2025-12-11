@@ -27,13 +27,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.SavedStateHandle
 import com.example.impulsecoachapp.R
 
 import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val repository: ActualChatRepository
+    private val repository: ActualChatRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     // 1. 메시지 목록
@@ -83,10 +85,42 @@ class ChatViewModel @Inject constructor(
     }
 
 
-    init {
-        // 앱 켜질 때 1. 현재 방 접속, 2. 과거 기록 가져오기 둘 다 수행
-        restoreSessionOrStartNew()
+    init { // 앱 켜질 때
+        // 1. 네비게이션으로 전달받은 threadId가 있는지 확인
+        val targetThreadId = savedStateHandle.get<String>("threadId")
+
+        if (targetThreadId != null) {
+            // [CASE A] 특정 세션 이어하기 (GENERAL)
+            loadSpecificSession(targetThreadId)
+        } else {
+            // [CASE B] 평소처럼 앱 실행 (최신 상태 로드)
+            restoreSessionOrStartNew()
+        }
         loadHistoryList()
+    }
+
+    // [NEW] 특정 세션(General)을 로드하여 이어하기 모드로 설정
+    fun loadSpecificSession(threadId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            // 1. SessionManager 등에 현재 스레드 ID 업데이트 (필요 시)
+            // repository.setCurrentThread(threadId) // 만약 repository에 그런 기능이 있다면
+
+            // 2. 메시지 내역 불러오기
+            val historyResult = repository.getSessionHistory(threadId)
+
+            historyResult.onSuccess { history ->
+                _messages.value = history
+                _sessionTitle.value = "FAQ (이어하기)" // 혹은 적절한 제목
+                // 이어하기 모드이므로 잠금 해제
+                _isWeeklyModeLocked.value = false
+            }.onFailure {
+                _messages.value = listOf(ChatMessage.GuideMessage("대화 내용을 불러오지 못했습니다."))
+            }
+
+            _isLoading.value = false
+        }
     }
 
     // 상황 1: 앱 켜질 때 (이어하기. 채팅 내역 그대로 남아 있음)

@@ -40,10 +40,12 @@ import com.example.impulsecoachapp.ui.screens.chat.MessageList
 
 @Composable
 fun HistoryDetailScreen(
+    targetThreadId: String?,
     threadId: String,
     onBackPressed: () -> Unit,
     onOpenHistory: (String) -> Unit,
     onNavigateToChat: () -> Unit,
+    onOpenChat: (String) -> Unit,
     viewModel: HistoryDetailViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -111,7 +113,14 @@ fun HistoryDetailScreen(
                             badge = { Text(session.date) },
                             selected = false,
                             onClick = {
-                                onOpenHistory(session.sessionId) //historydetailscreen으로 이동
+                                if (session.sessionType == "GENERAL") {
+                                    // 1. 뷰모델에 데이터를 요청하는 게 아님.
+                                    // 2. 그냥 네비게이션 콜백을 통해 ChatScreen으로 이동하라고 신호만 줌.
+                                    onOpenChat(session.sessionId)
+                                } else {
+                                    // 주간 상담은 여기서 보여줘야 하니까 ID만 바꿈
+                                    onOpenHistory(session.sessionId)
+                                }
                                 scope.launch { drawerState.close() }
                             }
                         )
