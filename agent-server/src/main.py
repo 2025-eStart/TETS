@@ -49,6 +49,7 @@ class InitSessionResponse(BaseModel):
     display_message: str = "" # 화면에 띄울 안내 메시지
     current_week: int = 1    # 현재 주차 정보 추가
     is_weekly_in_progress: bool = False # 주간 상담이 진행 중인지 여부; 새로운 세션 생성 버튼 비활성화 여부 결정
+    created_at: str = ""     # 생성 시각 (ISO 문자열); ui 상단 바 출력용
 
 class ChatRequest(BaseModel):
     user_id: str
@@ -76,6 +77,7 @@ class SessionSummary(BaseModel): # 서랍 기능
     session_type: str
 
 # --- 헬퍼 함수 ---
+# init_session: 활성 세션 조회 헬퍼 함수
 def _get_active_thread_id(user_id: str, week: int) -> Optional[str]:
     """
     REPO에서 현재 주차의 활성 세션을 찾아서 thread_id(문서 ID)를 반환.
@@ -86,6 +88,18 @@ def _get_active_thread_id(user_id: str, week: int) -> Optional[str]:
         # FirestoreRepo는 id 필드에 문서 ID를 담아줌
         return session.get("id")
     return None
+
+# init_session: 시간 포맷팅 헬퍼 함수 (서랍 목록과 형식 통일: YY-MM-DD HH:MM)
+def _format_kst(dt_obj: datetime) -> str:
+    if not dt_obj:
+        return ""
+    # UTC -> KST 변환
+    KST = timezone(timedelta(hours=9))
+    if dt_obj.tzinfo is None:
+        # naive datetime이면 UTC라고 가정
+        dt_obj = dt_obj.replace(tzinfo=timezone.utc)
+    
+    return dt_obj.astimezone(KST).strftime("%y-%m-%d %H:%M")
 
 # --- API 1: 세션 초기화 (교통정리) ---
 @server.post("/session/init", response_model=InitSessionResponse)
@@ -124,14 +138,18 @@ async def init_session(req: InitSessionRequest):
     print(f"   - [API Debug] Force New Session 체크(force_new): {req.force_new}") # 디버깅
     # ----------------------------------------
     
-    # -------------------------------------------------------
-    # [수정] 결과를 리턴하기 직전에 DB에 미리 '세션 메타데이터'를 생성합니다.
-    # 이렇게 해야 chat API에서 앱이 타입을 잘못 보내도 DB에 있는 타입을 믿을 수 있습니다.
-    # -------------------------------------------------------
+    '''
+    [1] response_data 변수 설명:
+    - 리턴할 InitSessionResponse 객체 임시 저장
     
-    response_data = None # 리턴할 데이터 임시 저장
-
-
+    [2] session_created_at_dt 변수 설명:
+    - DB 저장 및 응답에 사용할 세션 생성 시간
+    - 새 세션인 경우 -> now 사용
+    - 기존 세션인 경우 -> DB에서 가져온 값 사용
+    '''
+    response_data = None
+    session_created_at_dt = now
+    
     # 2. [요구사항 7] 강제 새 세션 (GENERAL)
     if req.force_new:
         print("   - [API Debug] 강제 새 세션 요청 -> GENERAL 세션 생성") # 디버깅
@@ -141,6 +159,7 @@ async def init_session(req: InitSessionRequest):
             display_message="새로운 일반 상담을 시작합니다.",
             current_week=current_week
         )
+        session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
 
     # 3. [요구사항 6] 21일 이상 미접속 -> 롤백
     elif days_seen >= 21:
@@ -154,6 +173,7 @@ async def init_session(req: InitSessionRequest):
             display_message="오랜만에 오셨네요! 1주차부터 다시 시작합니다.",
             current_week=1
         )
+        session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
         
     # [요구사항 1, 4] 쿨다운 기간 -> GENERAL
     elif days_completed < 7:
@@ -164,25 +184,31 @@ async def init_session(req: InitSessionRequest):
             display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
             current_week=current_week
         )
+        session_created_at_dt = now # 새 일반 상담 세션이므로 현재 시각
         
-    # 4. [요구사항 2, 3] 진행 중인 세션 확인
-    # 쿨다운 기간이 아니고, 강제 새 세션도 아니면
+    # 4. [요구사항 2, 3] 진행 중인 세션 확인: 쿨다운 기간이 아니고, 강제 새 세션도 아니면
     else:
         print("   - [API Debug] 쿨다운 기간 아님 -> 진행 중인 세션 확인...") # 디버깅
         print("   - [API Debug] Active 세션 검색 시도...") # 디버깅
-        active_thread_id = _get_active_thread_id(user_id, current_week)
-        print(f"   - [API Debug] 검색 결과 ID: {active_thread_id}") # 디버깅
+        # active_thread_id = _get_active_thread_id(user_id, current_week)
+        # [수정] _get_active_thread_id 대신 REPO 함수 직접 호출 (데이터 전체가 필요함)
+        active_session = REPO.get_active_weekly_session(user_id, current_week)
+        print(f"   - [API Debug] 검색 결과 ID: {active_session}") # 디버깅
     
-        if active_thread_id:
+        if active_session:
             # 진행 중인 세션이 있음
             if days_seen < 1:
                 # [요구사항 2] 24시간 이내 -> 기존 스레드 유지
                 response_data = InitSessionResponse(
-                    thread_id=active_thread_id,
+                    thread_id=active_session["id"],
                     session_type="WEEKLY",
                     current_week=current_week
                 )
                 print("   - [API Debug] 기존 세션 유지 선택") # 디버깅
+                # 기존 세션이므로 DB에 있는 created_at을 가져옴
+                # (Firestore Timestamp -> datetime 변환은 repo가 해줌)
+                if "created_at" in active_session:
+                    session_created_at_dt = active_session["created_at"]
             else:
                 # [요구사항 3] 24시간 경과 -> 재시작 (새 방)
                 REPO.restart_current_week_session(user_id, current_week)
@@ -195,6 +221,7 @@ async def init_session(req: InitSessionRequest):
                     display_message="지난 상담이 오래되어 이번 주차를 처음부터 다시 시작합니다.",
                     current_week=current_week
                 )
+                session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
     
         # [요구사항 5] 7일 지남 or 첫 시작(신규사용자) -> WEEKLY
         # 완료 표시 및 주차 진급은 상담 완료 후 메인 그래프의 update_progress 노드의 mark_session_as_completed 함수에서 처리
@@ -215,6 +242,7 @@ async def init_session(req: InitSessionRequest):
                     # display_message=f"{current_week}주차 상담을 시작합니다!", #weekly graph의 greeting node에서 수행됨
                     current_week=current_week
                 )
+                session_created_at_dt = now
             else:
                 # [상황 B] 신규 유저 (1주차)
                 response_data = InitSessionResponse(
@@ -223,13 +251,14 @@ async def init_session(req: InitSessionRequest):
                     # display_message="충동 소비 상담소에 오신 것을 환영합니다! 1주차 상담을 시작할게요.", #weekly graph의 greeting node에서 수행됨
                     current_week=1
                 )
+                session_created_at_dt = now
 
     # -------------------------------------------------------
     # 1. 주간상담 진행 시 '새 세션 생성' 버튼 비활성화하도록 플래그 설정
     # 2. thread id가 발급되는 즉시 바로 DB에 세션 정보를 저장 -> 같은 세션이 다른 스레드로 분리되는 현상 방지
     # -------------------------------------------------------
     if response_data:
-        # 1. 주간상담 진행 시 '새 세션 생성' 버튼 비활성화하도록 플래그 설정
+        # --------1. 주간상담 진행 시 '새 세션 생성' 버튼 비활성화하도록 플래그 설정----------
         # 세션 타입이 'WEEKLY'라면 -> 현재 주간 상담 진행 중 -> 버튼 비활성화(True)
         if response_data.session_type == "WEEKLY":
             response_data.is_weekly_in_progress = True
@@ -237,15 +266,21 @@ async def init_session(req: InitSessionRequest):
             # 'GENERAL' 이라면 -> 자유 대화 기간 -> 버튼 활성화(False)
             response_data.is_weekly_in_progress = False
         
-        # 2. 새로 생성된 thread id라면, 바로 DB에 세션 정보 저장 / 아니라면 last_activity_at 갱신
+        # 클라이언트에게 보낼 날짜 포맷팅 (KST 변환)
+        response_data.created_at = _format_kst(session_created_at_dt)
+        
         try:
+            # ----- 2. 새로 생성된 thread id라면, 바로 DB에 세션 정보 저장 / 아니라면 last_activity_at 갱신 -----
             print(f"   - [API Debug] thread id 발급 직후 바로 DB에 저장: ID={response_data.thread_id}")
             REPO.save_session_info(
                 user_id=user_id,
                 thread_id=response_data.thread_id, # [중요] 스레드 ID 명시
                 session_type=response_data.session_type,# [중요] 타입 강제 지정
-                week=response_data.current_week
+                week=response_data.current_week,
+                created_at=session_created_at_dt, # 생성 시각 명시
             )
+
+                
         except Exception as e:
             print(f"Warning: Failed to save session info after create thread id: {e}")
             # 여기서 에러가 나도 클라이언트에게는 일단 응답을 보내줌
@@ -312,7 +347,7 @@ async def chat_endpoint(req: ChatRequest):
         if not last_ai_msg:
             last_ai_msg = "(응답 없음)"
             
-        # ---- ✅ 여기서부터: 그래프가 "정상 종료된 경우"에만 DB에 저장 ----
+        # ---- 여기서부터: 그래프가 "정상 종료된 경우"에만 DB에 저장 ----
         # current_week은 그래프가 결정한 값을 쓰는 게 제일 정확함
         current_week = getattr(final_state, "current_week", 1)
 
@@ -423,22 +458,22 @@ async def get_user_sessions(user_id: str):
             date_str = datetime.now(KST).strftime("%y-%m-%d %H:%M")
 
         # --- [로직 3] 제목(Title) 결정 로직 ---
-        # 상담 세션: {week}주차 상담 ({날짜})
-        # 일반 세션: FAQ ({날짜})
+        # 상담 세션: {week}주차 상담 | {날짜}
+        # 일반 세션: FAQ | {날짜}
         # 1순위: DB에 이미 저장된 구체적인 제목이 있으면 그걸 씀 (예: "불안 다루기")
         # 2순위: 없으면 주차정보나 타입으로 생성
         s_type = s.get("session_type", "GENERAL") 
         week = s.get("week")
         if s_type and week and date_str:
             if s_type == "WEEKLY":
-                display_title = f"{week}주차 상담 ({date_str})"
+                display_title = f"{week}주차 상담 | {date_str}"
             else:
-                display_title = f"FAQ({date_str})"
+                display_title = f"FAQ | {date_str}"
         else:
             if s_type == "WEEKLY":
-                display_title = f"상담 ({date_str})"
+                display_title = f"상담 | {date_str}"
             else:
-                display_title = "FAQ"
+                display_title = f"FAQ | {date_str}"
 
         # 결과 리스트에 추가
         results.append(SessionSummary(

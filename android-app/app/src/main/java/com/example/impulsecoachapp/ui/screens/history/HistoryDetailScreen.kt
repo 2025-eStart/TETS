@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.remember
@@ -40,7 +41,6 @@ import com.example.impulsecoachapp.ui.screens.chat.MessageList
 
 @Composable
 fun HistoryDetailScreen(
-    targetThreadId: String?,
     threadId: String,
     onBackPressed: () -> Unit,
     onOpenHistory: (String) -> Unit,
@@ -109,19 +109,43 @@ fun HistoryDetailScreen(
                 LazyColumn {
                     items(historyList) { session ->
                         NavigationDrawerItem(
-                            label = { Text(session.title) },
-                            badge = { Text(session.date) },
+                            label = {
+                                Text(
+                                    text = session.title,
+                                    color = if (isWeeklyModeLocked) Color.Gray else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            badge = {
+                                if (isWeeklyModeLocked) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Locked",
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            },
                             selected = false,
                             onClick = {
-                                if (session.sessionType == "GENERAL") {
-                                    // 1. 뷰모델에 데이터를 요청하는 게 아님.
-                                    // 2. 그냥 네비게이션 콜백을 통해 ChatScreen으로 이동하라고 신호만 줌.
-                                    onOpenChat(session.sessionId)
+                                if (isWeeklyModeLocked) {
+                                    // (A) 잠겨있을 때: 안내 메시지 띄우기 (이동 X, 서랍 닫기 X)
+                                    Toast.makeText(
+                                        context,
+                                        "현재 진행 중인 주간 상담을 먼저 마무리해 주세요!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } else {
-                                    // 주간 상담은 여기서 보여줘야 하니까 ID만 바꿈
-                                    onOpenHistory(session.sessionId)
+                                    // (B) 잠겨있지 않을 때: 기존 로직 수행 (이동 O, 서랍 닫기 O)
+                                    scope.launch {
+                                        drawerState.close() // 서랍 먼저 닫고
+
+                                        if (session.sessionType == "GENERAL") {
+                                            onOpenChat(session.sessionId)
+                                        } else {
+                                            onOpenHistory(session.sessionId)
+                                        }
+                                    }
                                 }
-                                scope.launch { drawerState.close() }
                             }
                         )
                     }

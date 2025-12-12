@@ -1,14 +1,15 @@
 from datetime import datetime, timezone
 from langchain_core.messages import AIMessage
 from coach_agent.graph.state import State
-
+from coach_agent.services.llm import CHAT_LLM # 상담 종료 시 요약을 위해 LLM import
+from coach_agent.utils.generate_final_summary import _generate_final_summary
 
 def exit_node(state: State) -> dict:
     """
     WEEKLY 상담 종료 노드.
 
     역할:
-      - 지금까지의 상담 흐름 요약(state.summary)을 다시 들려주고,
+      - 지금까지의 상담을 전부 요약하고,
       - 이번 주차 homework(state.homework)를 정리해서 제시하고,
       - 세션 종료 플래그/타임스탬프를 업데이트한 뒤
       - 다음 주차를 위해 phase를 GREETING으로 돌려놓는다.
@@ -21,23 +22,25 @@ def exit_node(state: State) -> dict:
         print(f"[EXIT] phase != 'EXIT' (현재: {state.phase!r}) → 스킵")
         return {}
 
+    # 1) 최종 요약 생성
+    print("[ExitNode] 최종 요약 갱신을 시작합니다...")
+    final_summary = _generate_final_summary(state)
+    
+    # 2) 갱신된 요약으로 메시지 구성
     week = state.current_week
     agenda = state.agenda or f"{week}주차 상담"
 
-    # 2) 상담 요약 섹션 (state.summary 사용)
-    summary_text = (state.summary or "").strip()
-
-    if summary_text:
+    # 2) 상담 요약 섹션 (final_summary 사용)
+    if final_summary:
         summary_section = (
             f"오늘은 **{week}주차 - {agenda}** 상담을 여기까지 진행했어요.\n\n"
             "이번 주 상담에서 정리된 내용을 한 번 같이 되짚어볼게요.\n\n"
-            f"{summary_text}\n"
+            f"{final_summary}\n"
         )
     else:
         summary_section = (
             f"오늘은 **{week}주차 - {agenda}** 상담을 여기까지 진행했어요.\n\n"
-            "대화를 통해 당신의 소비 패턴과 감정, 자동사고를 함께 살펴보면서\n"
-            "어디서부터 바꾸면 좋을지에 대한 실마리를 조금 잡아본 시간이었어요.\n\n"
+            "상담 내용을 바탕으로 한 주를 잘 보내시길 바래요.\n\n"
         )
 
     # 3) Homework 섹션 (state.homework 사용)
@@ -79,10 +82,8 @@ def exit_node(state: State) -> dict:
 
     return {
         "messages": [ai_msg],
-
-        # weekly 세션 종료 플래그
-        "exit": True,
+        "summary": final_summary, # 갱신된 최종 요약 반영
+        "exit": True,  # weekly 세션 종료 플래그
         "phase": "GREETING",
-        # COUNSEL phase 완료 시간
-        "counsel_completed_at": now,
+        "counsel_completed_at": now, # COUNSEL phase 완료 시간
     }
