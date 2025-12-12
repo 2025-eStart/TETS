@@ -60,7 +60,7 @@ class ActualChatRepository @Inject constructor(
     suspend fun startSession(forceNew: Boolean = false): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
 
-        // ✅ [추천] 여기에도 안전장치를 추가하세요 (앱 켤 때 실행되는 곳이라 더 중요함)
+        //  안전장치를 추가 (앱 켤 때 실행되는 곳이라 더 중요함)
         if (userId.isBlank()){
             return Result.failure(IllegalStateException("유저 ID가 생성되지 않았습니다."))
         }
@@ -173,5 +173,10 @@ class ActualChatRepository @Inject constructor(
             e.printStackTrace()
             Result.failure(e)
         }
+    }
+
+    // 서랍에서 다른 세션으로 갈아탈 때, 세션 매니저 정보를 갱신하는 함수
+    fun updateCurrentSessionInfo(threadId: String, sessionType: String) {
+        sessionManager.updateSession(threadId, sessionType)
     }
 }

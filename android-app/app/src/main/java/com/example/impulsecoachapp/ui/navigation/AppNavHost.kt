@@ -1,3 +1,4 @@
+// AppNavHost.kt
 package com.example.impulsecoachapp.ui.navigation
 
 import androidx.compose.runtime.Composable

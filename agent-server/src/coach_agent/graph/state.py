@@ -204,5 +204,4 @@ class State(BaseModel):
     )
     
     # General 상담용 필드
-    general_has_greeted: bool | None = None    # 안내 멘트 보여줬는지 여부
     general_turn_count: int | None  = 0     # General Q&A 턴 수

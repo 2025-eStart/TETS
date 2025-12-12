@@ -38,7 +38,6 @@ def _build_chat_llm() -> ChatOpenAI:
 
 CHAT_LLM = _build_chat_llm()
 
-QA_LLM = CHAT_LLM.bind(temperature=0.5)
 # 노드에서 messages를 만들고, 여기서는 “모델 + 스키마”만 제공
 LLM_CHAIN = CHAT_LLM.with_structured_output(CounselorTurn, method="function_calling")
 TECHNIQUE_SELECTOR = CHAT_LLM.with_structured_output(TechniqueSelection, method="function_calling")

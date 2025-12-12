@@ -44,7 +44,7 @@ class FirestoreRepo(Repo):
         try:
             sessions_ref = _sessions_col(user_id)
             q = (sessions_ref
-                 .where(filter=FieldFilter("week", "==", int(week)))                        # 현재 주차에 해당하는
+                .where(filter=FieldFilter("week", "==", int(week)))                         # 현재 주차에 해당하는
                 .where(filter=FieldFilter("session_type", "==", "WEEKLY"))                  # WEEKLY 세션 중에서
                 .where(filter=FieldFilter("status", "in", ["draft", "active", "paused"])))  # 활성 상태인 것
             
@@ -128,7 +128,7 @@ class FirestoreRepo(Repo):
     #  세션 메타데이터 저장/갱신 (메시지 생성 X)
     #     - /session/init 에서 호출 (세션 박제용)
     #     - save_message 에서 호출 (세션 보장용)
-    def save_session_info(self, user_id: str, thread_id: str, session_type: str, week: int) -> None:
+    def save_session_info(self, user_id: str, thread_id: str, session_type: str, week: int, created_at: Optional[datetime] = None) -> None:
         """
         세션 문서가 존재하면 -> last_activity_at 갱신
         세션 문서가 없으면 -> 새로 생성 (created_at 포함)
@@ -146,15 +146,18 @@ class FirestoreRepo(Repo):
             print(f"   [DB] REPO.save_session_info[A]: Existing session touched: {thread_id}")
         else:
             # (B) 없는 방: 필수 정보 다 채워서 '새로 생성'
+            # 파라미터로 받은 created_at이 있으면 쓰고, 없으면 서버 시간 사용
+            new_created_at = created_at if created_at else firestore.SERVER_TIMESTAMP
+
             session_ref.set({
                 "id": thread_id,
                 "user_id": user_id,
                 "week": int(week),
                 "session_type": session_type,
                 "status": "active",
-                "created_at": firestore.SERVER_TIMESTAMP,
-                "started_at": firestore.SERVER_TIMESTAMP,
-                "last_activity_at": firestore.SERVER_TIMESTAMP,
+                "created_at": new_created_at, # 변수 사용
+                "started_at": new_created_at, # 시작 시간도 동일하게 맞춤
+                "last_activity_at": new_created_at,
                 "checkpoint": {"step_index": 0},
                 "state": {},
             })

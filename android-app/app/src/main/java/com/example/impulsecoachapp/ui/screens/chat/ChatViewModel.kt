@@ -77,6 +77,9 @@ class ChatViewModel @Inject constructor(
     private val _isWeeklyModeLocked = MutableStateFlow(false)
     val isWeeklyModeLocked: StateFlow<Boolean> = _isWeeklyModeLocked.asStateFlow()
 
+    // 10. 현재 세션 타입 기억 변수
+    private var currentSessionType: String = "WEEKLY" //기본값 WEEKLY
+
     // LoadingStage Enum
     enum class LoadingStage {
         THINKING,      // 입력을 읽는 중
@@ -104,16 +107,25 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
 
-            // 1. SessionManager 등에 현재 스레드 ID 업데이트 (필요 시)
-            // repository.setCurrentThread(threadId) // 만약 repository에 그런 기능이 있다면
+            currentSessionType = "GENERAL"
+            repository.updateCurrentSessionInfo(threadId, "GENERAL")
+
+            // 1. 세션 날짜 불러오기 (상단 바 표시용)
+            val foundSession = _historyList.value.find { it.sessionId == threadId }
+            val dateStr = foundSession?.date // 예: "2023-12-11"
 
             // 2. 메시지 내역 불러오기
             val historyResult = repository.getSessionHistory(threadId)
+            _sessionTitle.value = "불러오는 중..."
 
             historyResult.onSuccess { history ->
                 _messages.value = history
-                _sessionTitle.value = "FAQ (이어하기)" // 혹은 적절한 제목
-                // 이어하기 모드이므로 잠금 해제
+                if (dateStr != null) {
+                    _sessionTitle.value = "FAQ ($dateStr)"
+                } else {
+                    _sessionTitle.value = "FAQ"
+                }
+                // 이어하기 모드이므로 새로운 세션 생성 버튼 잠금 해제
                 _isWeeklyModeLocked.value = false
             }.onFailure {
                 _messages.value = listOf(ChatMessage.GuideMessage("대화 내용을 불러오지 못했습니다."))
@@ -224,10 +236,10 @@ class ChatViewModel @Inject constructor(
         _loadingStage.value = LoadingStage.THINKING
 
         viewModelScope.launch {
-            kotlinx.coroutines.delay(6000)
+            kotlinx.coroutines.delay(50000)
             if (_isLoading.value) _loadingStage.value = LoadingStage.SELECTING
 
-            kotlinx.coroutines.delay(23000)
+            kotlinx.coroutines.delay(35000)
             if (_isLoading.value) _loadingStage.value = LoadingStage.APPLYING
         }
     }
@@ -256,14 +268,14 @@ class ChatViewModel @Inject constructor(
                 applyChatTurn(turn)
             }.onFailure { error ->
                 // 실패 시 에러 메시지 추가 (또는 UserResponse 제거 로직 등 추가 가능)
-                _messages.value = _messages.value + ChatMessage.GuideMessage("오류: ${error.message}")
+                _messages.value = _messages.value + ChatMessage.GuideMessage("오류가 발생했어요! 조금 뒤에 다시 답변을 보내주세요@: ${error.message}")
             }
             _isLoading.value = false
             _loadingStage.value = null // 끝나면 스테이지 리셋
         }
     }
 
-    // ★ 핵심: 서버 응답(ChatTurn)을 UI 상태로 변환하는 '단일 진실 공급원(Source of Truth)'
+    // ★ 핵심: 서버 응답(ChatTurn)을 UI 상태로 변환하는 Source of Truth
     private fun applyChatTurn(chatTurn: ChatTurn) {
         // 1. 메시지 추가
         _messages.value = _messages.value + chatTurn.assistantMessage

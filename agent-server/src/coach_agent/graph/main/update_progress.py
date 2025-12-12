@@ -5,8 +5,6 @@ from datetime import datetime, timezone
 from coach_agent.graph.state import State
 from coach_agent.services import REPO
 from coach_agent.utils.protocol_loader import load_protocol_spec
-from coach_agent.services.history import persist_turn 
-
 
 def apply_weekly_protocol_to_state(state: State, week: int) -> State:
     """
@@ -36,11 +34,11 @@ def update_progress(state: State) -> Dict[str, Any]:
     Dynamic COUNSEL 루프에서 한 턴이 끝난 뒤,
     세션 진행 상태를 갱신하고 DB에 기록하는 노드.
 
-    1) in-graph 진행도:
+    1) 세션 진행도(Turn Index 등) 갱신
        - turn_index를 1 증가
        - (⚠️ turn_count는 llm_technique_applier에서만 관리한다)
 
-    2) DB 진행도 / 메타:
+    2) DB 업데이트 (Last Seen, Progress)
        - 항상: user.last_seen_at 업데이트
        - WEEKLY일 때:
          - REPO.update_progress(user_id, week, exit_hit=state.exit) 호출
@@ -51,6 +49,8 @@ def update_progress(state: State) -> Dict[str, Any]:
                - completed_at 기록
                - user.last_weekly_session_completed_at 갱신
                - user.current_week 주차 진급(또는 프로그램 완료 처리)
+    
+    3) 세션 종료(Exit) 시, 남은 대화 내용을 최종 요약하여 DB에 저장
     """
 
     print("\n=== [DEBUG] update_progress Node Started ===")
@@ -89,13 +89,9 @@ def update_progress(state: State) -> Dict[str, Any]:
 
         # 2-2) WEEKLY 세션 진행도/요약/완료 처리
         if session_type == "WEEKLY":
-            # (기존 로직 유지) 이번 턴에서 종료 조건을 만족했는지 로그로 남김
+            # A. 매 턴 -> 진행 상태(progress) 업데이트
             try:
-                REPO.update_progress(
-                    user_id=user_id,
-                    week=current_week,
-                    exit_hit=state.exit,
-                )
+                REPO.update_progress(user_id=user_id, week=current_week,exit_hit=state.exit,)
                 print(
                     f"[update_progress] [{current_week}주차] "
                     f"진행 상태 업데이트 (exit_hit={state.exit})"
@@ -103,21 +99,21 @@ def update_progress(state: State) -> Dict[str, Any]:
             except Exception as e:
                 print(f"[update_progress] REPO.update_progress 호출 중 오류: {e}")
 
-            # 이번 턴에 세션이 종료되었으면, 요약 + 완료 처리
+            # B. 세션 종료(Exit) 시 -> exit node에서 생성한 최종 요약 저장 및 세션 완료 처리
             if state.exit:
-                # 요약 텍스트 (없으면 빈 문자열)
-                summary_text = (state.summary or "").strip()
-
-                # 1) 세션 요약 저장 (summary 필드)
+                print(f"[update_progress] 🏁 세션 종료 감지. 최종 요약 작업을 시작합니다.")
+                final_summary = (state.summary or "").strip()
+                
+                # 1) 요약 저장
                 try:
                     if hasattr(REPO, "save_session_summary"):
                         REPO.save_session_summary(
                             user_id=user_id,
                             week=current_week,
-                            summary_text=summary_text,
+                            summary_text=final_summary,
                         )
                         print(
-                            f"[update_progress] [{current_week}주차] "
+                            f"[update_progress] 최종 요약 DB 저장 완료 (Length: {len(final_summary)}) "
                             f"세션 요약 저장 완료"
                         )
                 except Exception as e:
@@ -125,7 +121,7 @@ def update_progress(state: State) -> Dict[str, Any]:
                         f"[update_progress] REPO.save_session_summary 호출 중 오류: {e}"
                     )
 
-                # 2) 세션 완료 + 주차 진급 <- last_weekly_session_completed_at 를 통해 수행
+                # 2) 세션 완료 + 주차 진급 <- REPO.last_weekly_session_completed_at 를 통해 수행
                 try:
                     if hasattr(REPO, "mark_session_as_completed"):
                         REPO.mark_session_as_completed(
@@ -133,24 +129,19 @@ def update_progress(state: State) -> Dict[str, Any]:
                             week=current_week,
                             completed_at=now,
                         )
-                        print(
-                            f"[update_progress] [{current_week}주차] "
-                            f"mark_session_as_completed 호출 (주차 진급 포함)"
-                        )
+                        print(f"[update_progress] [{current_week}주차] mark_session_as_completed 호출 완료 (주차 진급 포함)")
                 except Exception as e:
                     print(
                         f"[update_progress] REPO.mark_session_as_completed 호출 중 오류: {e}"
                     )
+                
 
     except Exception as e:
-        print(f"[update_progress] 진행 상태/메타 업데이트 중 오류 발생: {e}")
+        print(f"[update_progress] 진행 상태/DB 업데이트 중 오류 발생: {e}")
 
-    # -------------------------
+    
     # 3. state에 반영할 값 반환
-    # -------------------------
     return {
         "turn_index": new_turn_index,
         "session_progress": new_session_progress,
     }
-
-

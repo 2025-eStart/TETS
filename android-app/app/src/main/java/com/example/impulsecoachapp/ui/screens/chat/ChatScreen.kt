@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -106,18 +107,43 @@ fun ChatScreen(
                 LazyColumn {
                     items(historyList) { session ->
                         NavigationDrawerItem(
-                            label = { Text(session.title) },
-                            badge = { Text(session.date) },
+                            label = {
+                                Text(
+                                    text = session.title,
+                                    color = if (isWeeklyModeLocked) Color.Gray else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            badge = {
+                                if (isWeeklyModeLocked) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Locked",
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            },
                             selected = false,
                             onClick = {
-                                if (session.sessionType == "GENERAL") {
-                                    // General -> 채팅방 열어서 이어하기
-                                    onOpenChat(session.sessionId)
+                                if (isWeeklyModeLocked) {
+                                    // (A) 잠겨있을 때: 안내 메시지 띄우기 (이동 X, 서랍 닫기 X)
+                                    Toast.makeText(
+                                        context,
+                                        "현재 진행 중인 주간 상담을 먼저 마무리해 주세요!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } else {
-                                    // Weekly -> 읽기 전용 히스토리 화면
-                                    onOpenHistory(session.sessionId)
+                                    // (B) 잠겨있지 않을 때: 기존 로직 수행 (이동 O, 서랍 닫기 O)
+                                    scope.launch {
+                                        drawerState.close() // 서랍 먼저 닫고
+
+                                        if (session.sessionType == "GENERAL") {
+                                            onOpenChat(session.sessionId)
+                                        } else {
+                                            onOpenHistory(session.sessionId)
+                                        }
+                                    }
                                 }
-                                scope.launch { drawerState.close() }
                             }
                         )
                     }

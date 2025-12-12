@@ -3,7 +3,7 @@ from typing import Dict, Any
 from coach_agent.graph.state import State
 
 def init_weekly_state(state: State) -> dict:
-    print("\n   [WeeklyNode: Init] Weekly Subgraph 진입 성공") # [DEBUG]
+    print("\n🔥 🚀 [WeeklyNode: Init] Weekly Subgraph 진입 성공") # [DEBUG]
     
     return {
         "phase": "GREETING",
