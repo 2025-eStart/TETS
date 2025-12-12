@@ -111,7 +111,7 @@ class ActualChatRepository @Inject constructor(
 
     suspend fun getHistoryList(): Result<List<SessionSummary>> {
         val userId = deviceIdManager.getDeviceId()
-        // ✅ [선택] 목록 가져오기 실패 방지
+        // 목록 가져오기 실패 방지
         if (userId.isBlank()) return Result.failure(IllegalStateException("No User ID"))
 
         return try {
@@ -153,7 +153,7 @@ class ActualChatRepository @Inject constructor(
     suspend fun initOrRestoreSession(forceNew: Boolean = false): Result<InitSessionResponse> {
         val userId = deviceIdManager.getDeviceId()
 
-        // ✅ [추천] 앱 켜자마자 실행되는 함수라 여기도 필수
+        //  앱 켜자마자 실행되는 함수라 여기도 필수
         if (userId.isBlank()){
             return Result.failure(IllegalStateException("유저 ID가 생성되지 않았습니다."))
         }

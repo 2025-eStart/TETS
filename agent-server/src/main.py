@@ -50,6 +50,7 @@ class InitSessionResponse(BaseModel):
     current_week: int = 1    # 현재 주차 정보 추가
     is_weekly_in_progress: bool = False # 주간 상담이 진행 중인지 여부; 새로운 세션 생성 버튼 비활성화 여부 결정
     created_at: str = ""     # 생성 시각 (ISO 문자열); ui 상단 바 출력용
+    status: str = "active"
 
 class ChatRequest(BaseModel):
     user_id: str
@@ -75,6 +76,7 @@ class SessionSummary(BaseModel): # 서랍 기능
     title: str       # 예: "1주차: 시작이 반이다" 또는 "일반 상담 (2025-11-24)"
     date: str        # 예: "2025-11-24"
     session_type: str
+    status: Optional[str] = None  # "active", "ended" 등
 
 # --- 헬퍼 함수 ---
 # init_session: 활성 세션 조회 헬퍼 함수
@@ -157,7 +159,8 @@ async def init_session(req: InitSessionRequest):
             thread_id=str(uuid.uuid4()), # 새 방
             session_type="GENERAL",
             display_message="새로운 일반 상담을 시작합니다.",
-            current_week=current_week
+            current_week=current_week,
+            status="active"
         )
         session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
 
@@ -171,7 +174,8 @@ async def init_session(req: InitSessionRequest):
             thread_id=str(uuid.uuid4()), # 새 방
             session_type="WEEKLY",
             display_message="오랜만에 오셨네요! 1주차부터 다시 시작합니다.",
-            current_week=1
+            current_week=1,
+            status="active"
         )
         session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
         
@@ -182,7 +186,8 @@ async def init_session(req: InitSessionRequest):
             thread_id=str(uuid.uuid4()),
             session_type="GENERAL",
             display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
-            current_week=current_week
+            current_week=current_week,
+            status="active"
         )
         session_created_at_dt = now # 새 일반 상담 세션이므로 현재 시각
         
@@ -190,8 +195,7 @@ async def init_session(req: InitSessionRequest):
     else:
         print("   - [API Debug] 쿨다운 기간 아님 -> 진행 중인 세션 확인...") # 디버깅
         print("   - [API Debug] Active 세션 검색 시도...") # 디버깅
-        # active_thread_id = _get_active_thread_id(user_id, current_week)
-        # [수정] _get_active_thread_id 대신 REPO 함수 직접 호출 (데이터 전체가 필요함)
+        
         active_session = REPO.get_active_weekly_session(user_id, current_week)
         print(f"   - [API Debug] 검색 결과 ID: {active_session}") # 디버깅
     
@@ -199,10 +203,12 @@ async def init_session(req: InitSessionRequest):
             # 진행 중인 세션이 있음
             if days_seen < 1:
                 # [요구사항 2] 24시간 이내 -> 기존 스레드 유지
+                current_status = active_session.get("status", "active")
                 response_data = InitSessionResponse(
                     thread_id=active_session["id"],
                     session_type="WEEKLY",
-                    current_week=current_week
+                    current_week=current_week,
+                    status=current_status
                 )
                 print("   - [API Debug] 기존 세션 유지 선택") # 디버깅
                 # 기존 세션이므로 DB에 있는 created_at을 가져옴
@@ -219,7 +225,8 @@ async def init_session(req: InitSessionRequest):
                     thread_id=new_id, # 새 스레드(채팅방)
                     session_type="WEEKLY",
                     display_message="지난 상담이 오래되어 이번 주차를 처음부터 다시 시작합니다.",
-                    current_week=current_week
+                    current_week=current_week,
+                    status="active"
                 )
                 session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
     
@@ -240,7 +247,8 @@ async def init_session(req: InitSessionRequest):
                     thread_id=new_id,
                     session_type="WEEKLY",
                     # display_message=f"{current_week}주차 상담을 시작합니다!", #weekly graph의 greeting node에서 수행됨
-                    current_week=current_week
+                    current_week=current_week,
+                    status="active"
                 )
                 session_created_at_dt = now
             else:
@@ -249,7 +257,8 @@ async def init_session(req: InitSessionRequest):
                     thread_id=str(uuid.uuid4()),
                     session_type="WEEKLY",
                     # display_message="충동 소비 상담소에 오신 것을 환영합니다! 1주차 상담을 시작할게요.", #weekly graph의 greeting node에서 수행됨
-                    current_week=1
+                    current_week=1,
+                    status="active"
                 )
                 session_created_at_dt = now
 
@@ -293,7 +302,6 @@ async def init_session(req: InitSessionRequest):
 async def chat_endpoint(req: ChatRequest):
     print(f"\n🔥 [Chat API Start] Thread={req.thread_id}, UserMsg='{req.message}', SessionType={req.session_type}") # 디버깅
     try:
-        
         # 1. 그래프 입력값(Inputs) 준비
         inputs = {
             "messages": [HumanMessage(content=req.message)],
@@ -311,35 +319,38 @@ async def chat_endpoint(req: ChatRequest):
         
         # 3. ainvoke로 그래프 비동기 실행
         final_state = await graph_app.ainvoke(inputs, config=config)
+        is_ended = final_state.get("exit", False) # 그래프 결과에서 종료 여부 추출
 
-        # [디버깅] 그래프 실행 직후 상태 확인
-        print("   -> [Graph Finished] Final State Keys:", final_state.keys()) 
+        # ---- 디버깅: 메시지 개수 및 마지막 메시지 내용 출력 ----
+        print("   -> [Graph Finished] Final State Keys:", final_state.keys())
         msgs = final_state.get("messages", [])
-        print(f"   -> [Graph Messages Count]: {len(msgs)}")
+        print(f"   -> [Graph Messages Count]: {len(msgs)}") 
         if msgs:
             print(f"   -> [Last Message]: Type={msgs[-1].type}, Content='{msgs[-1].content}'")
+        # ----------------------------------------------------
 
         # 4. 결과 파싱
         messages = final_state.get("messages", [])
         last_ai_msg = ""
         
-        # [수정] 역순 탐색하되, 시스템 메시지나 __init__은 무시
-        for msg in reversed(messages):
+        # 역순 탐색하되, 시스템 메시지나 __init__은 무시
+        for msg in reversed(msgs):
             if msg.type == "ai":
-                # msg.content가 리스트일 수도 있고 문자열일 수도 있음 (방어 로직)
                 content = msg.content
-                # 리스트/문자열 처리
-                text_content = ""
+                
+                # 내용 추출 (리스트/문자열 처리)
                 if isinstance(content, list):
-                    # 리스트라면 문자열로 합침 (중요!)
-                    last_ai_msg = "\n\n".join([str(c) for c in content if isinstance(c, str)])
+                    temp_text = "\n\n".join([str(c) for c in content if isinstance(c, str)])
                 else:
-                    last_ai_msg = str(content)
-                    # 내용이 유효하고 __init__이 아니면 채택
-                if text_content and text_content.strip() != "__init__":
-                    last_ai_msg = text_content
+                    temp_text = str(content)
+                
+                # 유효성 검사 (__init__ 제외, 빈 문자열 제외)
+                if temp_text and temp_text.strip() and temp_text.strip() != "__init__":
+                    last_ai_msg = temp_text
                     break
-                break
+        
+        if not last_ai_msg:
+            last_ai_msg = "(응답 없음)"
         
         print(f"   -> [Parsed AI Reply]: '{last_ai_msg}'") # 디버깅
         
@@ -347,12 +358,11 @@ async def chat_endpoint(req: ChatRequest):
         if not last_ai_msg:
             last_ai_msg = "(응답 없음)"
             
-        # ---- 여기서부터: 그래프가 "정상 종료된 경우"에만 DB에 저장 ----
-        # current_week은 그래프가 결정한 값을 쓰는 게 제일 정확함
-        current_week = getattr(final_state, "current_week", 1)
+        # 5. DB 저장 로직 (그래프 정상 실행 시에만)
+        current_week = final_state.get("current_week", 1)
 
         # __init__ message는 저장하지 않기
-        # 4-1. user 메시지 저장
+        # 5-1. user 메시지 저장
         user_text = req.message or ""
         if user_text.strip() != "__init__":
             REPO.save_message(
@@ -364,8 +374,7 @@ async def chat_endpoint(req: ChatRequest):
                 text=user_text,
             )
 
-        # 4-2. AI 메시지 저장
-        # "(응답 없음)" 같은 디버그 문구는 안 남기고 싶으면 조건 걸기
+        # 5-2. AI 메시지 저장
         if last_ai_msg and last_ai_msg != "(응답 없음)":
             REPO.save_message(
                 user_id=req.user_id,
@@ -376,8 +385,9 @@ async def chat_endpoint(req: ChatRequest):
                 text=last_ai_msg,
             )
 
-        week_title = getattr(final_state, "agenda", None) or "상담"
-        raw_criteria = getattr(final_state, "success_criteria", []) or []
+        # 6. 응답 구성
+        week_title = final_state.get("agenda") or "상담" 
+        raw_criteria = final_state.get("success_criteria") or []
         week_goals = [
             c.get("description") or c.get("label") or c.get("id", "")
             for c in raw_criteria
@@ -386,7 +396,7 @@ async def chat_endpoint(req: ChatRequest):
         
         return ChatResponse(
             reply=last_ai_msg,
-            is_ended=getattr(final_state, "exit", False),
+            is_ended=is_ended,
             current_week=current_week,
             week_title=week_title,
             week_goals=week_goals,
@@ -400,13 +410,6 @@ async def chat_endpoint(req: ChatRequest):
         #    이번 턴의 user/assistant 아무것도 DB에 남지 않음.
         raise HTTPException(status_code=500, detail=str(e))
             
-
-    except Exception as e:
-        print(f"ERROR executing graph: {e}")
-        # 상세 에러 로그 출력
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
     
 # --- API 3: 서랍 (과거 채팅 내역 접근) ---
 @server.get("/sessions/{user_id}", response_model=List[SessionSummary])
@@ -419,17 +422,16 @@ async def get_user_sessions(user_id: str):
     
     results = []
     for s in sessions:
-        # --- [로직 1] ID 안전하게 가져오기 ---
-        # Firestore 문서를 dict로 변환할 때 'id' 필드를 넣었겠지만, 
-        # 혹시 몰라 'session_id' 필드도 확인하는 2중 안전장치
+        # --- ID 안전하게 가져오기 ---
         sid = s.get("id") or s.get("session_id")
         if not sid: continue # ID가 없는 유령 데이터는 건너뜀
 
-        # --- [추가 로직] 미완료&&종료 세션 서랍에서 숨기기 ---
+        # --- 미완료&&종료 세션 서랍에서 숨기기 ---
         # 'result'가 'abandoned'인 세션은 서랍 목록에서 숨김(건너뛰기)
         if s.get("result") == "abandoned": continue
+        session_status = s.get("status")
         
-        # --- [로직 2] 날짜 예쁘게 변환하기 (YY-MM-DD HH:MM) ---
+        # --- 날짜 예쁘게 변환하기 (YY-MM-DD HH:MM) ---
         created_at = s.get("created_at")
         date_str = ""
         
@@ -457,7 +459,7 @@ async def get_user_sessions(user_id: str):
             KST = timezone(timedelta(hours=9))
             date_str = datetime.now(KST).strftime("%y-%m-%d %H:%M")
 
-        # --- [로직 3] 제목(Title) 결정 로직 ---
+        # --- 제목(Title) 결정 로직 ---
         # 상담 세션: {week}주차 상담 | {날짜}
         # 일반 세션: FAQ | {날짜}
         # 1순위: DB에 이미 저장된 구체적인 제목이 있으면 그걸 씀 (예: "불안 다루기")
@@ -480,7 +482,8 @@ async def get_user_sessions(user_id: str):
             session_id=sid,
             title=display_title,
             date=date_str,
-            session_type=s_type
+            session_type=s_type,
+            status=session_status
         ))
         
     return results
