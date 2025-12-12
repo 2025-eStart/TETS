@@ -102,19 +102,23 @@ class ChatViewModel @Inject constructor(
         loadHistoryList()
     }
 
-    // [NEW] 특정 세션(General)을 로드하여 이어하기 모드로 설정
+    // 특정 세션(General)을 로드하여 이어하기 모드로 설정
     fun loadSpecificSession(threadId: String) {
         viewModelScope.launch {
             _isLoading.value = true
 
-            currentSessionType = "GENERAL"
-            repository.updateCurrentSessionInfo(threadId, "GENERAL")
-
-            // 1. 세션 날짜 불러오기 (상단 바 표시용)
+            // 1. 목록(캐시)에서 세션 정보 찾기
             val foundSession = _historyList.value.find { it.sessionId == threadId }
-            val dateStr = foundSession?.date // 예: "2023-12-11"
+            val dateStr = foundSession?.date
 
-            // 2. 메시지 내역 불러오기
+            // 2. 찾은 세션의 status를 보고 즉시 UI 잠금 여부 결정
+            //    status가 "ended"이면 true, 아니면(null 포함) false
+            _isSessionEnded.value = (foundSession?.status == "ended")
+
+            currentSessionType = "GENERAL"
+            repository.updateCurrentSessionInfo(threadId, currentSessionType)
+
+            // 3. 메시지 내역 불러오기
             val historyResult = repository.getSessionHistory(threadId)
             _sessionTitle.value = "불러오는 중..."
 
@@ -136,9 +140,13 @@ class ChatViewModel @Inject constructor(
     }
 
     // 상황 1: 앱 켜질 때 (이어하기. 채팅 내역 그대로 남아 있음)
+// ChatViewModel.kt 내부
+
+    // 상황 1: 앱 켜질 때 (이어하기)
     private fun restoreSessionOrStartNew() {
         viewModelScope.launch {
             _isLoading.value = true
+            _isSessionEnded.value = false // 일단 리셋
 
             // 1) 서버에게 현재 세션/스레드 상태 물어보기
             val initResult = repository.initOrRestoreSession(forceNew = false)
@@ -146,13 +154,17 @@ class ChatViewModel @Inject constructor(
             initResult.onSuccess { initRes ->
                 val threadId = initRes.threadId
 
-                // 받아온 세션 타입을 멤버 변수에 저장해야 타이머 분기가 작동함
-                currentSessionType = initRes.sessionType
+                // [NEW] ★ 서버가 알려준 상태 즉시 반영 ★
+                // status가 "ended"이면 true, 그 외(null, "active")면 false
+                // 이렇게 하면 히스토리를 로딩하기 전부터 입력창이 잠깁니다.
+                if (initRes.status == "ended") {
+                    _isSessionEnded.value = true
+                }
 
-                // 서버에서 "주간 상담 진행 중"이라고 했는지 확인하여 세션 생성 버튼 잠금 설정
+                // (기존 로직)
+                currentSessionType = initRes.sessionType
                 _isWeeklyModeLocked.value = initRes.isWeeklyInProgress
 
-                // 상단 타이틀 업데이트
                 _currentWeek.value = initRes.currentWeek
                 _sessionTitle.value = when (initRes.sessionType) {
                     "WEEKLY" -> "${initRes.currentWeek}주차 상담"
@@ -164,33 +176,19 @@ class ChatViewModel @Inject constructor(
 
                 historyResult.onSuccess { history ->
                     if (history.isNotEmpty()) {
-                        // 과거 대화가 존재하는 경우: 그 대화만 화면에 복원하고, __init__ 안 보냄
-                        // 여기서는 “AI가 이미 질문을 던졌고, 사용자가 아직 답 안 한 상태”를
-                        // 포함해서, 어떤 경우든 "대화는 이미 시작된 상태"라고 보고
-                        // 추가 init 호출 없이 사용자가 바로 이어서 입력하게 둔다.
+                        // 과거 대화가 있으면 복원
                         _messages.value = history
                     } else {
-                        // 완전히 새로운 세션(히스토리 없음) → 첫 인사 받기
-                        val firstTurnResult = repository.startSession(forceNew = false)
-
-                        firstTurnResult.onSuccess { turn ->
-                            applyChatTurn(turn)
-                        }.onFailure {
-                            _messages.value = listOf(
-                                ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
-                            )
+                        // 히스토리가 없으면 첫 인사
+                        // [중요] 단, 이미 종료된 세션이라면 굳이 startSession을 불러서 봇을 깨울 필요 없음
+                        if (!_isSessionEnded.value) {
+                            startInitialSession()
                         }
                     }
                 }.onFailure {
-                    // 히스토리 로드 실패 시에도 최소한 첫 턴은 띄워주기
-                    val firstTurnResult = repository.startSession(forceNew = false)
-
-                    firstTurnResult.onSuccess { turn ->
-                        applyChatTurn(turn)
-                    }.onFailure {
-                        _messages.value = listOf(
-                            ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
-                        )
+                    // 히스토리 로드 실패 시 재시도 (종료 안 된 경우만)
+                    if (!_isSessionEnded.value) {
+                        startInitialSession()
                     }
                 }
             }.onFailure {
@@ -203,18 +201,28 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // restoreSessionOrStartNew [Helper 함수]
+    private suspend fun startInitialSession() {
+        val firstTurnResult = repository.startSession(forceNew = false)
 
+        firstTurnResult.onSuccess { turn ->
+            applyChatTurn(turn)
+        }.onFailure {
+            _messages.value = listOf(
+                ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
+            )
+        }
+    }
     // 상황 2: 버튼 눌렀을 때 (새로하기)
     fun onNewSessionClick() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            // 1. 화면 비우기
+            // 1. 화면 비우기 & 상태 리셋
             _messages.value = emptyList()
             _sessionTitle.value = "새 FAQ"
-
-            // FAQ 모드는 새 세션 생성 버튼 잠금이 필요 없으므로 false 설정
-            _isWeeklyModeLocked.value = false
+            _isSessionEnded.value = false
+            _isWeeklyModeLocked.value = false // 새 세션 생성 버튼 잠금 해제
 
             // 2. 강제 새 방 배정 (forceNew=true)
             // 내부적으로 repository.startSession(true) 호출
@@ -238,7 +246,7 @@ class ChatViewModel @Inject constructor(
     private fun startLoadingStageTimer() {
         // GENERAL 상담이면 바로 APPLYING 단계로 건너뜀
         if (currentSessionType == "GENERAL") {
-            _loadingStage.value = LoadingStage.APPLYING
+            _loadingStage.value = LoadingStage.THINKING
             return // 여기서 함수 종료 (타이머 실행 안 함)
         }
 

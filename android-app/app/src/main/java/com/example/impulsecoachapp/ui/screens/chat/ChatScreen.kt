@@ -274,18 +274,40 @@ fun UserInput(
 ) {
     var text by remember { mutableStateOf("") }
 
+    // 1. 상담이 종료되었을 때 (입력 불가)
     if (isSessionEnded) {
-        Text(
-            text = "상담이 종료되었습니다.",
+        Surface(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-        return
+            color = Color(0xFFEEEEEE), // 회색 배경
+            shape = RoundedCornerShape(12.dp),
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock, // Lock 아이콘 (또는 Check)
+                    contentDescription = "Closed",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "이 상담은 종료되었습니다.",
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+        return // 여기서 함수 종료 (아래 입력창 렌더링 X)
     }
 
+    // 2. 상담 진행 중 (입력 가능)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -308,12 +330,18 @@ fun UserInput(
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Black
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            maxLines = 3
         )
         Spacer(modifier = Modifier.width(8.dp))
 
         if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(48.dp))
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp), // 크기 조정
+                strokeWidth = 2.dp,
+                color = Color(0xFF6200EE)
+            )
+            Spacer(modifier = Modifier.width(12.dp)) // 간격 확보
         } else {
             IconButton(
                 onClick = {

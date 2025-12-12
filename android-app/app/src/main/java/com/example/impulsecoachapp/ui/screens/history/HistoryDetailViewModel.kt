@@ -57,8 +57,14 @@ class HistoryDetailViewModel @Inject constructor(
             val result = repository.initOrRestoreSession(forceNew = false)
 
             result.onSuccess { res ->
-                // 서버가 알려준 상태를 변수에 저장
-                _isWeeklyModeLocked.value = res.isWeeklyInProgress
+                // ChatViewModel과 동일한 로직 적용
+                // 기본적으로 서버가 주는 isWeeklyInProgress를 따르지만,
+                // 만약 현재 세션이 이미 '종료(ended)'된 상태라면 -> 새 세션을 만들 수 있게 잠금 해제
+                if (res.status == "ended") {
+                    _isWeeklyModeLocked.value = false
+                } else {
+                    _isWeeklyModeLocked.value = res.isWeeklyInProgress
+                }
             }
             // 실패 시에는 기본값(false) 유지 혹은 에러 처리
         }
@@ -107,8 +113,17 @@ class HistoryDetailViewModel @Inject constructor(
 
             // 1. 서버에 강제 새 세션 생성 요청
             val result = repository.startSession(forceNew = true)
-            result.onSuccess { _navigateToChatEvent.emit(Unit) } // 2. 성공하면 chatsceen으로 화면 이동
-                  .onFailure { e -> _errorMessage.value = "새 FAQ를 시작하지 못했습니다: ${e.message}" }
+
+            result.onSuccess {
+                // [추가] 성공하면 즉시 잠금 상태 해제 (UI 반영)
+                _isWeeklyModeLocked.value = false
+
+                // 2. ChatScreen으로 이동 이벤트 발생
+                _navigateToChatEvent.emit(Unit)
+            }.onFailure { e ->
+                _errorMessage.value = "새 FAQ를 시작하지 못했습니다: ${e.message}"
+            }
+
             // 새 세션이 생겼으니 목록을 최신 상태로 갱신
             loadHistoryList()
             _isLoading.value = false

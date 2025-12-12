@@ -9,7 +9,8 @@ data class InitSessionResponse(
     @SerializedName("session_type") val sessionType: String, // "WEEKLY" or "GENERAL"
     @SerializedName("display_message") val displayMessage: String = "",
     @SerializedName("current_week") val currentWeek: Int = 1,
-    @SerializedName("is_weekly_in_progress") val isWeeklyInProgress: Boolean  = false
+    @SerializedName("is_weekly_in_progress") val isWeeklyInProgress: Boolean  = false,
+    @SerializedName("status") val status: String? = "active"
 )
 
 // 2. [응답] 채팅 응답 결과
@@ -26,5 +27,6 @@ data class SessionSummary(
     @SerializedName("session_id") val sessionId: String,
     @SerializedName("title") val title: String,
     @SerializedName("date") val date: String,
-    @SerializedName("session_type") val sessionType: String = "GENERAL"
+    @SerializedName("session_type") val sessionType: String = "GENERAL",
+    @SerializedName("status") val status: String? = null
 )
