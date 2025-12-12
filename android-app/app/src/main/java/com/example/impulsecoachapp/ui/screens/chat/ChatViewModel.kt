@@ -146,10 +146,13 @@ class ChatViewModel @Inject constructor(
             initResult.onSuccess { initRes ->
                 val threadId = initRes.threadId
 
+                // 받아온 세션 타입을 멤버 변수에 저장해야 타이머 분기가 작동함
+                currentSessionType = initRes.sessionType
+
                 // 서버에서 "주간 상담 진행 중"이라고 했는지 확인하여 세션 생성 버튼 잠금 설정
                 _isWeeklyModeLocked.value = initRes.isWeeklyInProgress
 
-                // (선택) 상단 타이틀 업데이트
+                // 상단 타이틀 업데이트
                 _currentWeek.value = initRes.currentWeek
                 _sessionTitle.value = when (initRes.sessionType) {
                     "WEEKLY" -> "${initRes.currentWeek}주차 상담"
@@ -233,6 +236,13 @@ class ChatViewModel @Inject constructor(
 
     // 로딩 스테이지 표시용 타이머
     private fun startLoadingStageTimer() {
+        // GENERAL 상담이면 바로 APPLYING 단계로 건너뜀
+        if (currentSessionType == "GENERAL") {
+            _loadingStage.value = LoadingStage.APPLYING
+            return // 여기서 함수 종료 (타이머 실행 안 함)
+        }
+
+        // WEEKLY 상담일 때만 단계별 로딩 표시
         _loadingStage.value = LoadingStage.THINKING
 
         viewModelScope.launch {
@@ -304,10 +314,12 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /*
     // Toast 메시지 보여준 후 닫기용
     fun clearToastMessage() {
         _toastMessage.value = null
     }
+    */
 }
 
 @Composable
