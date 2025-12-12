@@ -308,6 +308,8 @@ class ChatViewModel @Inject constructor(
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
             _isWeeklyModeLocked.value = false // 상담이 끝났으므로 "새 세션 만들기" 버튼 잠금 해제
+
+            loadHistoryList()
         }
     }
 
