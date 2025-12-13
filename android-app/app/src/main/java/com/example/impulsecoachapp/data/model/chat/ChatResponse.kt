@@ -10,7 +10,8 @@ data class InitSessionResponse(
     @SerializedName("display_message") val displayMessage: String = "",
     @SerializedName("current_week") val currentWeek: Int = 1,
     @SerializedName("is_weekly_in_progress") val isWeeklyInProgress: Boolean  = false,
-    @SerializedName("status") val status: String? = "active"
+    @SerializedName("status") val status: String? = "active",
+    @SerializedName("created_at") val createdAt: String? = null
 )
 
 // 2. [응답] 채팅 응답 결과

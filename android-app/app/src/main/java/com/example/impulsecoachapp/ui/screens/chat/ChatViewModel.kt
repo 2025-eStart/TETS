@@ -140,7 +140,7 @@ class ChatViewModel @Inject constructor(
     }
 
     // 상황 1: 앱 켜질 때 (이어하기. 채팅 내역 그대로 남아 있음)
-// ChatViewModel.kt 내부
+    // ChatViewModel.kt 내부
 
     // 상황 1: 앱 켜질 때 (이어하기)
     private fun restoreSessionOrStartNew() {
@@ -154,7 +154,7 @@ class ChatViewModel @Inject constructor(
             initResult.onSuccess { initRes ->
                 val threadId = initRes.threadId
 
-                // [NEW] ★ 서버가 알려준 상태 즉시 반영 ★
+                // 서버가 알려준 상태 즉시 반영
                 // status가 "ended"이면 true, 그 외(null, "active")면 false
                 // 이렇게 하면 히스토리를 로딩하기 전부터 입력창이 잠깁니다.
                 if (initRes.status == "ended") {
@@ -165,10 +165,17 @@ class ChatViewModel @Inject constructor(
                 currentSessionType = initRes.sessionType
                 _isWeeklyModeLocked.value = initRes.isWeeklyInProgress
 
-                _currentWeek.value = initRes.currentWeek
-                _sessionTitle.value = when (initRes.sessionType) {
-                    "WEEKLY" -> "${initRes.currentWeek}주차 상담"
-                    else -> "일반 상담"
+                // [수정] 타이틀 결정 로직 (서랍 목록과 통일성 유지)
+                _sessionTitle.value = if (initRes.sessionType == "WEEKLY") {
+                    "${initRes.currentWeek}주차 상담"
+                } else {
+                    // GENERAL일 경우: "FAQ | {서버가 준 날짜}"
+                    // initRes.createdAt은 이미 "YY-MM-DD HH:MM" 형태임
+                    if (initRes.createdAt.isNullOrBlank()) {
+                        "FAQ | ${initRes.createdAt}"
+                    } else {
+                        "FAQ" // fallback
+                    }
                 }
 
                 // 2) 해당 스레드의 과거 메시지 전체 가져오기
@@ -224,9 +231,31 @@ class ChatViewModel @Inject constructor(
             _isSessionEnded.value = false
             _isWeeklyModeLocked.value = false // 새 세션 생성 버튼 잠금 해제
 
-            // 2. 강제 새 방 배정 (forceNew=true)
-            // 내부적으로 repository.startSession(true) 호출
-            processSessionStart(isReset = true)
+            // 2. 강제 새 방 배정 (기존 processSessionStart 내용을 여기서 직접 수행)
+            val result = repository.startSession(forceNew = true)
+
+            result.onSuccess { turn ->
+                // 2-1. 첫 봇 메시지(채팅 턴) 화면에 반영
+                applyChatTurn(turn)
+
+                // [핵심 추가 로직] 3. 목록 새로고침 후 제목 업데이트
+                // 새 세션이 생겼으니 서랍 목록을 갱신합니다.
+                val historyRefresh = repository.getHistoryList()
+                historyRefresh.onSuccess { list ->
+                    _historyList.value = list
+
+                    // 방금 만든 세션(현재 threadId와 일치하는 것)을 찾아 제목을 업데이트
+                    val currentThreadId = repository.getCurrentThreadId()
+                    val mySession = list.find { it.sessionId == currentThreadId }
+
+                    if (mySession != null) {
+                        // 서버가 준 "FAQ | 25-12-13 15:40" 형태의 제목 적용
+                        _sessionTitle.value = mySession.title
+                    }
+                }
+            }.onFailure {
+                _messages.value = listOf(ChatMessage.GuideMessage("연결 실패"))
+            }
 
             // 3. 서랍 목록 새로고침 (방금 끝난 대화가 서랍으로 들어가야 함)
             loadHistoryList()
@@ -300,10 +329,15 @@ class ChatViewModel @Inject constructor(
 
         // 2-1. 주차 업데이트 (null -> 숫자)
         _currentWeek.value = chatTurn.currentWeek
-        // 2-2. 주차 업데이트 (값이 있을 때만)
-        if (!chatTurn.weekTitle.isNullOrBlank()) {_sessionTitle.value = "${chatTurn.currentWeek}주차 상담"}
-        if (chatTurn.weekGoals.isNotEmpty()) { _sessionGoals.value = chatTurn.weekGoals}
+        // 2-2. 주차 업데이트
+        if (!chatTurn.weekTitle.isNullOrBlank()) {
+            if (currentSessionType == "WEEKLY") {
+                _sessionTitle.value = "${chatTurn.currentWeek}주차 상담"
+            } else {
 
+                _sessionTitle.value = "FAQ"
+            }
+        }
         // 3. 종료 여부 확인 및 버튼 잠금 해제 로직
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
