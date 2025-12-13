@@ -64,14 +64,10 @@ def load_state(state: State, config: RunnableConfig) -> dict:
     # 5. 미접속 기간 계산
     days_since_last_seen = _days_since(user_data.get("last_seen_at"), now_utc)
     
-    # 6. 세션 정보 로드
-    current_week = int(user_data.get("current_week") or 1)
-    weekly_session = REPO.get_active_weekly_session(user_id, current_week)
     
-    # 7. 세션 타입 결정
+    # 6. 세션 타입 결정
     if cfg.session_type_override:
-        # /session/init 결정사항을 최우선으로 따른다
-        # (/session/init이 결정한 session type 따르기)
+        # /session/init 결정사항을 최우선으로 따름
         final_session_type = cfg.session_type_override
         print(f"👮‍♂️ [Nods: LoadState] API Override 적용: {final_session_type}") # [DEBUG]
     else:
@@ -79,9 +75,15 @@ def load_state(state: State, config: RunnableConfig) -> dict:
         final_session_type = (
             state.session_type
             or user_data.get("session_type")
-            or "GENERAL"   # 기본은 GENERAL로 두는 게 덜 위험함
+            or "GENERAL"
         )    
         print(f"   [Nodes: LoadState] DB/State 값 사용: {final_session_type}") # [DEBUG]
+        
+    # 7. 세션 정보 로드#주차
+    current_week = int(user_data.get("current_week") or 1)  # 주차
+    if final_session_type == "GENERAL" and current_week > 1:
+        current_week = current_week - 1  # General 세션은 직전 주차에 대해 상담하므로 현재 주차 -1
+    weekly_session = REPO.get_active_weekly_session(user_id, current_week) # 스레드 id 등
         
     # 최종 상태 반환
     return {

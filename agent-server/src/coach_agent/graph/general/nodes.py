@@ -41,9 +41,9 @@ def init_general_state(state: State) -> Dict[str, Any]:
     return updates
 
 
-# --- generate general answer ----
-
-# [수정됨] 입력 타입을 State가 아닌 List[Any]로 변경하여 재사용성 및 버그 수정
+# --- generate general answer ---
+# helpers
+# 입력 타입을 State가 아닌 List[Any]로 변경하여 재사용성 및 버그 수정
 def _extract_last_user_text(messages: List[Any]) -> Optional[str]:
     """
     메시지 리스트에서 마지막 HumanMessage의 text를 추출.
@@ -84,26 +84,13 @@ def _extract_last_user_text(messages: List[Any]) -> Optional[str]:
     return None
 
 def _build_homework_context_from_protocol(state: State) -> str:
-    # State 접근 (Hybrid)
-    if isinstance(state, dict):
-        user_id = state.get("user_id")
-    else:
-        user_id = getattr(state, "user_id", None)
 
-    if not user_id:
-        return ""
+    user_id = state.user_id
+    if not user_id: return ""
 
-    try:
-        user_doc = REPO.get_user(user_id)
-    except Exception as e:
-        print(f"[General] get_user 실패: {e}")
-        return ""
-
-    current_week = int(user_doc.get("current_week", 1))
-
+    current_week = state.current_week or 1
     homework_text = load_homework_block_for_week(current_week)
-    if not homework_text:
-        return ""
+    if not homework_text: return ""
 
     return (
         f"아래는 이 사용자의 현재 주차(Week {current_week}) 과제 설명입니다.\n"
