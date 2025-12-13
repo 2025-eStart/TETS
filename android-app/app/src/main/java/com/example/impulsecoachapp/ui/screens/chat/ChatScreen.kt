@@ -10,10 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,16 +21,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import com.example.impulsecoachapp.R
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.ui.components.BottomTab
 import com.example.impulsecoachapp.ui.components.ScreenScaffold
-import kotlinx.coroutines.launch
+import com.example.impulsecoachapp.ui.components.TopSessionBar
 import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
+
 
 
 @Composable
@@ -213,55 +212,6 @@ fun ChatScreenContent(
             isSessionEnded = isSessionEnded,
             onSendMessage = onSendMessage
         )
-    }
-}
-
-// 메뉴 아이콘이 있는 상단 바
-@Composable
-fun TopSessionBar(
-    title: String,
-    onMenuClick: () -> Unit,
-    onBackPressed: (() -> Unit)? = null
-) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // ✅ 히스토리 화면에서만 쓸 뒤로가기 버튼
-            if (onBackPressed != null) {
-                IconButton(onClick = onBackPressed) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "뒤로가기",
-                        tint = Color(0xFF6200EE)
-                    )
-                }
-            }
-
-            // 햄버거 메뉴 아이콘
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "메뉴 열기",
-                    tint = Color(0xFF6200EE)
-                )
-            }
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF6200EE),
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
     }
 }
 

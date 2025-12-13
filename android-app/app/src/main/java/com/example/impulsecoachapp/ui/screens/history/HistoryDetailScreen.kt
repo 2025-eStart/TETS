@@ -8,12 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
@@ -31,13 +29,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import com.example.impulsecoachapp.ui.screens.chat.MessageList
+import com.example.impulsecoachapp.ui.components.TopSessionBar
 
 @Composable
 fun HistoryDetailScreen(
@@ -76,11 +73,11 @@ fun HistoryDetailScreen(
         drawerContent = {
             ModalDrawerSheet {
                 Text(
-                    text = "currentSessionTitle",
+                    text = "지난 대화 & 새 채팅",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
-                HorizontalDivider() // Material3에서는 Divider 대신 HorizontalDivider 권장
+                HorizontalDivider()
 
                 // [NEW CHAT 버튼]
                 NavigationDrawerItem(
@@ -171,7 +168,7 @@ fun HistoryDetailScreen(
         ) {
             // ✅ 여기서 TopSessionBar 재사용 + 뒤로가기만 켜기
             TopSessionBar(
-                title = "지난 상담 & 새 채팅",
+                title = currentSessionTitle,
                 onMenuClick = { scope.launch { drawerState.open() } },
                 onBackPressed = onBackPressed
             )
@@ -200,7 +197,7 @@ fun HistoryDetailScreen(
                     }
 
                     else -> {
-                        // ✅ ChatScreen과 동일한 MessageList 재사용
+                        // ChatScreen과 동일한 MessageList 재사용
                         MessageList(
                             messages = messages,
                             isLoading = isLoading,
@@ -210,56 +207,6 @@ fun HistoryDetailScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-
-// 메뉴 아이콘이 있는 상단 바
-@Composable
-fun TopSessionBar(
-    title: String,
-    onMenuClick: () -> Unit,
-    onBackPressed: (() -> Unit)? = null
-) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // ✅ 히스토리 화면에서만 쓸 뒤로가기 버튼
-            if (onBackPressed != null) {
-                IconButton(onClick = onBackPressed) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "뒤로가기",
-                        tint = Color(0xFF6200EE)
-                    )
-                }
-            }
-
-            // 햄버거 메뉴 아이콘
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "메뉴 열기",
-                    tint = Color(0xFF6200EE)
-                )
-            }
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF6200EE),
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
-            )
         }
     }
 }
