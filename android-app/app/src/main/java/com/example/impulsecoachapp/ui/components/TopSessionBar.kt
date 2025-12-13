@@ -43,7 +43,7 @@ fun TopSessionBar(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "뒤로가기",
-                        tint = Color(0xFF6200EE)
+                        tint = Color.Black
                     )
                 }
             }
@@ -53,7 +53,7 @@ fun TopSessionBar(
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = "메뉴 열기",
-                    tint = Color(0xFF6200EE)
+                    tint = Color.Black
                 )
             }
 
@@ -61,7 +61,7 @@ fun TopSessionBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF6200EE),
+                color = Color.Black,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 8.dp)
             )
