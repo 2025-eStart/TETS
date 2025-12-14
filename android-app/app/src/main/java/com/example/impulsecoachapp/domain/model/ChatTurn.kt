@@ -11,11 +11,18 @@ package com.example.impulsecoachapp.domain.model
  * @param weekGoals 이번 주 달성해야 할 목표 리스트 (체크리스트용)
  * @param homework 상담 후 제시된 숙제 ( 일일 리마인더용)
  */
+
+// ChatResponse와 동일한 구조의 Domain 모델 (필요 시 매퍼로 변환하지만, 여기선 편의상 구조 동일하게 사용)
+data class Homework(
+    val description: String,
+    val examples: List<String>
+)
+
 data class ChatTurn(
     val assistantMessage: ChatMessage,
     val isSessionEnded: Boolean,
     val currentWeek: Int = 1,
     val weekTitle: String? = null,
     val weekGoals: List<String> = emptyList(),
-    val homework: String? = null
+    val homework: Homework? = null
 )

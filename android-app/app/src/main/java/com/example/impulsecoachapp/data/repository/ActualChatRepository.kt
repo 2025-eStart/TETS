@@ -5,6 +5,7 @@ import com.example.impulsecoachapp.data.local.*
 import com.example.impulsecoachapp.data.model.chat.*
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
+import com.example.impulsecoachapp.domain.model.Homework
 import com.example.impulsecoachapp.domain.repository.ChatRepository
 import javax.inject.Inject
 
@@ -39,16 +40,23 @@ class ActualChatRepository @Inject constructor(
 
             val response = apiService.sendChatMessage(request)
 
-            if (!response.homework.isNullOrBlank()) {
-                homeworkStorage.saveHomework(response.homework)
+            var domainHomework: Homework? = null
+
+            if (response.homework != null) {
+                domainHomework = Homework(
+                    description = response.homework.description,
+                    examples = response.homework.examples
+                )
+                homeworkStorage.saveHomework(domainHomework)
             }
+
             val chatTurn = ChatTurn(
                 assistantMessage = ChatMessage.GuideMessage(response.reply),
                 isSessionEnded = response.isEnded,
                 currentWeek = response.currentWeek,
                 weekTitle = response.weekTitle,
                 weekGoals = response.weekGoals ?: emptyList(),
-                homework = response.homework
+                homework = domainHomework
             )
 
             Result.success(chatTurn)
@@ -59,9 +67,16 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-    // 리마인더: 일일 과제 알림용 dailyhomeworkworker가 호출할 함수
-    fun getStoredHomework(): String {
+    // 리마인더: 일일 과제 알림용 과제 객체 가져오기
+    fun getStoredHomework(): Homework? {
         return homeworkStorage.getHomework()
+    }
+    // 리마인더: 알림에 띄울 텍스트가 필요할 때 사용하는 헬퍼
+    fun getStoredHomeworkAsNotificationText(): String {
+        val homework = homeworkStorage.getHomework() ?: return homeworkStorage.getDefaultMessage()
+
+        // 알림에는 description과 예시 1개 정도만 요약해서 보여주거나, description만 보여줌
+        return "${homework.description}\n(예시: ${homework.examples.firstOrNull() ?: "없음"})"
     }
 
     // 앱 진입 시 봇을 먼저 깨우는 함수

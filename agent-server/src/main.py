@@ -64,13 +64,19 @@ class ChatRequest(BaseModel):
     message: str
     session_type: str = "GENERAL" # 이건 기본값, 안드로이드가 init_session에서 받은 타입을 그대로 다시 보내줌
 
+# ChatResponse용 숙제 데이터 구조를 정의
+class HomeworkContent(BaseModel):
+    description: str
+    examples: List[str] = []
+    
 class ChatResponse(BaseModel):
     reply: str
     is_ended: bool
     current_week: int
     week_title: str
     week_goals: List[str]
-    homework: Optional[str] = None
+    homework: Optional[HomeworkContent] = None
+    
     
 # -- API 3: 서랍 기능 --
 # 과거 메시지 하나 (Response) (서랍용)
@@ -427,13 +433,16 @@ async def chat_endpoint(req: ChatRequest):
         
         # Graph의 State에서 'homework' 값을 추출
         homework_content = final_state.get("homework", None)
-        
+        if homework_content:
+            print(f"   -> 📬 [Homework Found]: {homework_content}") # 디버깅용
+            
         return ChatResponse(
             reply=last_ai_msg,
             is_ended=is_ended,
             current_week=current_week,
             week_title=week_title,
             week_goals=week_goals,
+            homework=homework_content
         )
 
     except Exception as e:

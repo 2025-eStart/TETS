@@ -14,14 +14,19 @@ data class InitSessionResponse(
     @SerializedName("created_at") val createdAt: String? = null
 )
 
-// 2. [응답] 채팅 응답 결과
+// 2-1. [응답] 채팅 응답 결과
 data class ChatResponse(
     @SerializedName("reply") val reply: String,
     @SerializedName("is_ended") val isEnded: Boolean = false,
     @SerializedName("current_week") val currentWeek: Int = 1,
     @SerializedName("week_title") val weekTitle: String? = null,
     @SerializedName("week_goals") val weekGoals: List<String>? = emptyList(),
-    @SerializedName("homework") val homework: String? = null
+    @SerializedName("homework") val homework: HomeworkContent? = null
+)
+// 2-2. 서버에서 오는 숙제 객체 구조 정의: 바로 위의 ChatResponse에서 씀
+data class HomeworkContent(
+    @SerializedName("description") val description: String,
+    @SerializedName("examples") val examples: List<String> = emptyList()
 )
 
 // 3. 서랍 목록용 데이터 모델
