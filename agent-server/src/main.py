@@ -70,6 +70,7 @@ class ChatResponse(BaseModel):
     current_week: int
     week_title: str
     week_goals: List[str]
+    homework: Optional[str] = None
     
 # -- API 3: 서랍 기능 --
 # 과거 메시지 하나 (Response) (서랍용)
@@ -423,6 +424,9 @@ async def chat_endpoint(req: ChatRequest):
             for c in raw_criteria
             if isinstance(c, dict)
         ]
+        
+        # Graph의 State에서 'homework' 값을 추출
+        homework_content = final_state.get("homework", None)
         
         return ChatResponse(
             reply=last_ai_msg,

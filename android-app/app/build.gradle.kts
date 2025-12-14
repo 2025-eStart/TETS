@@ -89,6 +89,17 @@ dependencies {
     // Hilt + ViewModel (Compose UI 사용 시)
     implementation(libs.hilt.navigation.compose)
 
+    // reminder
+    // 1. WorkManager KTX (기존 runtime 대신 사용)
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // 2. Hilt + WorkManager 연동
+    implementation(libs.androidx.hilt.work)
+
+    // 3. Hilt Worker 어노테이션 프로세서 (kapt)
+    // 이걸 넣지 않으면 Worker 주입 시 에러가 납니다.
+    kapt(libs.androidx.hilt.compiler)
+
     //Retrofit
     implementation(libs.square.retrofit)
     implementation(libs.square.converter.gson)

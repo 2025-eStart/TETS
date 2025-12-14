@@ -9,11 +9,13 @@ package com.example.impulsecoachapp.domain.model
  * @param currentWeek 현재 진행 중인 주차 (예: 1, 2, ...)
  * @param weekTitle 주차별 상담 제목 (예: "문제 고리 이해")
  * @param weekGoals 이번 주 달성해야 할 목표 리스트 (체크리스트용)
+ * @param homework 상담 후 제시된 숙제 ( 일일 리마인더용)
  */
 data class ChatTurn(
     val assistantMessage: ChatMessage,
     val isSessionEnded: Boolean,
     val currentWeek: Int = 1,
     val weekTitle: String? = null,
-    val weekGoals: List<String> = emptyList()
+    val weekGoals: List<String> = emptyList(),
+    val homework: String? = null
 )
