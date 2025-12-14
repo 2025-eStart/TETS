@@ -20,7 +20,8 @@ data class ChatResponse(
     @SerializedName("is_ended") val isEnded: Boolean = false,
     @SerializedName("current_week") val currentWeek: Int = 1,
     @SerializedName("week_title") val weekTitle: String? = null,
-    @SerializedName("week_goals") val weekGoals: List<String>? = emptyList()
+    @SerializedName("week_goals") val weekGoals: List<String>? = emptyList(),
+    @SerializedName("homework") val homework: String? = null
 )
 
 // 3. 서랍 목록용 데이터 모델

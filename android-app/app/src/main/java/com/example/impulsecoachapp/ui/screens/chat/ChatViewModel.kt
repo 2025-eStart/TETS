@@ -1,22 +1,24 @@
 // ui.screens.ChatViewModel.kt
 package com.example.impulsecoachapp.ui.screens.chat
 
-import android.media.Image
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.impulsecoachapp.R
 import com.example.impulsecoachapp.data.model.chat.SessionSummary
 import com.example.impulsecoachapp.data.model.chat.InitSessionResponse
-import com.example.impulsecoachapp.data.model.chat.ResetRequest
 import com.example.impulsecoachapp.data.repository.ActualChatRepository
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
+import com.example.impulsecoachapp.worker.WeeklyReminderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.util.concurrent.TimeUnit
 import kotlin.collections.plus
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -29,15 +31,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.lifecycle.SavedStateHandle
-import com.example.impulsecoachapp.R
 
 import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ActualChatRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context // reminder
 ) : ViewModel() {
 
     /* 클래스 정의 */
@@ -335,8 +340,10 @@ class ChatViewModel @Inject constructor(
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
             _isWeeklyModeLocked.value = false // 상담이 끝났으므로 "새 세션 만들기" 버튼 잠금 해제
-
             loadHistoryList()
+
+            // 상담 종료 시 7일 뒤 알림 예약 로직
+            scheduleWeeklyReminder()
 
             // 10주차 주간상담 종료 시 초기화 버튼 안내 추가
             if (currentSessionType == "WEEKLY" && chatTurn.currentWeek == 10) {
@@ -437,6 +444,16 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // 7. applyChatTurn 중 reminder: 7일 뒤 주간 상담 알림 예약 함수
+    private fun scheduleWeeklyReminder() {
+        val reminderRequest = OneTimeWorkRequestBuilder<WeeklyReminderWorker>()
+            .setInitialDelay(7, TimeUnit.DAYS) // 7일 대기
+            .addTag("WeeklySessionReminder")
+            .build()
+
+        WorkManager.getInstance(context).enqueue(reminderRequest)
+    }
+
     // 9. resetSession 헬퍼
     private fun applySessionState(state: InitSessionResponse) {
         // 1. Repository의 현재 스레드 정보 갱신 (중요: 이후 메시지는 이 threadId로 전송됨)
@@ -468,6 +485,8 @@ class ChatViewModel @Inject constructor(
         // 5. 서랍(History) 목록 갱신 (리셋되면서 과거 기록이 아카이빙 되었을 것이므로)
         loadHistoryList()
     }
+
+
 
 }
 

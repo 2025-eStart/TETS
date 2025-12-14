@@ -1,8 +1,7 @@
 package com.example.impulsecoachapp.data.repository
 
 import com.example.impulsecoachapp.api.ApiService
-import com.example.impulsecoachapp.data.local.DeviceIdManager
-import com.example.impulsecoachapp.data.local.SessionManager
+import com.example.impulsecoachapp.data.local.*
 import com.example.impulsecoachapp.data.model.chat.*
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
@@ -12,7 +11,8 @@ import javax.inject.Inject
 class ActualChatRepository @Inject constructor(
     private val apiService: ApiService,
     private val deviceIdManager: DeviceIdManager,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val homeworkStorage: HomeworkStorage
 ) : ChatRepository {
 
     override suspend fun sendChatMessage(
@@ -21,7 +21,6 @@ class ActualChatRepository @Inject constructor(
     ): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
 
-        // ✅ [수정됨] 오타 수정 (failrue -> failure)
         if (userId.isBlank()){
             return Result.failure(IllegalStateException("유저 ID가 생성되지 않았습니다."))
         }
@@ -40,12 +39,16 @@ class ActualChatRepository @Inject constructor(
 
             val response = apiService.sendChatMessage(request)
 
+            if (!response.homework.isNullOrBlank()) {
+                homeworkStorage.saveHomework(response.homework)
+            }
             val chatTurn = ChatTurn(
                 assistantMessage = ChatMessage.GuideMessage(response.reply),
                 isSessionEnded = response.isEnded,
                 currentWeek = response.currentWeek,
                 weekTitle = response.weekTitle,
                 weekGoals = response.weekGoals ?: emptyList(),
+                homework = response.homework
             )
 
             Result.success(chatTurn)
@@ -54,6 +57,11 @@ class ActualChatRepository @Inject constructor(
             e.printStackTrace()
             Result.failure(e)
         }
+    }
+
+    // 리마인더: 일일 과제 알림용 dailyhomeworkworker가 호출할 함수
+    fun getStoredHomework(): String {
+        return homeworkStorage.getHomework()
     }
 
     // 앱 진입 시 봇을 먼저 깨우는 함수
