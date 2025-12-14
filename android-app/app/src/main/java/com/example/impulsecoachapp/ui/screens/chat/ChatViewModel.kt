@@ -5,6 +5,8 @@ import android.media.Image
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.impulsecoachapp.data.model.chat.SessionSummary
+import com.example.impulsecoachapp.data.model.chat.InitSessionResponse
+import com.example.impulsecoachapp.data.model.chat.ResetRequest
 import com.example.impulsecoachapp.data.repository.ActualChatRepository
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
@@ -38,6 +40,7 @@ class ChatViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    /* 클래스 정의 */
     // 1. 메시지 목록
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -80,6 +83,10 @@ class ChatViewModel @Inject constructor(
     // 10. 현재 세션 타입 기억 변수
     private var currentSessionType: String = "WEEKLY" //기본값 WEEKLY
 
+    // 11. 초기화 버튼 눌렀을 때 경고 팝업
+    private val _showResetDialog = MutableStateFlow(false)
+    val showResetDialog: StateFlow<Boolean> = _showResetDialog.asStateFlow()
+
     // LoadingStage Enum
     enum class LoadingStage {
         THINKING,      // 입력을 읽는 중
@@ -102,7 +109,8 @@ class ChatViewModel @Inject constructor(
         loadHistoryList()
     }
 
-    // 특정 세션(General)을 로드하여 이어하기 모드로 설정
+    /* 함수 정의 */
+    // 1. 특정 세션(General)을 로드하여 이어하기 모드로 설정
     fun loadSpecificSession(threadId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -139,10 +147,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // 상황 1: 앱 켜질 때 (이어하기. 채팅 내역 그대로 남아 있음)
-    // ChatViewModel.kt 내부
-
-    // 상황 1: 앱 켜질 때 (이어하기)
+    // 2. 상황 1: 앱 켜질 때 (이어하기)
     private fun restoreSessionOrStartNew() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -208,19 +213,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // restoreSessionOrStartNew [Helper 함수]
-    private suspend fun startInitialSession() {
-        val firstTurnResult = repository.startSession(forceNew = false)
-
-        firstTurnResult.onSuccess { turn ->
-            applyChatTurn(turn)
-        }.onFailure {
-            _messages.value = listOf(
-                ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
-            )
-        }
-    }
-    // 상황 2: 버튼 눌렀을 때 (새로하기)
+    // 3. 상황 2: 버튼 눌렀을 때 (새로하기)
     fun onNewSessionClick() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -263,7 +256,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // ★ 공통 로직 (Private Helper): 실제로 서버를 찌르는 역할
+    // 4. 실제로 서버를 찌르는 역할
     private suspend fun processSessionStart(isReset: Boolean) {
         val result = repository.startSession(forceNew = isReset)
 
@@ -271,7 +264,7 @@ class ChatViewModel @Inject constructor(
             .onFailure { _messages.value = listOf(ChatMessage.GuideMessage("연결 실패"))}
     }
 
-    // 로딩 스테이지 표시용 타이머
+    // 5. 로딩 스테이지 표시용 타이머
     private fun startLoadingStageTimer() {
         // GENERAL 상담이면 바로 APPLYING 단계로 건너뜀
         if (currentSessionType == "GENERAL") {
@@ -291,7 +284,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // 사용자가 메시지 전송 시
+    // 6. 사용자가 메시지 전송 시
     fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
 
@@ -322,7 +315,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // ★ 핵심: 서버 응답(ChatTurn)을 UI 상태로 변환하는 Source of Truth
+    // 7. 서버 응답(ChatTurn)을 UI 상태로 변환하는 Source of Truth
     private fun applyChatTurn(chatTurn: ChatTurn) {
         // 1. 메시지 추가
         _messages.value = _messages.value + chatTurn.assistantMessage
@@ -344,10 +337,28 @@ class ChatViewModel @Inject constructor(
             _isWeeklyModeLocked.value = false // 상담이 끝났으므로 "새 세션 만들기" 버튼 잠금 해제
 
             loadHistoryList()
+
+            // 10주차 주간상담 종료 시 초기화 버튼 안내 추가
+            if (currentSessionType == "WEEKLY" && chatTurn.currentWeek == 10) {
+                viewModelScope.launch {
+                    _messages.value = _messages.value + ChatMessage.GuideMessage(
+                        "상단 바 오른쪽의 초기화 버튼을 누르면 상담 프로그램이 초기화돼요!" +
+                                "\n(기존 상담 내역은 서랍에서 계속 접근 가능해요🦊)"
+                    )
+                    kotlinx.coroutines.delay(2000)
+                    _messages.value = _messages.value + ChatMessage.GuideMessage(
+                        "초기화 버튼을 누르는 즉시 새로운 1주차 상담이 시작되니, 새로운 상담이 필요할 때 눌러주세요!"
+                    )
+                    kotlinx.coroutines.delay(2000)
+                    _messages.value = _messages.value + ChatMessage.GuideMessage(
+                        "일반 상담을 통해서 언제든 궁금한 것을 물어보실 수 있어요 🦊"
+                    )
+                }
+            }
         }
     }
 
-    // 과거 기록 가져오는 함수
+    // 8. 과거 기록 가져오기
     private fun loadHistoryList() {
         viewModelScope.launch {
             // repository.getSessions()는 서버 /sessions/{id} 호출
@@ -358,12 +369,106 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // 9. 상담 프로그램 완료 후 초기화
+    fun resetSession() {
+        viewModelScope.launch {
+            if (_isLoading.value) return@launch
+            _isLoading.value = true
+            _isSessionEnded.value = false
+            _loadingStage.value = null
+
+            val result = repository.resetSession()
+
+            result.onSuccess { initResponse ->
+                // 1) 새 thread / 상태 반영 + displayMessage를 Guide로 먼저 보여줌
+                applySessionState(initResponse)
+
+                // 2) 그 다음 "__init__"로 1주차 첫 멘트 받아오기
+                val firstTurnResult = repository.startSession(forceNew = false)
+                firstTurnResult.onSuccess { turn ->
+                    applyChatTurn(turn)
+                }.onFailure { e ->
+                    _messages.value = _messages.value + ChatMessage.GuideMessage(
+                        "초기화 후 상담을 시작하는 중 오류가 발생했어요: ${e.message}"
+                    )
+                }
+
+            }.onFailure { error ->
+                _messages.value = _messages.value + ChatMessage.GuideMessage("초기화 실패: ${error.message}")
+            }
+
+            _isLoading.value = false
+        }
+    }
+
+    // 10. 초기화 버튼 눌렀을 때 경고 팝업
+    fun onResetButtonClick() {
+        _showResetDialog.value = true
+    }
+
+    fun onDismissResetDialog() {
+        _showResetDialog.value = false
+    }
+
+    fun onConfirmResetDialog() {
+        _showResetDialog.value = false
+        resetSession() // 여기서만 실제 리셋 실행
+    }
+
     /*
     // Toast 메시지 보여준 후 닫기용
     fun clearToastMessage() {
         _toastMessage.value = null
     }
     */
+
+    //////////// helper 함수 ////////////////
+
+    // 2. restoreSessionOrStartNew 헬퍼
+    private suspend fun startInitialSession() {
+        val firstTurnResult = repository.startSession(forceNew = false)
+
+        firstTurnResult.onSuccess { turn ->
+            applyChatTurn(turn)
+        }.onFailure {
+            _messages.value = listOf(
+                ChatMessage.GuideMessage("상담을 시작하는 중 오류가 발생했어요.")
+            )
+        }
+    }
+
+    // 9. resetSession 헬퍼
+    private fun applySessionState(state: InitSessionResponse) {
+        // 1. Repository의 현재 스레드 정보 갱신 (중요: 이후 메시지는 이 threadId로 전송됨)
+        repository.updateCurrentSessionInfo(state.threadId, state.sessionType)
+        currentSessionType = state.sessionType
+
+        // 2. UI 상태 값 갱신 (주차, 타이틀)
+        _currentWeek.value = state.currentWeek
+
+        _sessionTitle.value = if (state.sessionType == "WEEKLY") {
+            "${state.currentWeek}주차 상담"
+        } else {
+            // created_at이 있으면 날짜 표시, 없으면 그냥 FAQ
+            if (state.createdAt.isNullOrBlank()) "FAQ | ${state.createdAt}" else "FAQ"
+        }
+
+        // 3. 잠금 상태 동기화
+        // status가 "ended"면 입력창 잠금
+        _isSessionEnded.value = (state.status == "ended")
+        // 주간 상담 진행 중 여부에 따라 "새 세션 만들기" 버튼 잠금
+        _isWeeklyModeLocked.value = state.isWeeklyInProgress
+
+        // 4. 메시지 창 처리
+        // 리셋 직후에는 새로운 세션 열고 안내 메시지(displayMessage)만 보여주기
+        val guide = state.displayMessage.takeIf { it.isNotBlank() }
+            ?: "상담이 초기화되었습니다. 1주차부터 다시 시작합니다."
+        _messages.value = listOf(ChatMessage.GuideMessage(guide))
+
+        // 5. 서랍(History) 목록 갱신 (리셋되면서 과거 기록이 아카이빙 되었을 것이므로)
+        loadHistoryList()
+    }
+
 }
 
 @Composable

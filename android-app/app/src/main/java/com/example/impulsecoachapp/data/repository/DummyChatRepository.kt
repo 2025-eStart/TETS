@@ -1,6 +1,7 @@
 //data.repository.DummyChatRepository
 package com.example.impulsecoachapp.data.repository
 
+import com.example.impulsecoachapp.data.model.chat.InitSessionResponse
 import com.example.impulsecoachapp.domain.model.ChatMessage
 import com.example.impulsecoachapp.domain.model.ChatTurn
 import com.example.impulsecoachapp.domain.repository.ChatRepository
@@ -58,4 +59,9 @@ class DummyChatRepository @Inject constructor() : ChatRepository {
         // 더미라서 별도 스레드 개념 없음 → null
         return null
     }
+
+    override suspend fun resetSession(): Result<InitSessionResponse> {
+        return Result.failure(Exception("DummyChatRepository is deprecated and should not be used."))
+    }
+
 }

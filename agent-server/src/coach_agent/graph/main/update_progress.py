@@ -91,7 +91,7 @@ def update_progress(state: State) -> Dict[str, Any]:
         if session_type == "WEEKLY":
             # A. 매 턴 -> 진행 상태(progress) 업데이트
             try:
-                REPO.update_progress(user_id=user_id, week=current_week,exit_hit=state.exit,)
+                REPO.update_progress(user_id=user_id, week=current_week, exit_hit=state.exit,)
                 print(
                     f"[update_progress] [{current_week}주차] "
                     f"진행 상태 업데이트 (exit_hit={state.exit})"

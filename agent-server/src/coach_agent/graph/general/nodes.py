@@ -88,13 +88,17 @@ def _build_homework_context_from_protocol(state: State) -> str:
     user_id = state.user_id
     if not user_id: return ""
 
-    current_week = state.current_week or 1
+    if state.current_week is None:
+        print("[General] _build_homework_context_from_protocol: current_week is None")
+        return ""
+    else: current_week = state.current_week
+    
     homework_text = load_homework_block_for_week(current_week)
     if not homework_text: return ""
 
     return (
         f"아래는 이 사용자의 현재 주차(Week {current_week}) 과제 설명입니다.\n"
-        f"상담 답변 시, 이 과제를 기준으로 설명하고 예시를 들어주세요.\n\n"
+        f"사용자가 과제에 대해 질문을 하거나 혼란스러워할 시, 이 과제를 기준으로 설명하고 예시를 들어주세요.\n\n"
         f"{homework_text}"
     )
 
@@ -106,6 +110,9 @@ def generate_general_answer(state: State) -> Dict[str, Any]:
     print("\n🔍 [General] generate_general_answer 노드 시작")
     current_turn = state.general_turn_count or 0
     messages = state.messages
+    
+    program_status = REPO.get_user(state.user_id).get("program_status", "active")
+    print(f"🔍 [General] User Status Directly Fetched: {program_status}") # 값이 없으면 기본값 "active"
     # ---------------------------------------------------------
     # 1. 마지막 메시지 가져오기
     # ---------------------------------------------------------
@@ -146,9 +153,22 @@ def generate_general_answer(state: State) -> Dict[str, Any]:
             "general_turn_count": (current_turn or 0) + 1
         }
 
-    # 2-2. 컨텍스트 준비 (숙제 + RAG)
-    homework_ctx = _build_homework_context_from_protocol(state)
+    # 2-2. 컨텍스트 준비 (과거 세션 요약 + 숙제 + RAG)
+    # 과거 세션 요약 불러오기
+    summaries = REPO.get_past_summaries(user_id=state.user_id, current_week=state.current_week or 1)
+    past_summary_text = ""
+    if summaries:
+        # 요약 텍스트 포맷팅
+        summary_lines = [f"- Week {s['week']}: {s['summary']}" for s in summaries]
+        past_summary_text = "이 사용자의 현재 진행 중인 상담 요약들:\n" + "\n".join(summary_lines)
+        print(f"🔍 [General] 과거 세션 요약 불러옴: {len(summaries)}개"
+              f", 내용 샘플: '{summary_lines[0][:50]}...'")
+        
+    # 숙제 불러오기 (상담 프로그램 진행 중인 사용자에 한함)
+    if program_status == "active": # 상담 프로그램 진행 중인 사용자에 한함, 프로그램 종료 시 불러오지 않음.
+        homework_ctx = _build_homework_context_from_protocol(state)
     
+    # RAG 자료 검색
     rag_snippets = []
     try:
         rag_docs = search_cbt_corpus(question_text, top_k=3)
@@ -173,6 +193,8 @@ def generate_general_answer(state: State) -> Dict[str, Any]:
         "2) CBT 이론과 RAG 자료를 활용하되, 쉬운 언어로 풀어서 답변합니다.\n"
         "3) 지지적이고 현실적인 톤으로 말하세요.\n\n"
     )
+    if past_summary_text:
+        system_text += past_summary_text + "\n\n"
     if homework_ctx:
         system_text += homework_ctx + "\n\n"
     if rag_text:

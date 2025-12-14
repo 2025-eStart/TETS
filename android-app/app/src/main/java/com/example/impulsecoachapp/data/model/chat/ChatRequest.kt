@@ -17,3 +17,8 @@ data class ChatRequest(
     @SerializedName("message") val message: String,
     @SerializedName("session_type") val sessionType: String
 )
+
+// 3. 프로그램 종료 후 리셋 (/session/reset)
+data class ResetRequest(
+    @SerializedName("user_id") val userId: String
+)

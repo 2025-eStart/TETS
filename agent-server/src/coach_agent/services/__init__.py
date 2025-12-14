@@ -1,7 +1,7 @@
 # coach_agent/services/__init__.py
 import os
 from coach_agent.services.base_repo import Repo
-from coach_agent.services.memory_repo import MemoryRepo
+# from coach_agent.services.memory_repo import MemoryRepo
 from coach_agent.settings import settings
 
 # 1. 환경 변수 읽기
@@ -15,5 +15,6 @@ if REPO_BACKEND == "firestore":
     REPO: Repo = FirestoreRepo()
     print(f"✅ FirestoreRepo 객체 생성 성공: {REPO}")
 else:
-    REPO: Repo = MemoryRepo()
-    print(f"🧠 MemoryRepo(임시 저장소)가 선택되었습니다.")
+    # REPO: Repo = MemoryRepo()
+    # print(f"🧠 MemoryRepo(임시 저장소)가 선택되었습니다.")
+    print(f"❌ memory_repo를 더 이상 지원하지 않습니다. 환경 변수 REPO_BACKEND를 'firestore'로 설정해주세요.")

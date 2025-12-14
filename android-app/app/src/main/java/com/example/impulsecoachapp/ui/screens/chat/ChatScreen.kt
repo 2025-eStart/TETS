@@ -33,7 +33,6 @@ import com.example.impulsecoachapp.ui.components.TopSessionBar
 import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
 
 
-
 @Composable
 fun ChatScreen(
     targetThreadId: String?,
@@ -48,9 +47,10 @@ fun ChatScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val isSessionEnded by viewModel.isSessionEnded.collectAsState()
     val sessionTitle by viewModel.sessionTitle.collectAsState()
-    val sessionGoals by viewModel.sessionGoals.collectAsState()
+    // val sessionGoals by viewModel.sessionGoals.collectAsState()
     val historyList by viewModel.historyList.collectAsState()
     val loadingStage by viewModel.loadingStage.collectAsState() // 로딩 문구
+    val showResetDialog by viewModel.showResetDialog.collectAsState() // 초기화 버튼 경고 팝업
 
     val isWeeklyModeLocked by viewModel.isWeeklyModeLocked.collectAsState()  // 새 세션 생성 버튼 잠금 상태 구독
 
@@ -66,6 +66,13 @@ fun ChatScreen(
         if (targetThreadId != null) {
             viewModel.loadSpecificSession(targetThreadId)
         }
+    }
+    if (showResetDialog) {
+        ResetConfirmDialog(
+            isLoading = isLoading,
+            onConfirm = { viewModel.onConfirmResetDialog() },
+            onDismiss = { viewModel.onDismissResetDialog() }
+        )
     }
 
     ModalNavigationDrawer(
@@ -162,15 +169,16 @@ fun ChatScreen(
                 loadingStage = loadingStage,
                 isSessionEnded = isSessionEnded,
                 sessionTitle = sessionTitle,
-                sessionGoals = sessionGoals,
+                // sessionGoals = sessionGoals,
                 onSendMessage = { viewModel.sendMessage(it) },
-                // [수정 3] 메뉴 버튼 클릭 이벤트 전달
-                onMenuClick = { scope.launch { drawerState.open() } }
+                onMenuClick = { scope.launch { drawerState.open() } },
+                onResetClick = { viewModel.onResetButtonClick() }
             )
         }
     }
 }
 
+// 채팅 화면
 @Composable
 fun ChatScreenContent(
     modifier: Modifier = Modifier,
@@ -180,9 +188,10 @@ fun ChatScreenContent(
     loadingStage: LoadingStage?,
     isSessionEnded: Boolean,
     sessionTitle: String,
-    sessionGoals: List<String>,
+    // sessionGoals: List<String>,
     onSendMessage: (String) -> Unit,
-    onMenuClick: () -> Unit // 메뉴 클릭 콜백 추가
+    onMenuClick: () -> Unit, // 메뉴 클릭 콜백
+    onResetClick: () -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     Column(
@@ -199,7 +208,7 @@ fun ChatScreenContent(
             )
     ) {
         // 상단 바에 메뉴 클릭 이벤트 전달
-        TopSessionBar(title = sessionTitle, onMenuClick = onMenuClick)
+        TopSessionBar(title = sessionTitle, onMenuClick = onMenuClick, onResetClick = onResetClick)
 
         MessageList(
             messages = messages,
@@ -215,6 +224,7 @@ fun ChatScreenContent(
     }
 }
 
+// 입력창
 @Composable
 fun UserInput(
     isLoading: Boolean,
@@ -357,6 +367,7 @@ fun MessageList(
     }
 }
 
+// 채팅 말풍선
 @Composable
 fun ChatBubble(message: ChatMessage) {
     when (message) {
@@ -393,4 +404,38 @@ fun ChatBubble(message: ChatMessage) {
             }
         }
     }
+}
+
+// 초기화 버튼 경고 팝업
+@Composable
+fun ResetConfirmDialog(
+    isLoading: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = { Text("상담 진행도 초기화") },
+        text = {
+            Text(
+                "*기존 세션(과거 채팅)은 유지돼요*\n\n" +
+                        "초기화하는 순간부터 주간 상담 진행도(현재 주차, 요약 등)가 초기화되고,\n" +
+                        "바로 1주차 상담을 다시 시작해요.🦊\n\n" +
+                        "초기화할까요?"
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !isLoading,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFFD32F2F))
+            ) { Text("🔄초기화") }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) { Text("❌취소") }
+        }
+    )
 }
