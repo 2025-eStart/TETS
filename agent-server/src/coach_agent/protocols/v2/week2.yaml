@@ -1,0 +1,83 @@
+week: 2
+
+agenda: "문제 소비 패턴(Problem Buying Patterns) 명확화 & 장단점 분석"
+
+description: >
+  이번 주차는 자신의 소비 문제가 ‘정확히 어떤 패턴으로 나타나는지’를
+  탐색하는 회기입니다.
+  사용자가 느끼는 충동적·습관적 소비의 특성을 정의하고,
+  소비 행동의 장점/단점(Pros & Cons)을 분석하여
+  왜 소비가 반복되는지의 기능적 측면을 인식하도록 돕습니다.
+  이는 CBT 치료에서 핵심 초기 작업으로,
+  이후 모든 세션의 개입 방향을 결정하는 중요한 주차입니다.
+
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "problem_buying_pattern_identification"
+
+core_task:
+  description: >
+    자신의 대표적인 문제 소비 패턴을 1~2개 명확히 설명하고,
+    그 행동의 장단점(Pros/Cons)을 최소 1개 이상 말한다.
+  tags:
+    - "behavior_assessment"
+    - "trigger_identification"
+    - "pros_cons_analysis"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "identified_problem_pattern"
+    required: true
+    description: "대표적인 문제 소비 패턴을 1~2개 언어화했다."
+
+  - id: "described_triggers"
+    required: true
+    description: "문제 소비를 촉발한 상황/감정/생각 중 1개 이상을 설명했다."
+
+  - id: "listed_pros"
+    required: false
+    description: "해당 소비 행동의 장점을 1개 이상 언급했다."
+
+  - id: "listed_cons"
+    required: false
+    description: "해당 소비 행동의 단점을 1개 이상 언급했다."
+
+# ===========================
+# 2) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "behavioral_chain_analysis"
+  - "guided_discovery"
+  - "socratic_questioning"
+  - "advantages_disadvantages"      # pros_cons_analysis → advantages_disadvantages
+  - "functional_analysis"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "normalization"
+  - "motivation_scaling"
+
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 12
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: false   # 필수 기준만 충족하면 OK
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘문제 소비 패턴 기록’을 해보세요.
+    소비가 일어난 순간을 간단히 기록하고,
+    그 소비가 어떤 기능(예: 스트레스 완화, 기분 전환)을 했는지 생각해보면 좋아요.
+  examples:
+    - "상황: 주말 외출 전 → 감정: 설렘/긴장 → 행동: 새 옷 구매 → 기능: 자신감 증가"
+    - "상황: 야근 후 피곤함 → 행동: 배달음식/간식 → 기능: 즉각적 위안"
+    - "상황: 무료함 → 행동: 쇼핑앱 스크롤 → 기능: 지루함 해소"

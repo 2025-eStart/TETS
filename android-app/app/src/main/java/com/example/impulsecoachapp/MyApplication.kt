@@ -1,3 +1,4 @@
+// app.MyApplication
 package com.example.impulsecoachapp
 
 import android.app.Application

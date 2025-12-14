@@ -1,0 +1,72 @@
+# coach_agent/protocols/v2/week1.yaml
+week: 1
+
+agenda: "치료 오리엔테이션 & 소비 문제 이해하기(psychoeducation)"
+
+description: >
+  첫 주차는 치료 구조를 소개하고, 충동·습관적 소비가 어떻게 형성되는지
+  인지행동모델을 통해 설명하는 단계입니다.
+  사용자 스스로 자신의 소비 패턴, 촉발 요인, 감정 조절 방식에 대해 기본적인
+  이해를 가질 수 있도록 돕습니다.
+  동기 부여(motivation)와 치료적 동맹을 형성하는 주차이기도 합니다.
+
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "psychoeducation_on_CBD"
+
+core_task:
+  description: >
+    충동·습관적 소비의 CBT 모델(S → T → E → B)을 이해하고,
+    자신의 소비 문제를 개선하고자 하는 이유를 1개 이상 명확히 말한다.
+  tags:
+    - "psychoeducation"
+    - "motivation"
+    - "identify_triggers"
+
+# ===========================
+# 1-1) 성공 기준
+# ===========================
+success_criteria:
+  - id: "understood_CBT_model"
+    required: true
+    description: "CBT의 기본 구조(상황-생각-감정-행동)를 이해했다고 말한다."
+
+  - id: "named_one_trigger"
+    required: true
+    description: "자신의 소비 촉발 요인(trigger)을 하나 이상 언급했다."
+
+  - id: "stated_motivation"
+    required: false
+    description: "문제를 개선하고 싶은 개인적 동기를 하나 이상 말한다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "socratic_questioning"
+  - "effect_of_belief"
+  - "behavior_consequence_inquiry"
+  
+
+constraints:
+  max_turns: 10
+  min_turns: 3
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+blocked_techniques: []
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘내 소비 패턴 관찰하기’를 해볼 거예요.
+    평소 소비가 일어난 순간을 간단히 기록해두면 좋아요.
+    (언제, 어디서, 어떤 감정이 있었는지 정도만 적어도 충분해요.)
+  examples:
+    - "상황: 퇴근길 편의점 → 감정: 지침, 허기 → 행동: 간식 구매"
+    - "상황: 점심 후 → 감정: 스트레스 → 행동: 쇼핑앱 둘러보기"
