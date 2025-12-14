@@ -2,7 +2,7 @@
   "$schema": "https://langgra.ph/schema.json",
   "dependencies": ["./src/coach_agent"],
   "graphs": {
-    "agent": "./src/coach_agent/agent.py:app"
+    "agent": "./src/coach_agent/graph/__init__.py:app"
   },
   "env": ".env",
   "python_version": "3.11",

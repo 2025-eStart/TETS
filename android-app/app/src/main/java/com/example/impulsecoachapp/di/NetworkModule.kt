@@ -1,29 +1,46 @@
+// di.NetworkModule
 package com.example.impulsecoachapp.di
 
+import com.example.impulsecoachapp.BuildConfig // 빌드 후 생성됨 (import 안 되면 Build -> Clean Project -> Rebuild Project)
 import com.example.impulsecoachapp.api.ApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // Hilt가 Retrofit을 만들 수 있도록 @Provides 추가
     @Provides
     @Singleton
-    fun provideRetrofit(): Retrofit {
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(180, TimeUnit.SECONDS) // LLM 응답 대기 시간 확보
+            .readTimeout(180, TimeUnit.SECONDS)
+            .writeTimeout(180, TimeUnit.SECONDS)
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://127.0.0.1:8000") // [중요] 실제 서버 주소로 변경하세요!
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
-    // Hilt가 ApiService를 만들 수 있도록 @Provides 추가
     @Provides
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {

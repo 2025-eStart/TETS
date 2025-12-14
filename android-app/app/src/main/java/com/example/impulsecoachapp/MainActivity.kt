@@ -1,3 +1,4 @@
+// app.MainActivity
 package com.example.impulsecoachapp
 
 import android.os.Bundle
@@ -8,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import com.example.impulsecoachapp.ui.ImpulseCoachApp
 import com.example.impulsecoachapp.ui.theme.ImpulseCoachAppTheme
@@ -31,13 +31,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    ImpulseCoachAppTheme {
-        ImpulseCoachApp()
     }
 }

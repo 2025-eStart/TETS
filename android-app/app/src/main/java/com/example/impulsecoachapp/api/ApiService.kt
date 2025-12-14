@@ -1,29 +1,33 @@
+//api.ApiService
 package com.example.impulsecoachapp.api
 
-import com.example.impulsecoachapp.data.model.chat.ChatRequest // <-- 'Next' 제거
-import com.example.impulsecoachapp.data.model.chat.ChatResponse // <-- 'Next' 제거
+import com.example.impulsecoachapp.data.model.chat.*
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.GET
+import retrofit2.http.Path
 
 interface ApiService {
 
-    // ... 기타 다른 API 함수들 ...
+    // 1. 세션 초기화 (채팅방 배정 요청) & 상담 프로그램 완료 후 리셋 시 다시 1주차부터 상담 시작
+    @POST("session/init")
+    suspend fun initSession(@Body request: InitSessionRequest): InitSessionResponse
 
-    /**
-     * 새로운 단일 채팅 API (Facade)
-     */
-    @POST("/chat/next")
-    suspend fun chatNext(@Body request: ChatRequest): ChatResponse // <-- 타입 변경
+    // 2. 대화하기 (메시지 전송)
+    @POST("chat")
+    suspend fun sendChatMessage(@Body request: ChatRequest): ChatResponse
 
-    /*
-    // --- 기존 채팅 API 함수들은 주석 처리하거나 삭제 ---
-    @POST("/chat/start")
-    suspend fun startChat(...)
+    // 3. 과거 세션 목록 조회
+    @GET("sessions/{userId}")
+    suspend fun getSessions(@Path("userId") userId: String): List<SessionSummary>
 
-    @POST("/chat/send")
-    suspend fun sendMessage(...)
+    // 4. 과거 대화 상세 내역 가져오기
+    @GET("history/{userId}/{threadId}")
+    suspend fun getSessionHistory(
+        @Path("userId") userId: String,
+        @Path("threadId") threadId: String
+    ): List<MessageHistoryResponse>
 
-    @POST("/chat/end")
-    suspend fun endChat(...)
-    */
+    @POST("session/reset")
+    suspend fun resetSession(@Body request: ResetRequest): InitSessionResponse
 }

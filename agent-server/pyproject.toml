@@ -1,16 +1,45 @@
 [project]
-name = "agent"
+name = "coach_agent"
 version = "0.0.1"
-description = "Starter template for making a new agent LangGraph."
+description = "CBT Coach Agent LangGraph"
 authors = [
-    { name = "William Fu-Hinthorn", email = "13333726+hinthornw@users.noreply.github.com" },
+    { name = "Heejung Yu", email = "yuhj@ewha.ac.kr" },
 ]
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
-    "langgraph>=1.0.0",
+    # --- Core ---
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
     "python-dotenv>=1.0.1",
+    "python-frontmatter",
+    "jinja2",
+
+    # --- LangChain / LangGraph ---
+    "langchain",
+    "langgraph>=1.0.0",
+    "langchain-openai",
+    "langsmith",
+
+    # --- Firebase ---
+    "firebase-admin",
+    "google-api-core",
+    "langchain-google-firestore",
+
+    # --- RAG / Vector DB ---
+    "pinecone",
+    "langchain-pinecone",
+    "langchain_huggingface",
+    "langchain_community",
+    "sentence-transformers",
+    "pypdf",
+    "faiss-cpu",
+
+    # --- Utils ---
+    "tqdm",
+    "PyYAML",
 ]
 
 
@@ -22,10 +51,10 @@ requires = ["setuptools>=73.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["langgraph.templates.agent", "agent"]
-[tool.setuptools.package-dir]
-"langgraph.templates.agent" = "src/agent"
-"agent" = "src/agent"
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 
 [tool.setuptools.package-data]

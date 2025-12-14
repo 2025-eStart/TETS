@@ -1,0 +1,88 @@
+week: 8
+
+agenda: "노출(Exposure) & 반응예방(Response Prevention, RP): 충동을 견디는 연습"
+
+description: >
+  이번 주차는 충동·습관적 소비 치료의 핵심 단계인 ‘노출과 반응예방(ERP)’을 배우는 주차입니다.
+  즉, 소비 욕구가 올라오는 상황에 의도적으로 접근하되, 
+  기존처럼 바로 행동(구매)으로 이어지지 않도록 반응을 조절하는 법을 연습합니다.
+  충동은 시간이 지나면 자연스럽게 감소한다는 원리를 체험하게 하여,
+  소비 행동을 유지시키는 강화 루프를 끊게 됩니다.
+  Week 7까지의 인지 작업이 ERP의 중심 기반이 됩니다.
+
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "exposure_and_response_prevention"
+
+core_task:
+  description: >
+    소비 충동이 올라오는 상황을 하나 정하고,
+    해당 상황에 대한 ‘노출 단계(접근) + 반응예방 전략(구매 미루기)’을 계획하며,
+    충동 변화를 관찰하는 방법을 이해한다.
+  tags:
+    - "exposure"
+    - "response_prevention"
+    - "urge_management"
+    - "behavioral_experiment"
+    - "emotion_tolerance"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "selected_exposure_situation"
+    required: true
+    description: "노출 연습을 할 소비 상황(트리거 상황)을 하나 명확히 선택했다."
+
+  - id: "planned_response_prevention"
+    required: true
+    description: "해당 상황에서 구매 행동을 지연/차단하기 위한 전략을 하나 말하거나 합의했다."
+
+  - id: "understood_urge_curve"
+    required: false
+    description: "충동(urge)의 강도가 시간이 지나면 감소한다는 원리를 이해하거나 언급했다."
+
+  - id: "linked_cognitive_factors"
+    required: false
+    description: "충동 상황에서 자동사고/감정이 어떻게 작동하는지 설명했다."
+
+# ===========================
+# 3) Allowed Techniques (LLM Dynamic)
+# ===========================
+allowed_techniques:
+  - "exposure"                      # exposure_planning → exposure
+  - "aware_technique"               # response_prevention_planning → aware_technique
+  - "aware_technique"               # urge_surfing → aware_technique
+  - "behavioral_experiments"        # behavioral_experiment → behavioral_experiments
+  - "guided_discovery"
+  - "socratic_questioning"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "action_plans"                  # implementation_intentions → action_plans
+  - "normalization"
+
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘ERP 실험’을 실제로 해보세요.
+    소비 충동이 올라오는 상황을 선택한 뒤,
+    구매를 최소 10~30분 미루고(반응예방),
+    그 시간 동안 충동의 변화(강도·감정·생각)를 기록해보면 좋습니다.
+    충동이 오르내리는 패턴(urge curve)을 관찰하는 것이 목표입니다.
+  examples:
+    - "상황: 퇴근 후 쇼핑앱 열고 싶을 때 → RP: 15분 미루기 → 충동 변화 기록"
+    - "상황: 친구가 예쁜 물건 추천 → RP: ‘내일 다시 보기’ 규칙 적용"
+    - "상황: 스트레스 쌓인 날 → RP: 산책/스트레칭 같은 대체 행동 10분 먼저 하기"

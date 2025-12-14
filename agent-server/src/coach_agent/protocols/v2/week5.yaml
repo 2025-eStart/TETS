@@ -1,0 +1,84 @@
+week: 5
+
+agenda: "자동사고 탐색 & 사고–감정–행동 연결 강화 (Cognitive Responses Part 1)"
+
+description: >
+  이번 주차는 소비 충동을 유발하는 ‘자동사고’를 보다 깊이 탐색하고,
+  그 사고가 감정과 행동을 어떻게 변화시키는지 연결을 강화하는 단계입니다.
+  Week 3에서 Cue–AT–Emotion–Behavior를 1차적으로 구조화했다면,
+  이번 주는 더 다양한 자동사고를 뽑아내고 그 패턴을 파악하는 주차입니다.
+  또한 소비를 강화시키는 생각(예: 보상, 자격, 즉각적 위안)을 정확히 인식하도록 돕습니다.
+  이는 이후 Week 6의 본격적인 인지 재구조화(근거 평가, 대안적 사고 생성)의 기반입니다.
+
+# ===========================
+# 1) Session Goal
+# ===========================
+session_goal: "automatic_thought_elicitation_and_cognitive_linking"
+
+core_task:
+  description: >
+    하나의 대표 소비 사례에서 다양한 자동사고(AT)를 2개 이상 탐색하고,
+    그 사고가 감정·행동과 어떻게 연결되었는지 자신의 말로 설명한다.
+  tags:
+    - "automatic_thought"
+    - "emotion_linking"
+    - "cognitive_patterns"
+    - "behavioral_chain"
+
+# ===========================
+# 1-1) Success Criteria
+# ===========================
+success_criteria:
+  - id: "elicited_two_ATs"
+    required: true
+    description: "소비 상황에서 떠오른 자동사고를 2개 이상 구체적으로 말했다."
+
+  - id: "linked_AT_to_emotion"
+    required: true
+    description: "자동사고가 감정·행동에 어떤 영향을 주었는지 설명했다."
+
+  - id: "identified_cognitive_pattern"
+    required: false
+    description: "특정 인지 패턴(예: 과잉일반화, 정서적 추론)을 1개 이상 인식했다."
+
+  - id: "recognized_short_term_reward"
+    required: false
+    description: "소비 행동이 단기적으로 어떤 보상을 주었는지 언급했다."
+
+# ===========================
+# 3) Allowed Techniques
+# ===========================
+allowed_techniques:
+  - "eliciting_automatic_thoughts"
+  - "guided_discovery"
+  - "socratic_questioning"
+  - "emotion_labeling_training"     # emotion_labeling → emotion_labeling_training
+  - "downward_arrow"
+  - "behavioral_chain_analysis"
+  - "normalization"
+  - "cognitive_patterns_identification"
+
+
+blocked_techniques: []
+
+constraints:
+  max_turns: 14
+  min_turns: 4
+  exit_policy:
+    require_all_criteria: true
+    require_min_turns: true
+    require_llm_confirmation: false
+
+# ===========================
+# 4) Homework
+# ===========================
+homework:
+  description: >
+    이번 주에는 ‘자동사고 기록 노트’를 작성해보세요.
+    소비 욕구가 올라왔던 상황을 떠올려서,
+    어떤 생각이 가장 먼저 스쳐 지나갔는지 1~2문장으로 적어보면 좋습니다.
+    특히 감정 변화가 어떤 식으로 이어졌는지 함께 적으면 Week 6에서 매우 도움이 됩니다.
+  examples:
+    - "상황: SNS에서 다른 사람 쇼핑 인증 → AT: '나도 이건 있어야 할 것 같아' → Emotion: 불안/초조"
+    - "상황: 지친 퇴근길 → AT: '오늘은 나한테 보상하는 날이야' → Emotion: 안도감/위안"
+    - "상황: 무료함 → AT: '뭐라도 사면 기분 나아질 듯' → Emotion: 무기력 → Behavior: 쇼핑앱 열기"

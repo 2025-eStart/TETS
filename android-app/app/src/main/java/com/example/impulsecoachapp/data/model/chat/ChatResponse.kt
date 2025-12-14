@@ -1,29 +1,33 @@
+// data.model.chat.ChatResponse
 package com.example.impulsecoachapp.data.model.chat
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * /chat/next API로부터 받을 응답(Response) 모델
- *
- * @param sessionId 현재 세션 ID
- * @param reply 어시스턴트의 응답 (채팅 로그 기반)
- * @param state 현재 세션 상태
- * @param isEnded 세션이 종료되었는지 여부
- * @param homework 숙제 (선택 사항)
- */
-data class ChatResponse(
-    @SerializedName("session_id") val sessionId: String,
-    @SerializedName("reply") val reply: Reply,
-    @SerializedName("state") val state: Map<String, String>, // 또는 더 구체적인 State 클래스
-    @SerializedName("is_ended") val isEnded: Boolean,
-    @SerializedName("homework") val homework: Map<String, Any>? = null // 또는 Homework 클래스
+// 1. [응답] 세션 초기화 결과
+data class InitSessionResponse(
+    @SerializedName("thread_id") val threadId: String,
+    @SerializedName("session_type") val sessionType: String, // "WEEKLY" or "GENERAL"
+    @SerializedName("display_message") val displayMessage: String = "",
+    @SerializedName("current_week") val currentWeek: Int = 1,
+    @SerializedName("is_weekly_in_progress") val isWeeklyInProgress: Boolean  = false,
+    @SerializedName("status") val status: String? = "active",
+    @SerializedName("created_at") val createdAt: String? = null
 )
 
-/**
- * 'reply' 객체 모델 (채팅 로그의 주석 기반: { emotion, spending, action })
- */
-data class Reply(
-    @SerializedName("emotion") val emotion: String,
-    @SerializedName("spending") val spending: String,
-    @SerializedName("action") val action: String // <-- 이 필드가 실제 말풍선에 표시될 텍스트일 가능성이 높습니다.
+// 2. [응답] 채팅 응답 결과
+data class ChatResponse(
+    @SerializedName("reply") val reply: String,
+    @SerializedName("is_ended") val isEnded: Boolean = false,
+    @SerializedName("current_week") val currentWeek: Int = 1,
+    @SerializedName("week_title") val weekTitle: String? = null,
+    @SerializedName("week_goals") val weekGoals: List<String>? = emptyList()
+)
+
+// 3. 서랍 목록용 데이터 모델
+data class SessionSummary(
+    @SerializedName("session_id") val sessionId: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("date") val date: String,
+    @SerializedName("session_type") val sessionType: String = "GENERAL",
+    @SerializedName("status") val status: String? = null
 )

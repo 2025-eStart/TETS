@@ -1,3 +1,4 @@
+// ui.theme.Type
 package com.example.impulsecoachapp.ui.theme
 
 import androidx.compose.material3.Typography
