@@ -3,14 +3,18 @@
 package com.example.impulsecoachapp.worker
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.impulsecoachapp.data.repository.ActualChatRepository
 import com.example.impulsecoachapp.utils.NotificationHelper
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class DailyHomeworkWorker(
-    context: Context,
-    workerParams: WorkerParameters,
+@HiltWorker
+class DailyHomeworkWorker@AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted workerParams: WorkerParameters,
     private val repository: ActualChatRepository
 ) : CoroutineWorker(context, workerParams) {
 
