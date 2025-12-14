@@ -343,7 +343,10 @@ class ChatViewModel @Inject constructor(
             loadHistoryList()
 
             // 상담 종료 시 7일 뒤 알림 예약 로직
-            scheduleWeeklyReminder()
+            // 10주차 상담 후에는 다음 주 알림을 예약하지 않음
+            if (chatTurn.currentWeek < 10) {
+                scheduleWeeklyReminder()
+            }
 
             // 10주차 주간상담 종료 시 초기화 버튼 안내 추가
             if (currentSessionType == "WEEKLY" && chatTurn.currentWeek == 10) {
