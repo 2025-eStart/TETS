@@ -123,8 +123,6 @@ class FirestoreRepo(Repo):
         body["id"] = ref.id
         return body
     '''
-
-    
     #  세션 메타데이터 저장/갱신 (메시지 생성 X)
     #     - /session/init 에서 호출 (세션 박제용)
     #     - save_message 에서 호출 (세션 보장용)
@@ -149,7 +147,7 @@ class FirestoreRepo(Repo):
             # 파라미터로 받은 created_at이 있으면 쓰고, 없으면 서버 시간 사용
             new_created_at = created_at if created_at else firestore.SERVER_TIMESTAMP
 
-            session_ref.set({
+            new_session_data = {
                 "id": thread_id,
                 "user_id": user_id,
                 "week": int(week),
@@ -160,8 +158,15 @@ class FirestoreRepo(Repo):
                 "last_activity_at": new_created_at,
                 "checkpoint": {"step_index": 0},
                 "state": {},
-            })
-            print(f"   [DB] REPO.save_session_info[B]: New session created: {thread_id}")
+            }
+            
+            # WEEKLY 세션일 때만 'is_current_program'(현재 프로그램 세션인지/리셋 시 중요 필드) 추가
+            if session_type == "WEEKLY":
+                new_session_data["is_current_program"] = True
+            
+            # DB 저장
+            session_ref.set(new_session_data)
+            print(f"   [DB] REPO.save_session_info[B]: New {session_type} session created: {thread_id}")
             
     # 일반 메시지 저장 (메시지 생성 O)
     #     - /chat 에서 호출
@@ -230,7 +235,7 @@ class FirestoreRepo(Repo):
             "last_weekly_session_completed_at": completed_at
         }, merge=True)
         
-        # 4. 주차 승급
+        # 4. 주차 승급  & 10주차 시 프로그래 완료 처리(program_status:"completed")
         self.advance_to_next_week(user_id)
 
     # --- [2] 상담 완료 후: 주차 진급 & 10주차가 끝나면 program_status:"completed"처리; [1] mark_session_as_completed에서 수행됨 ---
@@ -246,14 +251,13 @@ class FirestoreRepo(Repo):
             u = {"user_id": user_id, "current_week": 1, "program_status": "active"}
 
         current_week = int(u.get("current_week", 1))
-        next_week = current_week + 1
-
-        if next_week <= 10:
+        
+        if current_week < 10: # 10주차 미만이면 진급
+            next_week = current_week + 1
             u_ref.set({"current_week": next_week}, merge=True)
             return next_week
-        else:
-            # 프로그램 완료 처리
-            u_ref.set({"program_status": "completed"}, merge=True)
+        else:                 # 프로그램 완료 처리: program_status, current_week=0
+            u_ref.set({"program_status": "completed", "current_week": 0}, merge=True)
             return current_week
 
     # --- [3] 21일 <= 미접속기간 && 이번주 상담 미완료(마지막 상담 완료 날짜+7일 이후): week 1으로 롤백 ---
@@ -337,9 +341,11 @@ class FirestoreRepo(Repo):
 
     def get_past_summaries(self, user_id: str, current_week: int) -> List[Dict[str, Any]]:
         """current_week '미만'의 모든 세션에서 'summary' 필드가 있는 문서를 가져옴"""
+        if current_week == 0: current_week = 11  #  0주차 = 모든 상담 프로그램 종료 -> 11로 처리하여 모두 가져오기
+        
         q = (_sessions_col(user_id)
-             .where(filter=FieldFilter("week", "<", int(current_week)))
-             .where(filter=FieldFilter("summary", "!=", None)) # 'summary' 필드가 존재하는 문서만
+             .where(filter=FieldFilter("week", "<=", int(current_week)))
+             .where(filter=FieldFilter("is_current_program", "==", True)) # 현재 상담 프로그램의 기록만
              .order_by("week"))
         
         summaries = []
@@ -347,11 +353,12 @@ class FirestoreRepo(Repo):
             docs = q.stream()
             for d in docs:
                 data = d.to_dict()
-                summaries.append({
-                    "week": data.get("week"),
-                    "session_type": "weekly", # 요약본은 항상 'weekly'
-                    "summary": data.get("summary")
-                })
+                # summary가 있는지 확인
+                if data.get("summary"): 
+                    summaries.append({
+                        "week": data.get("week"),
+                        "summary": data.get("summary")
+                    })
             return summaries
         except Exception as e:
             print(f"FIRESTORE ERROR: Failed to get past summaries: {e}")
@@ -444,3 +451,53 @@ class FirestoreRepo(Repo):
         except Exception as e:
             print(f"🔥 [DB Exception] Firestore 에러: {e}")
                         
+    # 10주차 상담 프로그램 종료 시 "상담 1주차부터 다시 시작하기" 선택지를 위한, 유저 데이터 초기화 함수
+    # 과거 상담 내역은 남겨두고 '주간 상담을 한 번도 하지 않은 상태'로 DB의 유저 필드 리셋
+    def reset_user_progress(self, user_id: str) -> None:
+        """
+        사용자의 모든 진행 상황을 초기화하여 1주차 신규 유저로 만듦.
+        """
+        print(f"      🔍 [DB: reset_user_progress] 시작. User={user_id}") # [DEBUG]
+        
+        # (1) 배치 작업 시작
+        batch = db.batch()
+        
+        try:
+            # (2) 현재 진행 중인 세션 조회
+            sessions_ref = _sessions_col(user_id)
+            
+            print("      🔍 [DB] 진행 중인 세션(is_current_program=True) 조회 중...") # [DEBUG]
+            
+            # 쿼리 실행
+            query = sessions_ref.where(filter=FieldFilter("is_current_program", "==", True))
+            active_sessions = list(query.stream()) # list로 변환하여 개수 확인
+            
+            print(f"      🔍 [DB] 조회된 세션 개수: {len(active_sessions)}") # [DEBUG]
+            
+            count = 0
+            for doc in active_sessions:
+                # is_current_program을 False로 변경
+                batch.update(doc.reference, {"is_current_program": False})
+                count += 1
+                
+            # (3) 배치 커밋
+            if count > 0:
+                print(f"      UPDATE [DB] {count}개 세션 아카이빙(False 처리) 커밋 중...") # [DEBUG]
+                batch.commit()
+                print("      UPDATE [DB] 배치 커밋 완료.") # [DEBUG]
+            else:
+                print("      SKIP [DB] 아카이빙할 세션이 없습니다.") # [DEBUG]
+
+            # (4) 유저 상태 초기화
+            print("      UPDATE [DB] 유저 문서(week=1) 초기화 중...") # [DEBUG]
+            _user_doc(user_id).set({
+                "current_week": 1,
+                "program_status": "active",
+                "last_weekly_session_completed_at": None,
+            }, merge=True)
+            print("      UPDATE [DB] 유저 문서 초기화 완료.") # [DEBUG]
+
+        except Exception as e:
+            print(f"      ❌ [DB ERROR] reset_user_progress 내부 오류: {e}") # [DEBUG]
+            raise e # 상위(API)로 에러를 다시 던짐
+        

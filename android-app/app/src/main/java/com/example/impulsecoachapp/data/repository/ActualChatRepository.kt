@@ -174,9 +174,33 @@ class ActualChatRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
     // 서랍에서 다른 세션으로 갈아탈 때, 세션 매니저 정보를 갱신하는 함수
     fun updateCurrentSessionInfo(threadId: String, sessionType: String) {
         sessionManager.updateSession(threadId, sessionType)
     }
+
+    // 상담 진행도 리셋하고 1주차부터 다시 시작하기
+    override suspend fun resetSession(): Result<InitSessionResponse> {
+        val userId = deviceIdManager.getDeviceId()
+        if (userId.isBlank()) {
+            return Result.failure(IllegalStateException("유저 ID가 없습니다."))
+        }
+
+        return try {
+            // 1) 서버 리셋 호출 → 새 thread 발급
+            val initResponse = apiService.resetSession(ResetRequest(userId))
+
+            // 2) 로컬 세션 상태 동기화 (새 채팅방으로 전환)
+            sessionManager.updateSession(
+                threadId = initResponse.threadId,
+                sessionType = initResponse.sessionType
+            )
+
+            Result.success(initResponse)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
 }

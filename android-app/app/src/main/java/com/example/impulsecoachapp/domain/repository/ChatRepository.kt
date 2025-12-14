@@ -2,6 +2,7 @@
 package com.example.impulsecoachapp.domain.repository
 
 import com.example.impulsecoachapp.domain.model.ChatTurn
+import com.example.impulsecoachapp.data.model.chat.InitSessionResponse
 
 /**
  * 채팅 관련 데이터 처리를 위한 Repository 인터페이스
@@ -16,4 +17,7 @@ interface ChatRepository {
     fun getCurrentSessionType(): String
 
     fun getCurrentThreadId(): String?
+
+    // 10주 상담 프로그램 종료 시 주간 상담 상태 리셋
+    suspend fun resetSession(): Result<InitSessionResponse>
 }

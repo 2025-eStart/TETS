@@ -61,9 +61,9 @@ def load_state(state: State, config: RunnableConfig) -> dict:
             user_data["nickname"] = new_nickname
             final_last_user_message = None 
     '''
+    
     # 5. 미접속 기간 계산
     days_since_last_seen = _days_since(user_data.get("last_seen_at"), now_utc)
-    
     
     # 6. 세션 타입 결정
     if cfg.session_type_override:
@@ -79,21 +79,22 @@ def load_state(state: State, config: RunnableConfig) -> dict:
         )    
         print(f"   [Nodes: LoadState] DB/State 값 사용: {final_session_type}") # [DEBUG]
         
-    # 7. 세션 정보 로드#주차
+    # 7. 상담 주차 결정: 주간/일반 모드에 따른 주차 차이는 init_session에서 처리됨
+    # 메인 그래프의 update_progress 노드에서 REPO.marked_as_completed 호출, 이 함수 내부에서 REPO.nce_to_next_week 호출함으로써 DB의 user.current_week 값이 갱신됨
+    # init_session api에서 주간 상담은 user.current_week 값을 기준으로 새 세션을 만듦
+    # 일반 상담은 user.current_week -1 값을 기준으로 새 세션을 만듦
     current_week = int(user_data.get("current_week") or 1)  # 주차
-    if final_session_type == "GENERAL" and current_week > 1:
-        current_week = current_week - 1  # General 세션은 직전 주차에 대해 상담하므로 현재 주차 -1
-    weekly_session = REPO.get_active_weekly_session(user_id, current_week) # 스레드 id 등
+    # program_status = user_data.get("program_status", "active") # 10주 상담 프로그램 이수 여부 "active" | "completed"    
+    # if program_status == "completed": current_week = 0  # 완료자는 REPO.marked_as_completed에서 주차 0으로 설정되지만 안전장치
+    print(f"   [Nodes: LoadState] 최종 세션 타입: {final_session_type}, 현재 주차: {current_week}") # [DEBUG]
         
     # 최종 상태 반환
     return {
         "user_id": user_id,
         "user_nickname": current_nickname,
         "now_utc": now_utc,
-        "user": user_data,
         "session_type": final_session_type,
         "last_user_message": final_last_user_message,
         "days_since_last_seen": days_since_last_seen,
-        "current_week": current_week,
-        "weekly_session": weekly_session,
+        "current_week": current_week
     }

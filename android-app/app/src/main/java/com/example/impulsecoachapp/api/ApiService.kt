@@ -9,7 +9,7 @@ import retrofit2.http.Path
 
 interface ApiService {
 
-    // 1. 세션 초기화 (채팅방 배정 요청)
+    // 1. 세션 초기화 (채팅방 배정 요청) & 상담 프로그램 완료 후 리셋 시 다시 1주차부터 상담 시작
     @POST("session/init")
     suspend fun initSession(@Body request: InitSessionRequest): InitSessionResponse
 
@@ -21,10 +21,13 @@ interface ApiService {
     @GET("sessions/{userId}")
     suspend fun getSessions(@Path("userId") userId: String): List<SessionSummary>
 
-    // 과거 대화 상세 내역 가져오기
+    // 4. 과거 대화 상세 내역 가져오기
     @GET("history/{userId}/{threadId}")
     suspend fun getSessionHistory(
         @Path("userId") userId: String,
         @Path("threadId") threadId: String
     ): List<MessageHistoryResponse>
+
+    @POST("session/reset")
+    suspend fun resetSession(@Body request: ResetRequest): InitSessionResponse
 }

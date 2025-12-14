@@ -10,6 +10,8 @@
     - API 1: 스레드 생성/유지; 유저 상태에 따라 적절한 스레드 ID와 세션 타입 생성 및 반환
     - API 2: 주어진 스레드 ID로 LangGraph 그래프 실행
     - API 3: 서랍 기능 (과거 채팅 내역 접근)
+    - API 4: 서랍 상세 (특정 세션 메시지 내역 조회)
+    - API 5: 세션 리셋 (주간 상담 관련 user db 필드 초기화; current_week 등)
 
 # 채팅 기능 요구사항: 세션 & 스레드(채팅방) 관리 규칙
     1. weekly session 을 수행한 지 만 일주일이 지난 후에야 다음 상담이 진행되도록 한다. 마지막 weekly 상담으로부터 아직 7일이 지나지 않았으면 채팅창에 접속하더라도 주간 상담이 진행되지 않는다.
@@ -22,6 +24,7 @@
 '''
 
 import uuid
+import traceback
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -38,20 +41,23 @@ from coach_agent.utils._days_since import _days_since
 # --- 앱 초기화 ---
 server = FastAPI(title="CBT Coach Agent API")
 
-# --- 데이터 모델 (DTO) ---
+# ========== 데이터 모델 (DTO) =========
+# -- API 1: 세션 초기화 (교통정리) --
 class InitSessionRequest(BaseModel):
     user_id: str
     force_new: bool = False  # "새로운 세션 만들기" 버튼 클릭 시 True
 
+# API 1, 5 공용 응답 모델
 class InitSessionResponse(BaseModel):
     thread_id: str
+    status: str = "active"   # "active" | "ended"
     session_type: str        # "WEEKLY" | "GENERAL"
     display_message: str = "" # 화면에 띄울 안내 메시지
     current_week: int = 1    # 현재 주차 정보 추가
-    is_weekly_in_progress: bool = False # 주간 상담이 진행 중인지 여부; 새로운 세션 생성 버튼 비활성화 여부 결정
+    is_weekly_in_progress: bool = True # 주간 상담이 진행 중인지 여부; 새로운 세션 생성 버튼 비활성화 여부 결정
     created_at: str = ""     # 생성 시각 (ISO 문자열); ui 상단 바 출력용
-    status: str = "active"
 
+# -- API 2: 채팅 --
 class ChatRequest(BaseModel):
     user_id: str
     thread_id: str
@@ -65,18 +71,24 @@ class ChatResponse(BaseModel):
     week_title: str
     week_goals: List[str]
     
+# -- API 3: 서랍 기능 --
 # 과거 메시지 하나 (Response) (서랍용)
 class MessageHistoryItem(BaseModel):
     role: str       # "human" | "ai"
     text: str
     created_at: Optional[datetime] = None
 
-class SessionSummary(BaseModel): # 서랍 기능
+# 세션 요약 정보 (Response) (서랍 목록용)
+class SessionSummary(BaseModel):
     session_id: str
     title: str       # 예: "1주차: 시작이 반이다" 또는 "일반 상담 (2025-11-24)"
     date: str        # 예: "2025-11-24"
     session_type: str
     status: Optional[str] = None  # "active", "ended" 등
+    
+# -- API 5: 세션 리셋 --
+class ResetRequest(BaseModel):
+    user_id: str
 
 # --- 헬퍼 함수 ---
 # init_session: 활성 세션 조회 헬퍼 함수
@@ -118,10 +130,11 @@ async def init_session(req: InitSessionRequest):
     user_id = req.user_id
     now = datetime.now(timezone.utc)
     
-    # 1. 유저 정보 조회
+    # 0. 유저 정보 조회
     user = REPO.get_user(user_id)
     last_seen = user.get("last_seen_at")
     last_completed = user.get("last_weekly_session_completed_at")
+    program_status = user.get("program_status", "active") # 10주 상담 프로그램 이수 여부 "active" | "completed"
     current_week = int(user.get("current_week", 1))
     
     days_seen = _days_since(last_seen, now)
@@ -152,6 +165,19 @@ async def init_session(req: InitSessionRequest):
     response_data = None
     session_created_at_dt = now
     
+    # 1. 10주 상담 프로그램 이수자 처리
+    if program_status == "completed":
+        print("   - [API Debug] 프로그램 이수자 -> GENERAL 세션 강제")
+        
+        # 완료자는 항상 GENERAL 세션
+        response_data = InitSessionResponse(
+            thread_id=str(uuid.uuid4()),
+            session_type="GENERAL",
+            display_message="🎉 모든 상담 과정을 수료하셨습니다! 자유롭게 대화 나누세요.",
+            current_week=0, # 완료자는 0으로 처리
+            status="active"
+        )
+    
     # 2. [요구사항 7] 강제 새 세션 (GENERAL)
     if req.force_new:
         print("   - [API Debug] 강제 새 세션 요청 -> GENERAL 세션 생성") # 디버깅
@@ -159,7 +185,7 @@ async def init_session(req: InitSessionRequest):
             thread_id=str(uuid.uuid4()), # 새 방
             session_type="GENERAL",
             display_message="새로운 일반 상담을 시작합니다.",
-            current_week=current_week,
+            current_week=current_week-1, # 일반 상담은 직전 주차
             status="active"
         )
         session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
@@ -186,7 +212,7 @@ async def init_session(req: InitSessionRequest):
             thread_id=str(uuid.uuid4()),
             session_type="GENERAL",
             display_message="다음 주간 상담까지 대기 기간입니다. 자유롭게 대화하세요.",
-            current_week=current_week,
+            current_week=current_week-1, # 일반 상담은 직전 주차
             status="active"
         )
         session_created_at_dt = now # 새 일반 상담 세션이므로 현재 시각
@@ -302,16 +328,20 @@ async def init_session(req: InitSessionRequest):
 async def chat_endpoint(req: ChatRequest):
     print(f"\n🔥 [Chat API Start] Thread={req.thread_id}, UserMsg='{req.message}', SessionType={req.session_type}") # 디버깅
     try:
-        # 1. 그래프 입력값(Inputs) 준비
+        # 1. DB에서 사용자 정보 조회 (program_status 확인용): graph 내부에서도 조회하지만, config 주입을 위해 여기서 미리 조회
+        user_data = REPO.get_user(req.user_id)
+        program_status = user_data.get("program_status", "active") # 기본값 active
+        
+        # 2. 그래프 입력값(Inputs) 준비
         inputs = {
             "messages": [HumanMessage(content=req.message)],
         }
-        # 2. LangGraph Config 설정
+        # 3. LangGraph Config 설정
         config = {
             "configurable": {
                 "thread_id": req.thread_id,
                 "user_id": req.user_id,                   # 안드로이드에서 보낸 device_id
-                "session_type_override": req.session_type # WEEKLY/GENERAL 강제 지정
+                "session_type_override": req.session_type, # WEEKLY/GENERAL 강제 지정
             }
         }
         
@@ -515,3 +545,54 @@ async def get_session_history(user_id: str, thread_id: str):
         filtered_messages.append(msg)
         
     return filtered_messages
+
+# --- API 5: 상담 프로그램 이수 후 상담 이수 상황을 원점으로 리셋 ---
+@server.post("/session/reset", response_model=InitSessionResponse)
+async def reset_session(req: ResetRequest):
+    """
+    상담 프로그램 이수 후 사용자 진행 상황 초기화 (1주차로 리셋)
+    """
+    print(f"\n🔄 [API Start] /session/reset 요청 도착. UserID={req.user_id}") # [DEBUG]
+    user_id = req.user_id
+    
+    try:
+        # 1. DB 리셋
+        print("   -> [Step 1] REPO.reset_user_progress 호출 시도...") # [DEBUG]
+        REPO.reset_user_progress(user_id)
+        print("   -> [Step 1] REPO.reset_user_progress 완료 ✅") # [DEBUG]
+        
+        # 2. 신규 1주차 세션 생성 및 저장
+        new_thread_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        print(f"   -> [Step 2] 신규 세션 생성 중. ThreadID={new_thread_id}") # [DEBUG]
+        
+        REPO.save_session_info(
+            user_id=user_id,
+            thread_id=new_thread_id,
+            session_type="WEEKLY",
+            week=1,
+            created_at=now
+        )
+        print("   -> [Step 2] 신규 세션 저장 완료 ✅") # [DEBUG]
+        
+        # 3. 응답 반환
+        print("   -> [Step 3] Response 객체 생성 중...") # [DEBUG]
+        res = InitSessionResponse(
+            thread_id=new_thread_id,
+            session_type="WEEKLY",
+            current_week=1,
+            display_message="상담이 초기화되었습니다. 1주차부터 다시 시작합니다.",
+            is_weekly_in_progress=True,
+            created_at=_format_kst(now),
+            status="active"
+        )
+        print("✅ [API End] 정상 응답 반환\n") # [DEBUG]
+        return res
+        
+    except Exception as e:
+        print(f"\n❌ [ERROR] /session/reset 처리 중 오류 발생!") # [DEBUG]
+        print(f"❌ [ERROR MESSAGE] {str(e)}") # [DEBUG]
+        print("❌ [TRACEBACK] ---------------------------------")
+        traceback.print_exc() # 에러가 발생한 정확한 코드 라인을 출력
+        print("------------------------------------------------\n")
+        raise HTTPException(status_code=500, detail=str(e))
