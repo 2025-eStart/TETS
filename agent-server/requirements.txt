@@ -21,12 +21,10 @@ langchain-google-firestore
 # --- Vector DB: Pinecone ---
 pinecone                # Pinecone 최신 SDK(v5)
 langchain-pinecone             # LangChain ↔ Pinecone 연결 어댑터
-langchain_huggingface
-langchain_community           
+langchain_huggingface    
 
 # --- Embedding / 문서처리 ---
 # faiss-cpu                      # 과거 대화 내역 임베딩 검색용 Vector DB -> 아직 사용하지 않음
 
 # --- 기타 유틸 ---
-tqdm
 PyYAML                         # protocol 파일 형식 YAML 임포트(app.utils.protocol_loader.py)

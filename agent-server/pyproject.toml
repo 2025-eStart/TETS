@@ -32,13 +32,8 @@ dependencies = [
     "pinecone",
     "langchain-pinecone",
     "langchain_huggingface",
-    "langchain_community",
-    "sentence-transformers",
-    "pypdf",
-    "faiss-cpu",
 
     # --- Utils ---
-    "tqdm",
     "PyYAML",
 ]
 
