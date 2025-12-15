@@ -22,6 +22,7 @@ dependencies = [
     "langgraph>=1.0.0",
     "langchain-openai",
     "langsmith",
+    "langchain-community",
 
     # --- Firebase ---
     "firebase-admin",
