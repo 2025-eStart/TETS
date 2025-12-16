@@ -51,7 +51,7 @@ class ActualChatRepository @Inject constructor(
             }
 
             val chatTurn = ChatTurn(
-                assistantMessage = ChatMessage.GuideMessage(response.reply),
+                assistantMessage = ChatMessage.AssistantMessage(response.reply),
                 isSessionEnded = response.isEnded,
                 currentWeek = response.currentWeek,
                 weekTitle = response.weekTitle,
@@ -103,7 +103,7 @@ class ActualChatRepository @Inject constructor(
             val response = apiService.sendChatMessage(request)
 
             val chatTurn = ChatTurn(
-                assistantMessage = ChatMessage.GuideMessage(response.reply),
+                assistantMessage = ChatMessage.AssistantMessage(response.reply),
                 isSessionEnded = response.isEnded,
                 currentWeek = response.currentWeek,
                 weekTitle = response.weekTitle,
@@ -155,7 +155,7 @@ class ActualChatRepository @Inject constructor(
             val chatMessages = responseList.map { item ->
                 when (item.role.lowercase()) {
                     "user", "human" -> ChatMessage.UserResponse(item.text)
-                    "ai", "assistant", "bot" -> ChatMessage.GuideMessage(item.text)
+                    "ai", "assistant", "bot" -> ChatMessage.AssistantMessage(item.text)
                     else -> ChatMessage.GuideMessage(item.text)
                 }
             }

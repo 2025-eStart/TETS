@@ -339,12 +339,25 @@ async def chat_endpoint(req: ChatRequest):
         # 1. DB에서 사용자 정보 조회 (program_status 확인용): graph 내부에서도 조회하지만, config 주입을 위해 여기서 미리 조회
         user_data = REPO.get_user(req.user_id)
         program_status = user_data.get("program_status", "active") # 기본값 active
-        
-        # 2. 그래프 입력값(Inputs) 준비
+        current_week = int(user_data.get("current_week", 1))
+
+        # __init__ message는 저장하지 않기
+        # 2. user 메시지 저장
+        user_text = req.message or ""
+        if user_text.strip() != "__init__":
+            REPO.save_message(
+                user_id=req.user_id,
+                thread_id=req.thread_id,
+                session_type=req.session_type,
+                week=current_week,
+                role="user",
+                text=user_text,
+            )
+        # 3. 그래프 입력값(Inputs) 준비
         inputs = {
             "messages": [HumanMessage(content=req.message)],
         }
-        # 3. LangGraph Config 설정
+        # 4. LangGraph Config 설정
         config = {
             "configurable": {
                 "thread_id": req.thread_id,
@@ -355,7 +368,7 @@ async def chat_endpoint(req: ChatRequest):
         
         print(f"   -> [Graph Invoke] Config: {config['configurable']}") # 디버깅
         
-        # 3. ainvoke로 그래프 비동기 실행
+        # 5. ainvoke로 그래프 비동기 실행
         final_state = await graph_app.ainvoke(inputs, config=config)
         is_ended = final_state.get("exit", False) # 그래프 결과에서 종료 여부 추출
 
@@ -367,7 +380,7 @@ async def chat_endpoint(req: ChatRequest):
             print(f"   -> [Last Message]: Type={msgs[-1].type}, Content='{msgs[-1].content}'")
         # ----------------------------------------------------
 
-        # 4. 결과 파싱
+        # 6. 결과 파싱
         messages = final_state.get("messages", [])
         last_ai_msg = ""
         
@@ -396,23 +409,7 @@ async def chat_endpoint(req: ChatRequest):
         if not last_ai_msg:
             last_ai_msg = "(응답 없음)"
             
-        # 5. DB 저장 로직 (그래프 정상 실행 시에만)
-        current_week = final_state.get("current_week", 1)
-
-        # __init__ message는 저장하지 않기
-        # 5-1. user 메시지 저장
-        user_text = req.message or ""
-        if user_text.strip() != "__init__":
-            REPO.save_message(
-                user_id=req.user_id,
-                thread_id=req.thread_id,
-                session_type=req.session_type,
-                week=current_week,
-                role="user",
-                text=user_text,
-            )
-
-        # 5-2. AI 메시지 저장
+        # 7. DB 저장 (그래프 정상 실행 시): AI 메시지 저장
         if last_ai_msg and last_ai_msg != "(응답 없음)":
             REPO.save_message(
                 user_id=req.user_id,
@@ -423,7 +420,7 @@ async def chat_endpoint(req: ChatRequest):
                 text=last_ai_msg,
             )
 
-        # 6. 응답 구성
+        # 8. 응답 구성
         week_title = final_state.get("agenda") or "상담" 
         raw_criteria = final_state.get("success_criteria") or []
         week_goals = [
@@ -450,8 +447,22 @@ async def chat_endpoint(req: ChatRequest):
         print(f"ERROR executing graph: {e}")
         import traceback
         traceback.print_exc()
-        # ❗ 여기서는 save_message를 전혀 호출하지 않았으므로
-        #    이번 턴의 user/assistant 아무것도 DB에 남지 않음.
+        # [응답 생성 중 오류 발생 시] 에러 안내 메시지 저장
+        try:
+            # get_user가 실패했더라도 맨 위에서 current_week = 1로 초기화해뒀으므로 여기서 에러(UnboundLocalError)가 나지 않음
+            REPO.save_message(
+                user_id=req.user_id,
+                thread_id=req.thread_id,
+                session_type=req.session_type,
+                week=current_week,
+                role="assistant",
+                text="죄송해요, 오류가 발생했어요. 잠시 후 다시 시도해 주세요. 😢"
+            )
+        except Exception as db_e:
+            # DB가 완전히 죽었을 때
+            print(f"Failed to save error message: {db_e}")
+            pass
+        
         raise HTTPException(status_code=500, detail=str(e))
             
     
