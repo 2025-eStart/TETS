@@ -32,7 +32,7 @@
 
 ---
 
-### 1. Structural Framework & Treatment Flow  
+### 1. `week{n}.yaml`: Structural Framework & Treatment Flow  
 
 (프로그램 구조 및 회기 설계)
 
@@ -58,12 +58,11 @@
 
 ---
 
-### 2. Core CBT Techniques & Clinical Principles  
+### 2. `techniques.yaml`: Core CBT Techniques & Clinical Principles  
 
 (CBT 기법 및 이론적 원칙)
 
-본 프로토콜의 모든 개입(intervention)과 기법 선택 기준은
-다음 CBT 교과서를 중심으로 정립되었습니다.
+본 프로토콜의 모든 개입(intervention)과 기법 선택 기준은 다음 CBT 교과서를 중심으로 정립되었습니다.
 
 * **Beck, J. S. (2011).**  
   *Cognitive Behavior Therapy: Basics and Beyond (2nd / 3rd ed.).*  
@@ -89,9 +88,7 @@
 
 (상담 태도 및 개념적 방향성)
 
-본 프로토콜은 전통적인 CBT의 구조를 유지하면서도,
-비판·통제 중심 접근이 아닌 **자기 인식과 자기 조절(self-regulation)**을
-강조하는 방향으로 설계되었습니다.
+본 프로토콜은 전통적인 CBT의 구조를 유지하면서도, 비판·통제 중심 접근이 아닌 **자기 인식과 자기 조절(self-regulation)**을 강조하는 방향으로 설계되었습니다.
 
 * **적용된 핵심 관점**
   * 소비 행동을 “의지 부족”이 아닌 **학습된 정서 조절 전략**으로 이해
