@@ -213,7 +213,7 @@ async def init_session(req: InitSessionRequest):
         session_created_at_dt = now # 새 주간 상담 세션이므로 현재 시각
         
     # [요구사항 1, 4] 쿨다운 기간 -> GENERAL
-    elif days_completed < 7:
+    elif 0 <= days_completed < 7:
         print("   - [API Debug] 쿨다운 기간(7일 미만) -> GENERAL 세션 생성") # 디버깅
         response_data = InitSessionResponse(
             thread_id=str(uuid.uuid4()),
@@ -225,6 +225,7 @@ async def init_session(req: InitSessionRequest):
         session_created_at_dt = now # 새 일반 상담 세션이므로 현재 시각
         
     # 4. [요구사항 2, 3] 진행 중인 세션 확인: 쿨다운 기간이 아니고, 강제 새 세션도 아니면
+    # days_seen < 21 and (days_completed >= 7 or days_completed == -1 (신규)) 인 상태
     else:
         print("   - [API Debug] 쿨다운 기간 아님 -> 진행 중인 세션 확인...") # 디버깅
         print("   - [API Debug] Active 세션 검색 시도...") # 디버깅
