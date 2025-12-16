@@ -2,14 +2,15 @@
 package com.example.impulsecoachapp.domain.model
 
 sealed class ChatMessage {
-    // 1. [수정] 이 클래스를 상속받는 모든 자식은
-    //    'text'라는 String 속성을 "반드시" 가져야 한다고 'abstract'로 선언합니다.
-    //    (타입을 Any에서 String으로 변경)
+    // 모든 메시지는 내용을 담고 있어야 함
     abstract val text: String
 
-    // 2. [수정] 부모의 'abstract val text'를 구현(override)한다고 명시합니다.
+    // 1. [시스템/가이드] 회색 박스 안내 문구 (예: "상담이 시작되었습니다.")
     data class GuideMessage(override val text: String) : ChatMessage()
 
-    // 3. [수정] 부모의 'abstract val text'를 구현(override)한다고 명시합니다.
+    // 2. [유저] 사용자의 입력 (예: "충동이 너무 심해.")
     data class UserResponse(override val text: String) : ChatMessage()
+
+    // 3. [AI 루시] 실제 봇의 답변 (예: "정말 힘드시겠어요. 어떤 상황인가요?")
+    data class AssistantMessage(override val text: String) : ChatMessage()
 }

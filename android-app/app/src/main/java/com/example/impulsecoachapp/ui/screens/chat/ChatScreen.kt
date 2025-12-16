@@ -2,6 +2,12 @@
 package com.example.impulsecoachapp.ui.screens.chat
 
 import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,8 +20,10 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -332,7 +340,7 @@ fun MessageList(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // [수정] messages.size 뿐만 아니라 isLoading이 변할 때도 트리거
+    // messages.size 뿐만 아니라 isLoading이 변할 때도 트리거
     LaunchedEffect(messages.size, isLoading) {
         if (messages.isNotEmpty() || isLoading) {
             coroutineScope.launch {
@@ -371,25 +379,36 @@ fun MessageList(
 @Composable
 fun ChatBubble(message: ChatMessage) {
     when (message) {
-        is ChatMessage.GuideMessage -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_chatbot),
-                contentDescription = "Guide",
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Box(
-                modifier = Modifier
-                    .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-                    .weight(1f, fill = false)
+        // GuideMessage(시스템)나 AssistantMessage(챗봇) 메시지 모두 동일하게 보여주는 것으로 처리
+        // 추후 다르게 설정할 수도 있음
+        is ChatMessage.GuideMessage, is ChatMessage.AssistantMessage -> {
+            // 텍스트 내용 추출
+            val text = when (message) {
+                is ChatMessage.GuideMessage -> message.text
+                is ChatMessage.AssistantMessage -> message.text
+                else -> "" // 도달할 수 없음
+        }
+        Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
             ) {
-                Text(text = message.text, fontSize = 16.sp, color = Color.Black)
+                Image( //챗봇 아이콘
+                    painter = painterResource(id = R.drawable.ic_chatbot),
+                    contentDescription = "Guide",
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Box( //말풍선 (회색)
+                    modifier = Modifier
+                        .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                        .weight(1f, fill = false)
+                ) {
+                    Text(text = message.text, fontSize = 16.sp, color = Color.Black)
+                }
             }
         }
+        // 사용자 메시지 (보라색)
         is ChatMessage.UserResponse -> Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -405,6 +424,59 @@ fun ChatBubble(message: ChatMessage) {
         }
     }
 }
+
+// 로딩 문구
+@Composable
+fun GeneratingBubble(loadingStage: LoadingStage?) {
+    val infiniteTransition = rememberInfiniteTransition(label = "loading")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    val text = when (loadingStage) {
+        LoadingStage.THINKING ->
+            "루시가 여행자님의 말을 곰곰이 되새기고 있어요…🦊"
+        LoadingStage.SELECTING ->
+            "어떤 기법이 지금 가장 도움이 될지 고르는 중이에요…"
+        LoadingStage.APPLYING ->
+            "선택한 기법으로 답변을 정리하고 있어요…"
+        null ->
+            "루시가 여행자님을 위해서 열심히 고민하는 중이에요! 조금만 기다려 주세요🦊"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        // 봇 아이콘 (기존 ChatBubble과 일관성 유지)
+        Image(
+            painter = painterResource(id = R.drawable.ic_chatbot),
+            contentDescription = "Generating",
+            modifier = Modifier
+                .size(28.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // 텍스트
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .alpha(alpha) // 글자 투명도 애니메이션 적용
+        )
+    }
+}
+
 
 // 초기화 버튼 경고 팝업
 @Composable

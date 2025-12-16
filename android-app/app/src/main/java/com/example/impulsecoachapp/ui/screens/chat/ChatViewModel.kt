@@ -37,6 +37,7 @@ import androidx.work.WorkManager
 import androidx.lifecycle.SavedStateHandle
 
 import com.example.impulsecoachapp.ui.screens.chat.ChatViewModel.LoadingStage
+import kotlinx.coroutines.delay
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -144,8 +145,11 @@ class ChatViewModel @Inject constructor(
                 }
                 // 이어하기 모드이므로 새로운 세션 생성 버튼 잠금 해제
                 _isWeeklyModeLocked.value = false
+                // 이어하기로 들어왔는데, 마지막 메시지가 User면 답변 대기 시작
+                checkIfGeneratingResponse(history, threadId)
             }.onFailure {
                 _messages.value = listOf(ChatMessage.GuideMessage("대화 내용을 불러오지 못했습니다."))
+                _isLoading.value = false // 실패 시 로딩 해제
             }
 
             _isLoading.value = false
@@ -164,23 +168,20 @@ class ChatViewModel @Inject constructor(
             initResult.onSuccess { initRes ->
                 val threadId = initRes.threadId
 
-                // 서버가 알려준 상태 즉시 반영
-                // status가 "ended"이면 true, 그 외(null, "active")면 false
-                // 이렇게 하면 히스토리를 로딩하기 전부터 입력창이 잠깁니다.
+                // 서버가 알려준 상태 즉시 반영 -> 히스토리를 로딩하기 전부터 입력창이 잠금
                 if (initRes.status == "ended") {
                     _isSessionEnded.value = true
                 }
 
-                // (기존 로직)
                 currentSessionType = initRes.sessionType
                 _isWeeklyModeLocked.value = initRes.isWeeklyInProgress
 
-                // [수정] 타이틀 결정 로직 (서랍 목록과 통일성 유지)
+                // 타이틀 결정 로직 (서랍 목록과 통일성 유지)
                 _sessionTitle.value = if (initRes.sessionType == "WEEKLY") {
                     "${initRes.currentWeek}주차 상담"
                 } else {
                     // GENERAL일 경우: "FAQ | {서버가 준 날짜}"
-                    // initRes.createdAt은 이미 "YY-MM-DD HH:MM" 형태임
+                    // initRes.createdAt "YY-MM-DD HH:MM" 형태
                     if (initRes.createdAt.isNullOrBlank()) {
                         "FAQ | ${initRes.createdAt}"
                     } else {
@@ -195,28 +196,89 @@ class ChatViewModel @Inject constructor(
                     if (history.isNotEmpty()) {
                         // 과거 대화가 있으면 복원
                         _messages.value = history
+                        // 마지막 메시지가 유저라면 답변 생성 중이라고 판단하고 폴링 시작
+                        checkIfGeneratingResponse(history, threadId)
                     } else {
                         // 히스토리가 없으면 첫 인사
-                        // [중요] 단, 이미 종료된 세션이라면 굳이 startSession을 불러서 봇을 깨울 필요 없음
+                        // 단, 이미 종료된 세션이라면 굳이 startSession을 불러서 봇을 깨울 필요 없음
                         if (!_isSessionEnded.value) {
                             startInitialSession()
+                        } else {
+                            _isLoading.value = false // 종료됐으면 로딩 끝
                         }
                     }
                 }.onFailure {
                     // 히스토리 로드 실패 시 재시도 (종료 안 된 경우만)
                     if (!_isSessionEnded.value) {
                         startInitialSession()
+                    } else {
+                        _isLoading.value = false
                     }
                 }
             }.onFailure {
                 _messages.value = listOf(
                     ChatMessage.GuideMessage("세션 정보를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.")
                 )
+                _isLoading.value = false
             }
 
             _isLoading.value = false
         }
     }
+
+    // 2-1. 답변 생성 중 클라이언트 종료 대비 로직: 답변 대기 상태 확인 및 복구 로직
+    private fun checkIfGeneratingResponse(history: List<ChatMessage>, threadId: String) {
+        val lastMsg = history.lastOrNull()
+        if (lastMsg is ChatMessage.UserResponse) {
+            // 마지막 유저 메시지 = 아직 봇이 대답 안 함 (또는 에러 나서 끊김) -> 로딩 상태 유지 & 서버 폴링(Polling) 시작
+            _isLoading.value = true
+            startLoadingStageTimer() // "생각하는 중..." 애니메이션 시작
+            startPollingForResponse(threadId) // DB 감시 시작
+        } else {
+            // 마지막이 봇(Assistant/Guide)이면 로딩 끝
+            _isLoading.value = false
+        }
+    }
+
+    // 2-2. 답변 생성 중 클라이언트 종료 대비 로직: 답변이 올 때까지 3초마다 DB 확인 (Polling)
+    private fun startPollingForResponse(threadId: String) {
+        viewModelScope.launch {
+            // 최대 20번 시도 (약 60초 대기) - 무한 루프 방지
+            val maxRetries = 20
+            var attempts = 0
+
+            while (attempts < maxRetries) {
+                delay(3000) // 3초 대기
+                attempts++
+
+                // 히스토리 다시 가져오기
+                val result = repository.getSessionHistory(threadId)
+
+                // 성공했고, 목록이 비어있지 않다면
+                if (result.isSuccess) {
+                    val newHistory = result.getOrNull() ?: emptyList()
+                    if (newHistory.isNotEmpty()) {
+                        val lastMsg = newHistory.last()
+
+                        // 마지막 메시지가 봇(Assistant)이거나 에러(Guide)라면? -> 응답 도착!
+                        // (domain/model/ChatMessage.kt에 AssistantMessage가 있어야 함)
+                        if (lastMsg is ChatMessage.AssistantMessage || lastMsg is ChatMessage.GuideMessage) {
+                            _messages.value = newHistory
+                            _isLoading.value = false
+                            _loadingStage.value = null // 로딩 스테이지 해제
+                            return@launch // 폴링 종료
+                        }
+                    }
+                }
+            }
+
+            // 20번 다 했는데도 답이 안 오면? -> 타임아웃
+            _isLoading.value = false
+            _loadingStage.value = null
+            _messages.value = _messages.value + ChatMessage.GuideMessage("응답이 늦어지고 있어요. 네트워크 상태를 확인하거나 잠시 후 다시 접속해 주세요.")
+        }
+    }
+
 
     // 3. 상황 2: 버튼 눌렀을 때 (새로하기)
     fun onNewSessionClick() {
@@ -425,13 +487,6 @@ class ChatViewModel @Inject constructor(
         resetSession() // 여기서만 실제 리셋 실행
     }
 
-    /*
-    // Toast 메시지 보여준 후 닫기용
-    fun clearToastMessage() {
-        _toastMessage.value = null
-    }
-    */
-
     //////////// helper 함수 ////////////////
 
     // 2. restoreSessionOrStartNew 헬퍼
@@ -491,55 +546,4 @@ class ChatViewModel @Inject constructor(
 
 
 
-}
-
-@Composable
-fun GeneratingBubble(loadingStage: LoadingStage?) {
-    val infiniteTransition = rememberInfiniteTransition(label = "loading")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
-
-    val text = when (loadingStage) {
-        LoadingStage.THINKING ->
-            "루시가 여행자님의 말을 곰곰이 되새기고 있어요…🦊"
-        LoadingStage.SELECTING ->
-            "어떤 기법이 지금 가장 도움이 될지 고르는 중이에요…"
-        LoadingStage.APPLYING ->
-            "선택한 기법으로 답변을 정리하고 있어요…"
-        null ->
-            "루시가 여행자님을 위해서 열심히 고민하는 중이에요! 조금만 기다려 주세요🦊"
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        // 봇 아이콘 (기존 ChatBubble과 일관성 유지)
-        Image(
-            painter = painterResource(id = R.drawable.ic_chatbot),
-            contentDescription = "Generating",
-            modifier = Modifier
-                .size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // 텍스트
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            color = Color.Gray,
-            modifier = Modifier
-                .align(Alignment.CenterVertically)
-                .alpha(alpha) // 글자 투명도 애니메이션 적용
-        )
-    }
 }
