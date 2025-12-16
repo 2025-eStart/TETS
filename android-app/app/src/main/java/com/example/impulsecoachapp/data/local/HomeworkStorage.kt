@@ -28,10 +28,24 @@ class HomeworkStorage @Inject constructor(
 
         return try {
             gson.fromJson(jsonString, Homework::class.java)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        } catch (e: Exception) {e.printStackTrace(); null }
+    }
+
+    // 상담 시간과 주차 정보를 함께 저장 -> 첫 주차 상담 날에는 과제 알림 없음
+    fun saveSessionInfo(timestamp: Long, week: Int) {
+        prefs.edit()
+            .putLong("last_session_time", timestamp)
+            .putInt("last_session_week", week) // 주차 저장 추가
+            .apply()
+    }
+
+    fun getLastSessionTime(): Long {
+        return prefs.getLong("last_session_time", 0L)
+    }
+
+    // 주차 정보 가져오기 (기본값 1)
+    fun getLastSessionWeek(): Int {
+        return prefs.getInt("last_session_week", 1)
     }
 
     // 기본 문구만 필요한 경우를 위한 헬퍼 (알림용 fallback)
