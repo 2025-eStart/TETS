@@ -122,6 +122,7 @@ Lucie/
 ### 4.1. Backend Server (agent-server)
 
 서버를 로컬에서 구동하는 방법입니다.
+상세 내용은 [android-app의 README.install](agent-server/README.install.md)를 참고해주세요.
 
 **1. 환경 설정 파일 준비**
 
@@ -136,6 +137,7 @@ Lucie/
 
 **3. 수동 설치 (Manual)**
 스크립트 실행이 불가능한 경우 아래 명령어를 순서대로 입력하세요.
+
 ```bash
 cd agent-server
 python -m venv .venv                  # 가상환경 생성
@@ -146,7 +148,7 @@ uvicorn src.main:server --host 0.0.0.0 --port 8123 --reload  # 서버 실행
 
 ### 4.2. Android Client (android-app)
 
-앱을 설치하고 실행하는 두 가지 방법입니다.
+상세 내용은 [android-app의 README.install](android-app/README.install.md) 참고
 
 #### Option 1. 시제품 APK 바로 실행
 
