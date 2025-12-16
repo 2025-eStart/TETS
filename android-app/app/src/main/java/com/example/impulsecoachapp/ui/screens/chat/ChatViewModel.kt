@@ -402,6 +402,7 @@ class ChatViewModel @Inject constructor(
         if (chatTurn.isSessionEnded) {
             _isSessionEnded.value = true
             _isWeeklyModeLocked.value = false // 상담이 끝났으므로 "새 세션 만들기" 버튼 잠금 해제
+            repository.saveSessionFinished(chatTurn.currentWeek) //  현재 시간, 현재 주차 함께 저장 -> 일일 리마인더용
             loadHistoryList()
 
             // 상담 종료 시 7일 뒤 알림 예약 로직

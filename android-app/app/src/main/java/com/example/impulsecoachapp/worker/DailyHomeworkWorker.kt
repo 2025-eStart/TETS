@@ -19,23 +19,33 @@ class DailyHomeworkWorker@AssistedInject constructor(
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
-        // 1. Repository를 통해 저장된 숙제 객체 가져오기
+        // 오늘 1주차 상담을 막 끝냈다면 알림 스킵
+        // (2주차부터는 상담 당일에도 알림이 감)
+        if (repository.isFirstWeekSessionToday()) {
+            return Result.success()
+        }
+
+        // 2. 과제 가져오기
         val homework = repository.getStoredHomework()
 
-        // 2. 알림 내용 구성 (숙제가 없으면 기본 문구)
-        val notificationContent = if (homework != null) {
-            // 알림창은 공간이 좁으므로 설명만 보여줌. 예시 생략
+        // 3. 신규 유저(과제 없음)면 스킵
+        if (homework == null) {
+            return Result.success()
+        }
+        // 4. 알림 내용 구성 (숙제가 없으면 기본 문구)
+        val notificationContent = run {
             val baseText = homework.description
-            baseText
+
+            // (나중에 예시 로직을 다시 살릴 때를 대비한 구조)
             /*
             if (homework.examples.isNotEmpty()) {
                 "$baseText\n(예: ${homework.examples[0]})"
             } else {
                 baseText
             }
-             */
-        } else {
-            "여행자님! 오늘도 루시와 약속한 과제를 수행해 보아요! 🦊"
+            */
+
+            baseText // 이 블록의 최종 반환값 (String)
         }
 
         // 3. 알림 띄우기

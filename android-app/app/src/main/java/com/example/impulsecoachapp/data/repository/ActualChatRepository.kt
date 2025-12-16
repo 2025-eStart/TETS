@@ -67,11 +67,37 @@ class ActualChatRepository @Inject constructor(
         }
     }
 
-    // 리마인더: 일일 과제 알림용 과제 객체 가져오기
+    ///////////////////// 리마인더 알림 ////////////////////////
+    // 상담 종료 시 호출 (시간 + 주차 저장)
+    fun saveSessionFinished(week: Int) {
+        homeworkStorage.saveSessionInfo(System.currentTimeMillis(), week)
+    }
+    // 1주차 상담 당일인지 확인하는 로직
+    fun isFirstWeekSessionToday(): Boolean {
+        val lastTime = homeworkStorage.getLastSessionTime()
+        val lastWeek = homeworkStorage.getLastSessionWeek()
+
+        if (lastTime == 0L) return false
+
+        // 1. 날짜가 오늘인지 확인
+        val calendar = java.util.Calendar.getInstance()
+        val todayYear = calendar.get(java.util.Calendar.YEAR)
+        val todayDay = calendar.get(java.util.Calendar.DAY_OF_YEAR)
+
+        calendar.timeInMillis = lastTime
+        val lastYear = calendar.get(java.util.Calendar.YEAR)
+        val lastDay = calendar.get(java.util.Calendar.DAY_OF_YEAR)
+
+        val isToday = (todayYear == lastYear && todayDay == lastDay)
+
+        // 2. "오늘"이고 + "1주차"라면 true 반환
+        return isToday && (lastWeek == 1)
+    }
+    // 일일 과제 알림용 과제 객체 가져오기
     fun getStoredHomework(): Homework? {
         return homeworkStorage.getHomework()
     }
-    // 리마인더: 알림에 띄울 텍스트가 필요할 때 사용하는 헬퍼
+    // 알림에 띄울 텍스트가 필요할 때 사용하는 헬퍼
     fun getStoredHomeworkAsNotificationText(): String {
         val homework = homeworkStorage.getHomework() ?: return homeworkStorage.getDefaultMessage()
 
@@ -79,6 +105,9 @@ class ActualChatRepository @Inject constructor(
         return "${homework.description}\n(예시: ${homework.examples.firstOrNull() ?: "없음"})"
     }
 
+
+
+    /////////////// 세션 생성 및 히스토리 조회 ////////////////////
     // 앱 진입 시 봇을 먼저 깨우는 함수
     suspend fun startSession(forceNew: Boolean = false): Result<ChatTurn> {
         val userId = deviceIdManager.getDeviceId()
