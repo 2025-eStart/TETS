@@ -50,6 +50,8 @@ call .venv\Scripts\activate
 :: 4. 라이브러리 자동 설치 (새로운게 있을 때만 설치됨)
 echo [Setup] Checking/Installing dependencies...
 pip install -r requirements.txt
+echo [Setup] Installing current project in editable mode...
+pip install -e .
 
 :: 5. 서버 실행
 echo.

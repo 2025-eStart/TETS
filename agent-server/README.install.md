@@ -40,10 +40,15 @@
   chmod +x install_and_run.sh
   ./install_and_run.sh
 
-## 4. 수동 설치 방법 (Manual Installation)
+## 4. 수동 설치 방법
 스크립트 실행이 안 될 경우 아래 순서대로 진행하세요.
 
-1. 가상환경 생성(`agent-server` 위치에서): python -m venv .venv
-2. 가상환경 활성화: source .venv/bin/activate (Windows: .venv\Scripts\activate)
-3. 패키지 설치: pip install -r requirements.txt
-4. 서버 실행: uvicorn src.main:server --host 0.0.0.0 --port 8123 --reload
+1. 가상환경 생성(`agent-server` 위치에서):<br>
+  `python -m venv .venv`
+2. 가상환경 활성화:<br>
+  `source .venv/bin/activate (Windows: .venv\Scripts\activate)`
+3. 패키지 설치:<br>
+  `pip install -r requirements.txt`
+  `pip install -e .`
+4. 서버 실행:<br>
+  `uvicorn src.main:server --host 0.0.0.0 --port 8123 --reload`
