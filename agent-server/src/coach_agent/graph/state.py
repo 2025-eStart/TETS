@@ -117,6 +117,16 @@ class State(BaseModel):
             "예: {'defined_budget_rule': True, 'agreed_access_reduction': False}"
         ),
     )
+    
+    # 룰베이스 개입 레벨 & 메트릭
+    intervention_level: str = Field(
+        default="L3_NORMAL",
+        description="사용자 발화 분석을 통해 결정된 개입 단계 (L1~L5)"
+    )
+    input_metrics: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="completeness, avoidance, risk 등 룰베이스 분석 결과"
+    )
 
     # 이번 턴용
     candidate_techniques: List[str] = Field(

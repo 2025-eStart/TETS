@@ -7,6 +7,7 @@ from coach_agent.graph.state import State
 from coach_agent.prompts.identity import PERSONA
 from coach_agent.services.llm import TECHNIQUE_SELECTOR, LLM_CHAIN, CHAT_LLM
 from coach_agent.utils.protocol_loader import load_techniques_catalog
+from coach_agent.utils.metrics import score_input_quality
 from coach_agent.rag.search import search_cbt_corpus
 import time
 import functools
@@ -191,8 +192,25 @@ def counsel_prepare(state: State) -> Dict[str, Any]:
         return {}
 
     updates: Dict[str, Any] = {}
+    
+    # 1. 룰베이스 개입 레벨 계산
+    last_msg = state.messages[-1] if state.messages else None
+    user_text = ""
+    if last_msg and last_msg.type == "human":
+        user_text = last_msg.content
+        # content가 list일 경우 처리 로직은 기존 코드 참고 (여기선 생략)
 
-    # 1) 후보 기법 리스트
+    analysis_result = score_input_quality(user_text)
+    
+    level = analysis_result["level"]
+    metrics = analysis_result["metrics"]
+    
+    updates["intervention_level"] = level
+    updates["input_metrics"] = metrics
+    
+    print(f"📊 [Metrics] Level: {level}, Details: {metrics}")
+
+    # 2. 후보 기법 리스트
     candidate_techniques = _select_candidate_techniques(state)
     if not candidate_techniques:
         print("[counsel_prepare] 경고: candidate_techniques가 비어 있습니다. "
@@ -201,7 +219,7 @@ def counsel_prepare(state: State) -> Dict[str, Any]:
 
     updates["candidate_techniques"] = candidate_techniques
 
-    # 2) RAG 쿼리 생성 + Pinecone 검색
+    # 3. RAG 쿼리 생성 + Pinecone 검색
     rag_queries = _build_rag_queries(state)
     rag_snippets = _retrieve_rag_snippets(rag_queries)
 
@@ -335,6 +353,14 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
         "- good_for_focus: 세션의 초점(agenda, session_goal, core_task_tags)에 잘 맞는 영역 태그들\n"
         "- rag_tags: 이론 스니펫 검색에 사용하는 태그들\n\n"
 
+        f"**[현재 사용자 상태 분석: {state.intervention_level}]**\n"
+        "이 분석 결과에 따라 기법 선택 전략을 조정하라:\n"
+        "- L1_ENCOURAGE (단답): 구체적인 진술을 이끌어내는 질문이나 가벼운 기법을 선택.\n"
+        "- L2_CLARIFY (회피): 회피하는 마음을 짚어주거나, 직면보다는 부드러운 탐색 기법 선택.\n"
+        "- L3_NORMAL (일반): 세션 목표에 맞는 표준 CBT 기법을 자유롭게 선택.\n"
+        "- L4_EMPATHY (불안): 논리적 논박보다는 감정을 읽어주는 기법(감정 라벨링 등) 우선.\n"
+        "- L5_CRISIS (위기): (매우 중요) CBT 작업을 멈추고 안전을 확인하거나 지지하는 기법, 병원 상담 안내 필수.\n\n"
+        
         "기법 선택 시 다음 원칙을 따르라:\n"
         "1) **세션 초점과의 정합성 (good_for_focus 기준)**\n"
         "   - 아래에 주어진 session_goal, agenda, core_task_tags 를 하나의 '세션 초점 태그 집합'으로 보고,\n"
@@ -478,6 +504,8 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
         f"- 지금까지의 상담 요약(summary): {state.summary}\n"
         f"- 최근 대화 요약(recent_messages):\n{recent_messages}\n"
         f"- 성공 기준 정의 목록(success_criteria): {criteria_for_prompt}\n"
+        f"- **분석된 개입 레벨: {state.intervention_level}**\n"
+        "  (이 레벨에 맞춰 상담 태도를 조절할 것. 예: L4면 따뜻하게 공감, L1이면 대화 유도, L5면 절대적으로 안전 제일)\n"
         "각 success_criterion 은 다음 필드를 가진다:\n"
         "  - criterion_id: 기준 ID (예: 'understood_CBT_model')\n"
         "  - required: 이 기준이 이번 주차에서 필수인지 여부\n"
