@@ -1,31 +1,28 @@
 # --- Core ---
-fastapi
+fastapi==0.121.1
 uvicorn[standard]
-pydantic
+pydantic==2.12.4
 python-dotenv
 python-frontmatter
 jinja2
+PyYAML
+tqdm
 
-# --- LangChain / LangGraph ---
-langchain
-langgraph
-langchain-openai
-langsmith                    # test용
+# --- LangChain (로컬 버전 고정) ---
+langchain==0.3.27
+langchain-community==0.3.31
+langchain-core==0.3.79
+langchain-openai==0.3.35
+langgraph==1.0.1
+openai==2.7.1
 
-# --- firebase ---
+# --- Firebase ---
 firebase-admin
 google-api-core
-langchain-google-firestore
+langchain-google-firestore==0.3.0
 
-## ======== RAG ======== ##
-# --- Vector DB: Pinecone ---
-pinecone                # Pinecone 최신 SDK(v5)
-langchain-pinecone             # LangChain ↔ Pinecone 연결 어댑터
-langchain_huggingface
-langchain_community           
-
-# --- Embedding / 문서처리 ---
-# faiss-cpu                      # 과거 대화 내역 임베딩 검색용 Vector DB -> 아직 사용하지 않음
-
-# --- 기타 유틸 ---
-PyYAML                         # protocol 파일 형식 YAML 임포트(app.utils.protocol_loader.py)
+# --- RAG / Vector DB ---
+pinecone==7.3.0
+pinecone-client==6.0.0
+langchain-pinecone==0.2.13
+langchain-huggingface==0.3.1
