@@ -98,11 +98,9 @@ Lucie/
 
 ---
 
-## 6. Data & Open Source Info
+## 3. Data & Open Source Info
 
-### 6.1. Data 
-
-### 6.1. Knowledge Base (RAG Data)
+### 3.1. Knowledge Base (RAG Data)
 본 서비스의 코칭 에이전트는 전문적인 심리 상담을 수행하기 위해, 검증된 학술 논문과 상담 프로토콜을 기반으로 지식 베이스(Knowledge Base)를 구축하였습니다.
 
 * **Data Processing:**
@@ -110,7 +108,7 @@ Lucie/
   * **Pinecone Vector DB**에 임베딩하여 RAG(Retrieval-Augmented Generation) 시스템에 활용
   * 사용자의 상황에 맞는 논문 기반의 근거 있는 조언(Evidence-based Advice) 제공
 
-### 6.2. Key References (참고 문헌)
+### 3.2. Key References (참고 문헌)
 RAG 임베딩 및 상담 로직 설계에 참고한 주요 논문은 다음과 같습니다.
 상담 프로토콜 파일(`agent-server/src/coach_agent/protocols/v2/week{n}.yaml`) 및 기법 파일(`agent-server/src/coach_agent/protocols/v2/techniques.yaml`)에 대한 내용은 `agent-server/.../protocols/`내의 `README` 파일을 참고해주세요.
 
@@ -130,12 +128,12 @@ RAG 임베딩 및 상담 로직 설계에 참고한 주요 논문은 다음과 �
 14. OM1. (2023). People are using ChatGPT as a therapist. Mental health experts have some concerns. OM1 Insights. https://www.om1.com/resource/people-are-using-chatgpt-as-a-therapist-mental-health-experts-have-some-concerns
 
 
-### 6.3. Operational Data (운영 데이터)
+### 3.3. Operational Data (운영 데이터)
 
 * **User History:** 사용자와의 대화 내역은 **Firestore**의 `user/sessions/messages` 컬렉션에 암호화되어 저장됩니다.
 * **Session State:** LangGraph의 `checkpointer`를 통해 대화의 문맥(Context)과 상태를 유지합니다.
 
-### 6.2. Open Source
+### 3.4. Open Source
 
 * **Backend**
   * LangChain: <https://www.langchain.com>
