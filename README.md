@@ -54,25 +54,14 @@ RAG에는 인지행동치료의 개념, 충동소비와 강박적소비장애의
 
 ### 🗂️ 레포지토리 구성
 
+<pre>
 Lucie/
 ├─ README.md
 ├─ README.install.md
 ├─ GroundRule.md
-
-Lucie/
-
-├─ README.md
-
-├─ README.install.md
-
-├─ GroundRule.md
-
 ├─ agent-server/                         # AI 코칭 백엔드
-
 │  ├─ requirements.txt
-
 │  ├─ src/
-
 │  │  ├─ main.py                         # FastAPI 서버 엔트리
 │  │  ├─ coach_agent/                    # 코칭 에이전트 핵심
 │  │  │  ├─ settings.py
@@ -139,10 +128,8 @@ Lucie/
 │        │  └─ res/
 │        ├─ androidTest/
 │        └─ test/
-
 └─ .gitignore
-
-
+</pre>
 
 ## 3. Data & Open Source Info
 
