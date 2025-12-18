@@ -47,7 +47,14 @@ def build_weekly_subgraph():
     builder.add_edge("Greeting", "CounselPrepare")
     # counsel path
     builder.add_edge("CounselPrepare","TechniqueSelector")
-    builder.add_edge("TechniqueSelector", "TechniqueApplier")
+    builder.add_conditional_edges(
+        "TechniqueSelector",
+        lambda x: x.phase,
+        {
+            "COUNSEL": "TechniqueApplier",
+            "EXIT": "Exit"
+        }
+    )
     builder.add_edge("TechniqueApplier", "Summarizer")
     builder.add_edge("Summarizer", "ShouldEndSession")
     builder.add_conditional_edges(

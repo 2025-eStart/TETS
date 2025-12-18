@@ -175,13 +175,13 @@ class State(BaseModel):
             "등을 3~6줄 bullet로 정리."
         ),
     )
-
+    '''
     # LLM I/O
     llm_output: Optional[str] = Field(
         default=None,
         description="run_llm에서 생성된 LLM의 원시 응답 텍스트(상담 발화)."
     )
-
+    '''
     # Homework (이번 주차 과제 정의 자체)
     homework: Dict[str, Any] = Field(
         default_factory=dict,

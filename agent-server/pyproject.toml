@@ -33,6 +33,7 @@ dependencies = [
     "pinecone",
     "langchain-pinecone",
     "langchain_huggingface",
+    "setence-transformers",
 
     # --- Utils ---
     "PyYAML",

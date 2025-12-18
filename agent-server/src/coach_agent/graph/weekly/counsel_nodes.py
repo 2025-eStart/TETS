@@ -309,19 +309,36 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
     # ------------------------------------------------------------------
 
     # 새 기법 선정
-    # candidate_techniques 확보 (없으면 allowed_techniques로 fallback)
+    # 1) candidate_techniques 확보 (없으면 allowed_techniques로 fallback)
     candidate_ids = state.candidate_techniques or state.allowed_techniques or []
-    if not candidate_ids:
-        print("[select_technique_llm] 경고: candidate_techniques와 allowed_techniques가 모두 비어 있습니다.")
-        return {}
-
     
+    # 2)  이미 사용한 기법 제외 로직
+    # 현재 세션에서 한 번이라도 등장했던 기법 ID 추출
+    used_ids = set(entry.get("technique_id") for entry in technique_history)
+    
+    # 후보군에서 사용된 기법 제외
+    fresh_candidate_ids = [tid for tid in candidate_ids if tid not in used_ids]
+    
+    # 만약 모든 후보를 다 써버렸다면 
+    if not fresh_candidate_ids:
+        print("[select_technique_llm] 🚨 모든 기법 소진! 상담 강제 종료 모드 진입")
+        return {
+            "phase": "EXIT",
+            "messages": [AIMessage(content="오늘 준비된 모든 상담 기법을 활용해 보았습니다. 이제 대화를 정리해볼까요?")]
+        }
+    else:
+        print(f"[select_technique_llm] 사용 완료 기법 제외: {used_ids} (남은 후보: {fresh_candidate_ids})")
+
+    # 3) 필터링된 fresh_candidate_ids로 candidate_defs 생성
     candidate_defs: List[Dict[str, Any]] = []
-    for tid in candidate_ids:
+    for tid in fresh_candidate_ids:
         meta = catalog.get(tid)
+        
+        # 방어적 로직: 카탈로그에 해당 ID가 없는 경우 스킵 및 경고
         if meta is None:
             print(f"[select_technique_llm] 경고: intervention catalog에 없는 technique_id: {tid!r}")
             continue
+            
         candidate_defs.append(
             {
                 "id": tid,
@@ -337,7 +354,12 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
     recent_messages = _serialize_recent_messages(state.messages)
     rag_snippets_preview = (state.rag_snippets or [])[:3]
     
-    # 4) 여기서 prompt 메시지 직접 구성
+    # 4) 종료 조건 관련 정보 준비
+    unmet_criteria = [c.get("description") for c in (state.success_criteria or []) 
+                  if not (state.criteria_status or {}).get(c.get("id"), False)]
+    unmet_list_str = "- " + "\n- ".join(unmet_criteria) if unmet_criteria else "없음 (모두 달성)"
+    
+    # 5) 여기서 prompt 메시지 직접 구성
     system_content = (
         PERSONA
         + "\n\n"
@@ -377,7 +399,12 @@ def llm_technique_selector(state: State) -> Dict[str, Any]:
         "     (단, 특정 기법을 반복 훈습하는 것이 core_task 달성에 필수적이라면 반복 선택도 허용한다.)\n"
         "   - 4차 기준: level 과 난이도. 초기/불안정 상태에서는 너무 무거운 schema/core belief 작업보다\n"
         "     감정 라벨링, 자동사고 유도, 증거 탐색 등 비교적 부담이 덜한 기법을 우선 사용하라.\n\n"
-        "4) **선택 결과**\n"
+        "4) **전략적 목표 수립 (중요)**\n"
+        f"현재 세션에서 아직 달성되지 않은 성공 기준들은 다음과 같다:\n{unmet_list_str}\n\n"
+        "기법을 선택할 때, 단순히 기법의 정의에 매몰되지 말고 **위의 미달성 기준 중 하나라도 충족할 수 있는 질문이나 제안**을 포함하여 micro_goal을 설계하라.\n"
+        "- 예: 'CBT 모델 이해'가 미달성이라면, 기법 적용 과정에서 상황-생각-행동의 연결고리를 묻는 내용을 micro_goal에 넣을 것.\n"
+        "- 예: '동기 진술'이 미달성이라면, 기법을 통해 얻은 통찰이 사용자에게 왜 중요한지 묻는 내용을 포함할 것.\n"
+        "5) **선택 결과**\n"
         "   - TechniqueSelection.technique_id 에는 반드시 위 후보 목록 중 하나의 id 만 넣어라.\n"
         "   - micro_goal 은, 선택한 기법을 이용해 이번 턴에 실제로 무엇을 해볼지\n"
         "     '한 번의 턴에서 달성 가능한 크기'로 구체적 행동/사고 작업 단위로 적어라.\n"
@@ -512,7 +539,9 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
         "  - description: 이 기준이 의미하는 바에 대한 설명\n"
         "  - current_met: 지금까지의 대화를 기준으로 이미 충족된 것으로 간주되는지 여부\n\n"
         "너의 작업:\n"
-        "1) response_text: 이번 턴에 사용자에게 전달할 실제 상담 메시지를 작성한다.\n"
+        "1) response_text 작성 지침:\n"
+        "   - 선택된 기법의 절차를 충실히 따르되, **'current_met=False'인 성공 기준을 달성하기 위한 유도 질문이나 설명**을 대화에 반드시 포함하라.\n"
+        "   - 사용자가 success_criteria를 달성할 수 있도록 질문을 던져라.\n"
         "2) criteria_evaluations: 위 success_criteria 목록에 있는 각 기준에 대해,\n"
         "   이번 턴까지의 대화를 모두 고려했을 때 met(True/False)을 판단해 리스트로 채운다.\n"
         "   - criterion_id는 success_criteria 안의 criterion_id 중 하나여야 한다.\n"
@@ -611,7 +640,7 @@ def llm_technique_applier(state: State) -> Dict[str, Any]:
     
     return {
         "messages": [AIMessage(content=response_text)],
-        "llm_output": response_text,
+        # "llm_output": response_text,
         "technique_history": technique_history,
         "session_progress": new_session_progress,
         "criteria_status": criteria_status,

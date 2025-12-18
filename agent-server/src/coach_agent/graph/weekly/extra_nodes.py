@@ -5,6 +5,9 @@ from coach_agent.graph.state import State
 
 def init_weekly_state(state: State) -> dict:
     print("\n🔥 🚀 [WeeklyNode: Init] Weekly Subgraph 진입 성공") # [DEBUG]
+    # 이미 phase가 COUNSEL이면 덮어쓰지 않음
+    if state.phase in ["GREETING", "COUNSEL"]:
+        return {} # 기존 상태 유지
     
     return {
         "phase": "GREETING",
@@ -20,7 +23,7 @@ def init_weekly_state(state: State) -> dict:
         "rag_queries": [],
         "rag_snippets": [],
         "summary": "",
-        "llm_output": None,
+        # "llm_output": None,
         "exit": False,
         # agenda/session_goal/homework 등은 프로토콜 로딩 로직에서 채워줌
     }

@@ -87,7 +87,8 @@ def load_state(state: State, config: RunnableConfig) -> dict:
     # program_status = user_data.get("program_status", "active") # 10주 상담 프로그램 이수 여부 "active" | "completed"    
     # if program_status == "completed": current_week = 0  # 완료자는 REPO.marked_as_completed에서 주차 0으로 설정되지만 안전장치
     print(f"   [Nodes: LoadState] 최종 세션 타입: {final_session_type}, 현재 주차: {current_week}") # [DEBUG]
-        
+        # load_state 노드 어딘가에 추가해서 확인해보세요
+    print(f"DEBUG: Loaded history from DB: {state.technique_history}")
     # 최종 상태 반환
     return {
         "user_id": user_id,
