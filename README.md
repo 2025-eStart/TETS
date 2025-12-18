@@ -55,6 +55,11 @@ RAG에는 인지행동치료의 개념, 충동소비와 강박적소비장애의
 ### 🗂️ 레포지토리 구성
 
 Lucie/
+├─ README.md
+├─ README.install.md
+├─ GroundRule.md
+
+Lucie/
 
 ├─ README.md
 
