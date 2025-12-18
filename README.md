@@ -54,49 +54,81 @@ RAG에는 인지행동치료의 개념, 충동소비와 강박적소비장애의
 
 ### 🗂️ 레포지토리 구성
 
-<pre>
 Lucie/
 ├─ README.md
-├─ .gitignore
-├─ Makefile                         # 서버/앱 빌드·실행 단축
-├─ agent-server/
-│   ├─ src/
-│     │  ├─ coach_agent/
-│     │  │  ├─ graph/
-│     │  │  ├─ prompts/
-│     │  │  ├─ protocols/
-│     │  │  ├─ rag/
-│     │  │  ├─ services/
-│     │  │  ├─ utils/
-│     │  │  ├─ agent.py
-│     │  │  ├─ settings.py
-│     │  │  ├─ configuration.py
-│     │  │  ├─ prompts.py
-│     │  │  └─ state_types.py
-│     │  └─ main.py
-│     ├─ requirements.txt
-│     ├─ test_db.py
-│     ├─ .env.template               # 환경변수 템플릿
-│     ├─ 
-│     │  ├─ .env                    # (gitignored)
-│     │  └─ .firebase_key.json       # (gitignored)
-│     └─ .gitignore                 # 서버 전용 ignore
-└─ android/
-   └─ impulsecoachapp/
-      ├─ app/
-      │  ├─ manifests/
-      │  ├─ kotlin+java/
-      │  └─ res/
-      ├─ build.gradle.kts (Project)
-      ├─ build.gradle.kts (Module:app)
-      ├─ lib.version.toml
-      ├─ gradle/
-      ├─ gradlew / gradlew.bat
-      └─ settings.gradle.kts
+├─ README.install.md
+├─ GroundRule.md
+├─ agent-server/                         # AI 코칭 백엔드
+│  ├─ requirements.txt
+│  ├─ src/
+│  │  ├─ main.py                         # FastAPI 서버 엔트리
+│  │  ├─ coach_agent/                    # 코칭 에이전트 핵심
+│  │  │  ├─ settings.py
+│  │  │  ├─ configuration.py
+│  │  │  ├─ graph/                       # LangGraph 상담 플로우
+│  │  │  │  ├─ general/
+│  │  │  │  │  ├─ builder.py
+│  │  │  │  │  └─ nodes.py
+│  │  │  │  ├─ main/
+│  │  │  │  │  ├─ builder.py
+│  │  │  │  │  ├─ edge.py
+│  │  │  │  │  ├─ load_protocol.py
+│  │  │  │  │  ├─ load_state.py
+│  │  │  │  │  ├─ session_ended.py
+│  │  │  │  │  └─ update_progress.py
+│  │  │  │  ├─ weekly/
+│  │  │  │  │  ├─ builder.py
+│  │  │  │  │  ├─ counsel_nodes.py
+│  │  │  │  │  ├─ edge.py
+│  │  │  │  │  ├─ exit_nodes.py
+│  │  │  │  │  ├─ extra_nodes.py
+│  │  │  │  │  ├─ greeting_nodes.py
+│  │  │  │  │  └─ offtopic.py
+│  │  │  │  ├─ _init_.py
+│  │  │  │  └─ state.py
+│  │  │  ├─ prompts/                    
+│  │  │  ├─ protocols/                  # CBT 프로토콜
+│  │  │  │  ├─ v2/
+│  │  │  │  └─ README.md
+│  │  │  ├─ rag/                        
+│  │  │  ├─ services/                   # Firestore 등 외부 연동
+│  │  │  └─ utils/                      # 공용 유틸
+│  │  ├─ static/                        # 정적 리소스
+│  │  ├─ tests/
+│  │  └─ .github/workflows/
+│  └─ .gitignore
+│
+├─ android-app/                          # Android 클라이언트
+│  ├─ README.install.md
+│  ├─ build.gradle.kts                   
+│  ├─ settings.gradle.kts
+│  ├─ gradle.properties
+│  ├─ gradlew
+│  ├─ gradlew.bat
+│  ├─ gradle/
+│  └─ app/
+│     ├─ build.gradle.kts                # Module(app)
+│     ├─ proguard-rules.pro
+│     ├─ .gitignore
+│     └─ src/
+│        ├─ main/
+│        │  ├─ AndroidManifest.xml
+│        │  ├─ java/com/example/impulsecoachapp/
+│        │  │   ├─ MainActivity.kt
+│        │  │   ├─ MyApplication.kt
+│        │  │   ├─ api/
+│        │  │   ├─ data/
+│        │  │   ├─ di/
+│        │  │   ├─ domain/
+│        │  │   ├─ ui/
+│        │  │   ├─ utils/
+│        │  │   ├─ viewmodel/
+│        │  │   └─ worker/
+│        │  └─ res/
+│        ├─ androidTest/
+│        └─ test/
+└─ .gitignore
 
-</pre>
-
----
 
 ## 3. Data & Open Source Info
 
