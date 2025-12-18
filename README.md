@@ -127,7 +127,9 @@ Lucie/
 │        │  └─ res/
 │        ├─ androidTest/
 │        └─ test/
+
 └─ .gitignore
+
 
 
 ## 3. Data & Open Source Info
