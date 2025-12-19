@@ -27,7 +27,7 @@ android {
             // buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8123/\"")
 
             // EC2 public IP 주소 + 포트 8000 (로컬 호스트 사용 시 주석 처리)
-            buildConfigField("String", "API_BASE_URL", "\"http://54.180.125.238:8000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://52.79.147.86:8000/\"")
         }
         release {
             isMinifyEnabled = false
